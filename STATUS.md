@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `27052fab`（#155），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
+| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `fce2de83`（#157），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -29,9 +29,9 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 | S2-C1 已存板目录 | [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)，`b7dbc7b` | 同会话 `saved_boards` 摘要；有界合成真实措辞复验。不宣称 S2/M1 完成 |
 | S2 其余五类＋换数＋回退＋V-C 抽样 | [#138](https://github.com/weiweity/fuqing-crm-analytics/pull/138) | 2026-09-14 同一 6677／DeepSeek-V41-Flash High 真实模型全周期。不升版本、不代签 UAT、不勾 G1–G6 |
 | R-1 生成配置错误恢复 | [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)，`698278e` | 提交前预检指出非法属性／重叠块；有界真实模型 3 次＋Chrome 预览取消。TABLE `show_values` NOT_OBSERVED。不勾 G1–G6 |
-| 侧栏比赛看板入口 | [#155](https://github.com/weiweity/fuqing-crm-analytics/pull/155)，`27052fab` | 新标签打开独立 15173 前端；不内嵌、不启旧栈。5173 留给其它 Vite |
+| 侧栏比赛看板入口 | [#155](https://github.com/weiweity/fuqing-crm-analytics/pull/155) / [#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157)，`fce2de83` | 新标签打开独立 15173；不内嵌。5173 留给其它 Vite |
 
-#134 的合成检查与受控浏览器 QA 范围不变；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。#136 [PR CI 34844745522](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34844745522)成功。合入 SHA `b7dbc7b` 的 [main CI 34846189734](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34846189734) 首次 `b0-contract-build` 因 `first_purchase_native` 503/409 失败，`--failed` 重跑后含 `merge-gate` 成功；不把后一次绿灯写成从未失败。#153 [PR CI 34940883528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34940883528)与合入 SHA `698278e` 的 [main CI 34950368840](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34950368840)均成功。#155 [PR CI 34957745433](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34957745433)与合入 SHA `27052fab` 的 [main CI 34959522528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34959522528)均成功。P2 后历史 main CI `34768344985` 失败不回写为成功。CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验收。
+#134 的合成检查与受控浏览器 QA 范围不变；[PR CI 34809535341](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34809535341)与该业务提交的[main CI 34810185362](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34810185362)均成功。#136 [PR CI 34844745522](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34844745522)成功。合入 SHA `b7dbc7b` 的 [main CI 34846189734](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34846189734) 首次 `b0-contract-build` 因 `first_purchase_native` 503/409 失败，`--failed` 重跑后含 `merge-gate` 成功；不把后一次绿灯写成从未失败。#153 [PR CI 34940883528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34940883528)与合入 SHA `698278e` 的 [main CI 34950368840](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34950368840)均成功。#155 [PR CI 34957745433](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34957745433)与 `27052fab` 的 [main CI 34959522528](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34959522528)均成功。#157 [PR CI 34964763768](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34964763768)首次 test 因 DuckDB spill 失败、`--failed` 重跑后与 `fce2de83` 的 [main CI 34966517072](https://github.com/weiweity/fuqing-crm-analytics/actions/runs/34966517072)均成功。P2 后历史 main CI `34768344985` 失败不回写为成功。CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验收。
 
 ### M1 接续与剩余事项
 
