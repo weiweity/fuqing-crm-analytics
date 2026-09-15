@@ -6,7 +6,7 @@
 
 目标与验收以 [TODOS 的 M1 核心交付](../../docs/hackathon/TODOS.md#m1-核心交付) 为准，代码落点与CI见 [STATUS](../../STATUS.md)及 [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)。9 月 15 日 S3 原型与正式壳续验见 [S3-ACCEPTANCE](../../docs/hackathon/S3-ACCEPTANCE-2026-09-15.md)。下方分项测试数／“待验”是各阶段历史证据语境，当前停点以 STATUS/TODOS 为准；不代表无代码平台已经完成。
 
-目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。S2-C1 已存板 catalog 已合 [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)；2026-09-14 同一 6677 上其余五类编辑、LINE 换数与当前模型板回退已记账。开放项（正式壳 B3 九态仍 PARTIAL、R-1 的 TABLE `show_values` 现场未复现、UAT、G1–G6）看 STATUS/TODOS。R-1 预检已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)。不要求重新选模型。
+目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。S2-C1 已存板 catalog 已合 [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)；2026-09-14 同一 6677 上其余五类编辑、LINE 换数与当前模型板回退已记账。开放项（正式壳 B3 九态仍 PARTIAL、G1 本候选真模型、UAT、G1–G6）看 STATUS/TODOS。[S4](../../docs/hackathon/S4-QA-2026-09-15.md)／[S5](../../docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md) 已钉 6677 候选；现役入口不是 4325。R-1 预检已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)。隔离 HTTP 集成在已加载构建上命中 TABLE `show_values`→`COMPONENT_PROPERTY`；现场未再造该缺陷。不要求重新选模型。
 
 ### 六类首批合同
 

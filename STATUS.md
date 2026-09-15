@@ -6,7 +6,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；最新业务落点 `dbe5e6ed`（#158），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
+| VERSION / main | VERSION 仍 **0.8.0.0**（版本基线 `a729ff6`，#129）；origin/main `775934f5`（#160），文档不升版本。版本基线不等于最新代码 SHA；实际 HEAD 用 `git log -1` 核对 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界真实 DeepSeek 与分项取证已有；完整 T13 仍 PARTIAL。离线 eval 不代替真实模型复测 |
@@ -16,7 +16,7 @@
 
 ## 本轮施工计划（现行，不要只记在对话里）
 
-S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。**[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)** 已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：布局重叠预检与 FUNNEL 保留已有有界真实模型／Chrome 证据。TABLE `show_values` 现场未复现；bash 本轮未出现。合入后 6677 已恢复原目录插件，不等于已加载 main。不升版本。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
+S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。**[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)** 已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：布局重叠预检与 FUNNEL 保留已有有界真实模型／Chrome 证据。TABLE `show_values` 现场未复现；bash 本轮未出现。6677 当前加载 main-runtime 已构建插件（src 与 origin/main 相同），不是原仓旧 `lib/`。不升版本。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。[S4 综合 QA](docs/hackathon/S4-QA-2026-09-15.md)已在固定候选 `775934f5`／PID 12386 上补隔离 G2/G3 与只读 v15/v9；[S5 入口与 G6 清单](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)指向 6677／15173。G1–G6／U1 仍不勾选。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
 
 产品方向：原生问数 → 复用结果、优先定制组件自由组板 → 预览 → 确认保存 → 指定组件 AI 修改／自由布局 → 重开／回退。六类是首批能力，不是六张固定模板或最终上限；旧交接的三操作、固定会话和主区互斥不是最终产品要求。
 
@@ -37,10 +37,12 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 
 - S0/S1已有基线与同实例装配证据；S2仍 **PARTIAL**。9 月 13 日真实模型已完成六类自由组板，以及 METRIC 只改标题的取消／确认 v2／重开和生成快捷入口。S2-C1 方案 B 已合 #136。9 月 14 日同一 6677（web PID 71492／18082 71160，原仓插件，未 `--fresh`）上，DeepSeek-V41-Flash High 完成其余五类编辑、LINE 换数与当前模型板回退；板 `board_f8b8d7d3926e47309e83da7a7f047c47` 终态 **v8**（v7 换数后 ROLLBACK 回 v6 内容）。本机证据 `.context/checks/va-a1-a2-20260914/RESULT.md`（`.context/` 不进 Git）。本人 UAT 仍 NOT_RUN。
 - **下一产品缺口**不再是五类编辑／换数／回退实现。B3 核心恢复分支双视口和 12 次忙态恢复按钮实点已有证据。用户授权后已本地修复 390px 侧栏挤压、取消拒绝提示与英文连接错误，B0 完整检查／干净重建通过，详见 [S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)。窄屏覆盖导航与中文连接错误已由真实 Chrome 核验；取消拒绝新文案通过状态回归，未再次制造正式壳落盘故障。当前说明板 **v15**、原板 **v9**，修复验证没有新增保存版本。本批修复代码与证据一并交付；Git 合入以对应 PR 回执为准，整体 PARTIAL。
-- S3 指定 Figma 矩阵已通过，示例金额不作 facts；历史证据见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。85 历史意外返回对话仍未定因，88 设置失败导致的同正文 v15 保留。R-1 代码已合 #153；有界复验观察到布局重叠预检与 FUNNEL 保留，Chrome 取消未保存。TABLE `show_values` 与 bash 越界本轮未复现。接续整理固定候选的 S4 综合 QA 与 S5 本人 UAT。G1–G6／U1 不代签，四类扩库完整变体归 M2。
+- S3 指定 Figma 矩阵已通过，示例金额不作 facts；历史证据见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。85 历史意外返回对话仍未定因，88 设置失败导致的同正文 v15 保留。R-1 代码已合 #153；有界复验观察到布局重叠预检与 FUNNEL 保留，Chrome 取消未保存。TABLE `show_values` 与 bash 越界本轮未复现。
+- **S4** 固定候选 `775934f5`／6677 PID 12386／main-runtime 已构建插件：[综合 QA](docs/hackathon/S4-QA-2026-09-15.md)。G2/G3 隔离合成与加载插件 HTTP 主链通过；只读确认说明板 v15、原板 v9。G1 本候选真模型 **NOT_RUN**；现场确认保存、G4 热插拔／键盘实点、完整 G5 **NOT_RUN**。G4/G5 壳层仍 PARTIAL。不勾 G1–G5。
+- **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：6677／15173／8000／18082 本轮可访问；回退与 UAT 三条路径已写。G6 不勾。U1 待本人。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
-- Git 合入不等于部署。6677（web 12386）与比赛看板 15173/8000 均在 `main-runtime`。18082 仍 71160。未 `--fresh`。8010/5180、14327/18083 已停。
-- 本地清理：工作树剩原仓 dirty（14 文件保全）与 `main-runtime`。docs-155 已拆。`HANDOVER-CODEX.md` 不提交。下一产品：S4、S5/G6、U1、完整 T13/T16/T17、M2、正式发布。
+- Git 合入不等于部署。6677 runtime 在原仓 `.context/dsh-dev/runtime`（web 12386），加载的是 main-runtime 已构建插件；比赛看板 15173/8000 在 `main-runtime`。18082 仍 71160。未 `--fresh`。8010/5180、14327/18083 已停。
+- 本地清理：工作树剩原仓 dirty（`HANDOVER-CODEX.md` 与本批 S4/S5 文档）与 `main-runtime`。docs-155 已拆。`HANDOVER-CODEX.md` 不提交。下一产品：U1（本人 UAT）、本候选 G1 真模型（须授权、用新板）、完整 T13/T16/T17、M2、正式发布。
 
 ## 已合施工记录（#116–#129）
 
