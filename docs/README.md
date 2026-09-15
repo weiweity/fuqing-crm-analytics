@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-12。`origin/main` 为 **v0.8.0.0**（`a729ff6`，#108–#129 已合）。当前 SHA、分支与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-15。VERSION 仍为 **v0.8.0.0**（基线 `a729ff6`，#129）。最新 Git HEAD、S3 接续与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
@@ -10,6 +10,7 @@
 | [`hackathon/README.md`](./hackathon/README.md) | CEO 价值、演示主链和数据边界（证据链；当前 SHA 看 STATUS） |
 | [`hackathon/PRODUCT-READINESS-2026-09-10.md`](./hackathon/PRODUCT-READINESS-2026-09-10.md) | 七阶段验收账本 |
 | [`hackathon/TODOS.md`](./hackathon/TODOS.md) | 验收缺口与延期项（不是执行授权） |
+| [`hackathon/S3-ACCEPTANCE-2026-09-15.md`](./hackathon/S3-ACCEPTANCE-2026-09-15.md) | 9-15 指定 Figma 矩阵与正式壳 B3 代表路径（PARTIAL，不升版本） |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 | [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
 | [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
@@ -26,6 +27,8 @@ fuqing-crm-analytics/docs/
 │
 ├── hackathon/                         AI 增长董事会实现
 │   ├── README.md                     CEO 价值、主链与边界
+│   ├── TODOS.md / PRODUCT-READINESS-…  当前缺口与七阶段账本
+│   ├── S3-ACCEPTANCE-2026-09-15.md    9-15 原型／正式壳续验
 │   ├── MISSION-API.md                 API、幂等与状态流
 │   └── ARCHITECTURE-AND-RELEASE-AUDIT.md  架构审计与提交清单
 │

@@ -4,9 +4,9 @@
 
 ## 本轮组件库合同与实现（2026-09-14）
 
-目标与验收以 [TODOS 的 M1 核心交付](../../docs/hackathon/TODOS.md#m1-核心交付) 为准，代码落点与CI见 [STATUS](../../STATUS.md)及 [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)。下方分项测试数／“待验”保留各阶段证据语境，以TODOS的最新接续为准；不代表无代码平台已经完成。
+目标与验收以 [TODOS 的 M1 核心交付](../../docs/hackathon/TODOS.md#m1-核心交付) 为准，代码落点与CI见 [STATUS](../../STATUS.md)及 [#134](https://github.com/weiweity/fuqing-crm-analytics/pull/134)。9 月 15 日 S3 原型与正式壳续验见 [S3-ACCEPTANCE](../../docs/hackathon/S3-ACCEPTANCE-2026-09-15.md)。下方分项测试数／“待验”是各阶段历史证据语境，当前停点以 STATUS/TODOS 为准；不代表无代码平台已经完成。
 
-目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。已有原模型自由组板和METRIC标题编辑的真实证据；剩余五类编辑与日期换数、S2-C1已存板状态感知仍开放，不要求重新选模型。
+目录 SSOT：[`src/board-spec/component-catalog.json`](src/board-spec/component-catalog.json)，版本 `board-components/v1`。新组件块显式携带 `library_version`，由 `parseBoardSpec` 校验、`interpretBoard` 调用只读投影、`LibraryComponentBody` 渲染；运行时无 Figma 请求。原生 Connection 环境已接新版画布及目录/生成工具；无该服务的旧 fixture 仍走兼容渲染。S2-C1 已存板 catalog 已合 [#136](https://github.com/weiweity/fuqing-crm-analytics/pull/136)；2026-09-14 同一 6677 上其余五类编辑、LINE 换数与当前模型板回退已记账。开放项（正式壳 B3 九态仍 PARTIAL、R-1、UAT、G1–G6）看 STATUS/TODOS，不要求重新选模型。
 
 ### 六类首批合同
 
@@ -140,7 +140,7 @@ Node 24；默认只申请空闲 4328，不复用 4327。输出不带凭据的本
 
 独立文件 `board_documents.sqlite3`（新 application_id/schema，不迁移旧 C0 或旧 CRM）。快照包含配置、事实与所需权限范围，当前身份每次读取/确认/重放都校验；客户端不提交 owner、事实或已保存版本。私有目录 0700、库 0600；每次操作独立连接并关闭。单事务提交 head/revision/receipt/draft 状态，写入失败不改变 head，陈旧版本返回 409，不自动覆盖。
 
-表现编辑使用保存时的事实快照，不重新计算；显式换 `source_result_id` 必须重新通过当前身份、同一原生会话的结果查验。六类之外的新结构需要扩展同一目录、数据适配与校验，不通过任意 HTML/脚本旁路。当前 computed v3 提供本期逐日 GSV，六类基础组件可共用一次受控问数；真实模型自主选型/编辑仍待验。
+表现编辑使用保存时的事实快照，不重新计算；显式换 `source_result_id` 必须重新通过当前身份、同一原生会话的结果查验。六类之外的新结构需要扩展同一目录、数据适配与校验，不通过任意 HTML/脚本旁路。当前 computed v3 提供本期逐日 GSV，六类基础组件可共用一次受控问数。完整 G1 自主选型仍待验；9-14 有界真实模型编辑见 STATUS，不以本节历史「待验」覆盖。
 
 逐日合同：`competition-gsv-facts/v3` 在 v2 金额单位基础上要求 `current_daily`（DAY / Asia/Shanghai / status / unavailable_reason / points）。支付日聚合复用同次计算已读的有效订单，退款按结果截止日回扣原支付日，不是现金流水。覆盖内无有效订单为零，截止日后为 null；日期须完整、连续、有序，日金额/订单数与本期汇总一致，分布也参与 evidence digest。最多 366 日；超长窗口保留有效汇总，但日序列明确 `UNSUPPORTED_RANGE/RANGE_EXCEEDS_366_DAYS`，目录不推荐 LINE，不截断或私自改粒度。结果信封仍为 computed-result/v1，`row_count=2` 指双期汇总，不是日点数量。
 
@@ -172,7 +172,7 @@ FQ_B0_PYTHON=/absolute/python3.14 node --test dsh-plugins/analytics-workbench/te
 画布每块有“用 AI 修改”入口。UI 先创建服务端编辑上下文，再打开看板所属的原生会话，通过官方 `session.prompt` 告知选中目标并询问修改要求；不提交未经用户要求的改动、不增加第二套 composer。原会话不可用时明确报错，保存内容仍可查看。右侧原生会话与画布并排仍属 A2 未完成工作，当前转入对话不代表最终 UX 已收口。
 
 - `competition_board_edit_context` 只读已选组件、绑定 facts 和目录；`competition_board_edit` 只接收 `edit_context_id + changes`，宿主注入真实执行会话。board/block/base_version 从服务端 UI 选择取得，模型不能重选目标或调用确认工具。
-- 表现改动复用已存事实。数据改动须先受控问数并绑定对应新 `source_result_id`；其他块继续保留原来源。LINE 已接受控逐日计算与实际工具编辑链；真实模型自主编辑、原生浏览器与 Figma 仍待验。
+- 表现改动复用已存事实。数据改动须先受控问数并绑定对应新 `source_result_id`；其他块继续保留原来源。LINE 已接受控逐日计算与实际工具编辑链。9-14 有界真实模型编辑与 9-15 S3 正式壳代表路径见 STATUS/S3-ACCEPTANCE；完整视觉、G1 与本人 UAT 仍待验。
 - 编辑上下文有效期 30 分钟；同一 owner/native session 只允许一个待处理选择。草稿和上下文联动取消，生成过程中取消在事务提交前再次检查；过期/撤权/陈旧版本/重复提案拒绝。新页可恢复待处理上下文或从工具卡检查预览，不重建选择；UI 在切对象前要求确认取消，取消失败保留旧目标。
 - UI 展示指定块修改前后属性对照，再确认保存。返回看板的“检查 AI 修改预览”也能恢复已结束/过期的编辑状态；不能因刷新失败丢掉当前快照或待确认草稿。
 
@@ -188,7 +188,7 @@ FQ_B0_PYTHON=/absolute/python3.14 node --test dsh-plugins/analytics-workbench/te
 
 存储兼容：同一私有 `board_documents.sqlite3` 增加 `edit_contexts` 表与 `metadata.edit_context_schema=1`，安装在事务内；不改写既有 head/revision/receipt，保留 v1 快照读取格式。旧版本会忽略新表，但不会提供编辑上下文功能；未知扩展版本拒绝启动，不自动重建状态。回退时保留整个私有状态目录，不删除表/文件；正式切换或发布仍需单独授权。
 
-当前证据：157 项相关后端检查（`.context/checks/20260912T205322676863Z/summary.json`），包含计算/取消/存储/HTTP/兼容/图表口径及新进程恢复；14 项解码/投影与 6 项编译 DOM 通过。`daily-series-http.log` 证明真实 ToolRuntime/原生认证/HTTP/SQLite 下六类表现编辑的取消/应用均复用一个结果，LINE 改日期重新问数只更换所选块来源，保存重开及回退通过。完整 pipeline `daily-series-pipeline.log` 及干净重建通过，保留既有警告。真实模型自主编辑、原生会话跳转/浏览器视觉、Figma B2 和用户 UAT 仍待验，不以工具执行代替模型与浏览器证明。
+当前证据：157 项相关后端检查（`.context/checks/20260912T205322676863Z/summary.json`），包含计算/取消/存储/HTTP/兼容/图表口径及新进程恢复；14 项解码/投影与 6 项编译 DOM 通过。`daily-series-http.log` 证明真实 ToolRuntime/原生认证/HTTP/SQLite 下六类表现编辑的取消/应用均复用一个结果，LINE 改日期重新问数只更换所选块来源，保存重开及回退通过。完整 pipeline `daily-series-pipeline.log` 及干净重建通过，保留既有警告。本节 9-12 工具链证据不代替后来的真实模型与浏览器证明；当前停点见 STATUS/TODOS（UAT 与 G1–G6 仍未勾选）。
 
 ### 连续布局与隔离浏览器验证
 
