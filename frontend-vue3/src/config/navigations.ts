@@ -7,12 +7,16 @@ export interface NavItem {
   key: string
   label: string
   tabs: NavTab[]
+  hidden?: boolean
 }
+
+export const HOME_PATH = '/audience'
 
 export const NAV_ITEMS: NavItem[] = [
   {
     key: '/growth-board',
     label: 'AI 增长董事会',
+    hidden: true,
     tabs: [],
   },
   {
@@ -52,6 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     key: '/market-focus',
     label: '市场对焦',
+    hidden: true,
     tabs: [
       { key: '#product-customer', label: '核心单品新老客' },
       { key: '#store-assets', label: '全店资产' },

@@ -82,8 +82,8 @@ const { data: trackingData, isLoading: trackingLoading, error: trackingError, re
   placeholderData: previousData => previousData,
 })
 
-// 3 系列配色（参考健康页 R 区间"回购率 3 年对比"）: 2026 紫 / 2025 蓝 / 2024 灰
-const TRACKING_COLORS = ['#533afd', '#60a5fa', '#94a3b8'] as const
+// 3 系列配色（参考健康页 R 区间"回购率 3 年对比"）: 2026 伸美紫 / 2025 丁香 / 2024 灰
+const TRACKING_COLORS = ['#805D9D', '#D3C3E8', '#9A8BA4'] as const
 const TRACKING_BUCKETS = ['0-7d', '8-30d', '31-60d', '61-90d'] as const
 const trackingChartOption = computed(() => {
   const data = trackingData.value

@@ -54,10 +54,11 @@ class TestE2eRootSourceGuards:
         assert 'FQ_CRM_TEST_MODE' in src
         assert 'path.startswith("/api/v1/_test/")' in src or "path.startswith('/api/v1/_test/')" in src
 
-    def test_login_skips_409_in_test_mode(self) -> None:
+    def test_login_allows_concurrent_sessions_without_409(self) -> None:
         src = AUTH_PY.read_text(encoding="utf-8")
-        assert "FQ_CRM_TEST_MODE" in src
-        assert "not _test_mode" in src or "_test_mode" in src
+        login_src = src.split("def login", 1)[1].split("def me", 1)[0]
+        assert "账号正在被使用" not in login_src
+        assert "_evict_previous_sessions_for_user" not in login_src
 
     def test_main_ts_never_logs_out_during_navigation_or_reload(self) -> None:
         """page.goto / reload 不能触发 logout；关页幽灵 token 由后端定时回收。"""

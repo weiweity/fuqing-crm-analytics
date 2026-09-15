@@ -526,20 +526,8 @@ def login(req: LoginRequest, request: Request):
     """账号密码登录，成功返回 token（含限速保护）"""
     client_ip = _get_client_ip(request)
     _authenticate_credentials(req.username, req.password, client_ip)
-    # L4.85.2 治本: 整合 L4.84 path 跟 L4.85 path (跟 user 7/10 拍板 "admin 账号只允许登陆一个人" 1:1 stable 永久规则化沿用)
-    # 跟 L4.85 create_login_request 409 模式 1:1 stable 配套, 跟 L4.85.1 1:1 stable 永久规则化沿用
-    # e2e 根治 (2026-07-19): FQ_CRM_TEST_MODE=1 时跳过 409，直接踢旧会话再发新 token。
-    # 真因: Playwright 每 case 新 context 但同 process 共享 ACTIVE_TOKENS → 第 2 个 case login 409
-    # → 停在「申请登录」→ 业务页 toBeVisible 全红。生产默认 0，行为不变。
-    _test_mode = os.environ.get("FQ_CRM_TEST_MODE") == "1"
+    # 看板演示：同账号允许多会话并行登录，不再 409 / 踢旧 token。
     with _AUTH_STATE_LOCK:
-        if _is_account_active(req.username) and not _test_mode:
-            raise HTTPException(
-                status_code=409,
-                detail="账号正在被使用, 请使用申请登录按钮",
-            )
-        # L4.84 治本: 同账号踢人, 同一账号同时只能 1 个活跃会话, 旧 token 失效强制重新登录
-        _evict_previous_sessions_for_user(req.username)
         token = secrets.token_urlsafe(32)
         ACTIVE_TOKENS[token] = (req.username, datetime.now())
     _logger.info(

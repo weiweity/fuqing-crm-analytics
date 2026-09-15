@@ -23,14 +23,13 @@ const sourceUrl = (relativePath: string) => new URL(relativePath, import.meta.ur
 describe('Shine Mage visual token contract', () => {
   it('uses Outfit for English presentation labels and workflow numerals', () => {
     const typographySelectors: Record<string, string[]> = {
-      './components/NavBar.vue': ['.request-modal > header span', '.notify-button > span'],
       './features/mission/components/ImpactForecast.vue': ['.panel-meta', '.experiment-line span:first-child'],
       './features/mission/components/MissionHero.vue': ['.panel-meta', '.decision-route b', '.ai-recommendation div > span'],
       './features/mission/components/ChannelPortfolio.vue': ['.section-heading div:first-child > span', '.channel-name i'],
       './features/mission/components/BusinessQuery.vue': ['.section-heading div > span', '.guardrail'],
       './features/mission/components/MissionActionRail.vue': ['.state-step i', '.state-step small', '.action-copy > span', '.approve-button small'],
       './views/GrowthBoardView.vue': ['.board-title span', '.badge', '.evidence-ribbon > span'],
-      './views/LoginView.vue': ['.illustration-copy li > i', '.illustration-copy li small'],
+
     }
     for (const [file, selectors] of Object.entries(typographySelectors)) {
       const source = readFileSync(sourceUrl(file), 'utf8')

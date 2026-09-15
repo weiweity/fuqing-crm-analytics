@@ -24,15 +24,19 @@ describe('useNavItems (Admin Upload withdrawn)', () => {
     const keys = navItems.value.map((item) => item.key)
 
     expect(keys).not.toContain('/admin/upload')
-    expect(navItems.value).toEqual(NAV_ITEMS)
+    expect(navItems.value.map((item) => item.key)).not.toContain('/growth-board')
+    expect(navItems.value.map((item) => item.key)).not.toContain('/market-focus')
+    expect(NAV_ITEMS.some((item) => item.key === '/market-focus' && item.hidden)).toBe(true)
   })
 
-  it('admin=false returns NAV_ITEMS unchanged', () => {
+  it('admin=false hides growth-board and market-focus', () => {
     const authStore = useAuthStore()
     authStore.setSession('token-user', 'fqsw', false)
 
     const navItems = useNavItems()
-    expect(navItems.value).toEqual(NAV_ITEMS)
+    expect(navItems.value.map((item) => item.key)).not.toContain('/growth-board')
+    expect(navItems.value.map((item) => item.key)).not.toContain('/market-focus')
+    expect(NAV_ITEMS.some((item) => item.key === '/market-focus' && item.hidden)).toBe(true)
     expect(navItems.value.map((i) => i.key)).not.toContain('/admin/upload')
   })
 
@@ -42,7 +46,8 @@ describe('useNavItems (Admin Upload withdrawn)', () => {
     authStore.setSession('token-admin', 'admin', true)
 
     const navItems = useNavItems()
-    expect(navItems.value.length).toBe(originalLength)
+    expect(navItems.value.length).toBe(NAV_ITEMS.filter((item) => !item.hidden).length)
     expect(NAV_ITEMS.length).toBe(originalLength)
+    expect(NAV_ITEMS.some((item) => item.hidden)).toBe(true)
   })
 })

@@ -440,7 +440,7 @@ const repurchaseRateChartOption = computed(() => {
         // 显式颜色序列，不依赖 p.color（baseTheme.color 会干扰）
         // 下钻：点柱体触发 @chart-click（禁止 tooltip 内联 onclick / window 全局）
         const EXPLICIT_COLORS = [BRAND_PRIMARY, '#60a5fa', '#94a3b8']
-        let html = `<div style="color:#533afd;font-weight:600;margin-bottom:4px">${segName} — 点击柱体查看品类拆解</div>`
+        let html = `<div style="color:#805D9D;font-weight:600;margin-bottom:4px">${segName} — 点击柱体查看品类拆解</div>`
         params.forEach((p, idx) => {
           const color = sanitizeCssColor(EXPLICIT_COLORS[idx] ?? p.color)
           const pct = (Number(p.value) * 100).toFixed(1)

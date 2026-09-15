@@ -62,8 +62,8 @@ def test_login_normal_when_no_active():
     assert auth_module.ACTIVE_TOKENS[data["token"]][0] == "admin"
 
 
-def test_login_rejected_with_409_when_active():
-    """核心 case 2: 有 active → login 409 + 不踢人 (跟 L4.85.2 整合 1:1 stable 永久规则化沿用)."""
+def test_login_allows_concurrent_sessions():
+    """同账号已有会话时仍可直接 login 200，旧 token 保留。"""
     _activate_admin()
     assert "admin-token-1" in auth_module.ACTIVE_TOKENS
 
@@ -71,17 +71,15 @@ def test_login_rejected_with_409_when_active():
     from backend.main import app
     client = TestClient(app)
 
-    # B 端 login 时, A 已 active → 应该 409
     resp = client.post(
         "/api/v1/auth/login",
         json={"username": "admin", "password": "123456"},
     )
-    assert resp.status_code == 409, f"应该 409, 实际 {resp.status_code}: {resp.text}"
+    assert resp.status_code == 200, f"应该 200, 实际 {resp.status_code}: {resp.text}"
     data = resp.json()
-    assert "正在被使用" in data["detail"]
-    assert "请使用申请登录按钮" in data["detail"]
-    # 关键: A 端旧 token 不变 (不踢人, 跟 L4.85.2 整合 1:1 stable 永久规则化沿用)
-    assert "admin-token-1" in auth_module.ACTIVE_TOKENS, "A 端旧 token 应该不变 (L4.85.2 整合后, active 时不踢)"
+    assert data["token"] != "admin-token-1"
+    assert "admin-token-1" in auth_module.ACTIVE_TOKENS
+    assert data["token"] in auth_module.ACTIVE_TOKENS
 
 
 def test_login_then_apply_after_logout():
