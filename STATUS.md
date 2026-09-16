@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.8.0.1**（人群行动入口 #166 `b78beffa`）。origin/main **`04f16604`**（[#167](https://github.com/weiweity/fuqing-crm-analytics/pull/167) 文档指针）。非正式 release。 |
+| VERSION / main | VERSION **0.8.0.1**。origin/main **`308180fd`**（[#165](https://github.com/weiweity/fuqing-crm-analytics/pull/165) 品类脱敏）。非正式 release。 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 2026-09-16 本候选有界复测：未接通重复调用、口径、等价问法／改期／INHERIT／RFM 恶意／422 已取证；运行中撤权／网络中断与真实 DuckDB cohort 仍开放。完整 T13 仍 PARTIAL |
@@ -15,7 +15,7 @@
 
 ## 本轮施工计划（现行，不要只记在对话里）
 
-S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。**[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)** 已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：布局重叠预检与 FUNNEL 保留已有有界真实模型／Chrome 证据。TABLE `show_values` 现场未复现；bash 本轮未出现。人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`），文档指针 [#167](https://github.com/weiweity/fuqing-crm-analytics/pull/167)（`04f16604`）。6677 PID **14287** 加载工作树 `m1-remainder` 插件（同 runtime stop/start + `--plugin-path`，**不要**用会编原仓插件的官方 `reload`）。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。[S4 综合 QA](docs/hackathon/S4-QA-2026-09-15.md)为隔离 G2/G3 基线；2026-09-16 本候选 G1–G6 与 U1 已记账，其中 **G3 现场确认保存** 新板 v8→v9。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
+S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-15.md)已合 #152（`c734957`）。**[R-1 生成配置错误恢复](docs/hackathon/R1-GENERATION-RECOVERY-2026-09-15.md)** 已合 [#153](https://github.com/weiweity/fuqing-crm-analytics/pull/153)（`698278e`）：布局重叠预检与 FUNNEL 保留已有有界真实模型／Chrome 证据。TABLE `show_values` 现场未复现；bash 本轮未出现。人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`）。比赛看板品类脱敏已合 [#165](https://github.com/weiweity/fuqing-crm-analytics/pull/165)（`308180fd`）。6677 PID **14287** 加载工作树 `m1-remainder` 插件（同 runtime stop/start + `--plugin-path`，**不要**用会编原仓插件的官方 `reload`）。9 月 15 日指定 Figma 矩阵已通过；正式壳 B3 仍 PARTIAL，见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。[S4 综合 QA](docs/hackathon/S4-QA-2026-09-15.md)为隔离 G2/G3 基线；2026-09-16 本候选 G1–G6 与 U1 已记账，其中 **G3 现场确认保存** 新板 v8→v9。产品接续看 [TODOS 的 M1 核心交付](docs/hackathon/TODOS.md#m1-核心交付)。交付按本仓 [ship-pr](.agents/skills/ship-pr/SKILL.md)，各动作授权分别核验。
 
 产品方向：原生问数 → 复用结果、优先定制组件自由组板 → 预览 → 确认保存 → 指定组件 AI 修改／自由布局 → 重开／回退。六类是首批能力，不是六张固定模板或最终上限；旧交接的三操作、固定会话和主区互斥不是最终产品要求。
 | 包 | Git 交付 | 适用范围 |
@@ -41,7 +41,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
 - Git 合入不等于部署。6677 runtime 在原仓 `.context/dsh-dev/runtime`，插件 `--plugin-path` 指向 `m1-remainder`。比赛看板 15173 PID 32580／8000 在 `main-runtime`。18082 仍 71160。未 `--fresh`。改 remainder 插件不要走会编译原仓的官方 `reload`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：完整 T13（DuckDB／运行中撤权仍开放）／T16 SLO／T17 撤权与触控读屏、M2、正式发布。#165 跳过。
+- `HANDOVER-CODEX.md` 不提交。下一产品：完整 T13（DuckDB／运行中撤权仍开放）／T16 SLO／T17 撤权与触控读屏、M2、正式发布。#165 已合 `308180fd`；未灌 overlay。
 
 ## 已合施工记录（#116–#129）
 

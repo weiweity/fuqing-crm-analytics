@@ -18,6 +18,7 @@
 - [x] 侧栏比赛看板入口/#155：已合入 `27052fab`。[#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157) 将默认前端口改为 `15173`（`fce2de83`）。Chrome 已见链接。不是 M1／S2 完成。
 - [x] 本地清理：空闲树/已合分支已删；15173/8000 迁到 `main-runtime` 后拆 docs-155。原仓 `HANDOVER-CODEX.md` 保留。S4/S5 文档已写。G1–G6／U1 见下方验收门槛（G3 已现场）。
 - [x] 驾驶舱人群行动入口/#166：已合入 `b78beffa`。PR CI 与该 main CI 均成功。合入不等于 6677 reload 或正式 release。不是 M1 完成。
+- [x] 比赛看板品类脱敏/#165：已合入 `308180fd`。界面唯一 display_name、筛选仍用原名；羊毛证据分与流失 hazard 已随 PR。合入不等于灌 overlay 或正式 release。不是 M1 完成。
 
 S2-C1 代码已合。其余五类编辑、LINE 换数与当前模型板回退的**真实模型验收**已于 2026-09-14 在本机 6677 完成；9 月 15 日接续 S3 原型与正式壳验收，见 [首批记录](S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](S3-CROSS-MATRIX-2026-09-15.md)。R-1 代码已合 #153；UAT 不在同一轮顺手扩修。
 
