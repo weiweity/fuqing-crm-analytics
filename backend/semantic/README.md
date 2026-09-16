@@ -54,6 +54,8 @@
 3. 占比 YOY 必须用减法
 4. 不要把 `metrics.MetricRegistry.get_sql()` 当查询口径；品类老客 GSV 在 `category_service.overview`（`first_pay_date <` 窗口月初前一天；cutoff 当天算新客）
 5. 品类看板 SQL 分组与筛选用原名；`display_name` 只用于界面/导出（catalog 撞名加 A/B）
+6. `WoolPartyBreakdown` 已去掉 `type1_count`/`type2_count`/`total_count`/`type1_ratio`/`type2_ratio`，改为用户级证据分：`high_risk_count`/`mean_score`/`never_converted_count`/`converted_then_sample_count`/`sample_only_window_count`/`scored_users`/`high_risk_ratio`（`high_risk` = score≥0.70）
+7. 流失表含 `mean_hazard`、`high_risk_users`、`high_risk_ratio`（hazard≥0.5）；挽回建议在 dest `display_name` 查找之后再填
 
 ---
 

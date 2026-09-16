@@ -68,7 +68,7 @@
 | 已购客TTL (1 行) | 老客 GSV 合计 (604.8 万 / 客单) | 老客 GSV 之和 (604.8 万) | **1.0** (自己除以自己) | "合计"维度 |
 | **sum** | — | — | **2.0** (业务合理双计) | "分桶 100% + 合计 100%" |
 
-**为什么 9 行 sum=2.0 业务合理**: 8 象限分桶 ratio sum=1.0 (各象限 GSV 占老客 GSV 合计) + TTL ratio=1.0 (老客 GSV / 老客 GSV) = 2.0, 两种"分桶 vs 合计"层级独立, 业务合理双计. 跟 Sprint 60.1.1 `wool_party_ratios` 强截断 1.0 模式一致 (每个 ratio 字段独立 0-1 合规, 不强求全表 sum=1.0).
+**为什么 9 行 sum=2.0 业务合理**: 8 象限分桶 ratio sum=1.0 (各象限 GSV 占老客 GSV 合计) + TTL ratio=1.0 (老客 GSV / 老客 GSV) = 2.0, 两种"分桶 vs 合计"层级独立, 业务合理双计. `dual_axis_line.wool_party_ratios` 仍是 0-1 钳位的高风险占比序列. 品类 `WoolPartyBreakdown` 自 #165 起是用户级证据分（`high_risk_count`/`mean_score` 等），不再使用 `type1_count`/`type2_count`.
 
 ---
 
