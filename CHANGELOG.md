@@ -2,6 +2,7 @@
 
 - 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
 
+- 账本：首次启动 `--fresh` 复现后已切回原 runtime。现役 6677 PID **57925**（0.9.0.2 journal）、15173 PID **85899**、8000 PID **85883**、18082 PID **73236**。DSH **0.1.6-alpha.1**。不上公网。
 - 账本：工作树已收口。现役全在原仓 `main`：6677 PID **93759**（0.9.0.2 journal）、15173 PID **85899**、8000 PID **85883**、18082 PID **73236**。DSH **0.1.6-alpha.1**。未 `--fresh`。不上公网。
 - 账本：6677 PID **60168** 已加载 main **0.9.0.2** journal 插件（原 runtime，未 `--fresh`）。DSH 仍为 **0.1.6-alpha.1**。不上公网。
 - 账本：6677 已切到 DSH **0.1.6-alpha.1**（PID 69395，原 runtime，未 `--fresh`）。生成预览取消回归已记。不升版本、不上公网、合入不等于再 reload。
