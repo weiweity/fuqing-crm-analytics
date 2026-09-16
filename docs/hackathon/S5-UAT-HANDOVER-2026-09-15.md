@@ -1,6 +1,6 @@
 # S5 验收入口与 G6 交接（2026-09-15）
 
-当前可访问入口。4325／18083 是 9 月 10 日历史候选，**不是**现在的 UAT。G6 清单写在这里，复选框仍不勾；U1 必须用户本人反馈。
+当前可访问入口。4325／18083 是 9 月 10 日历史候选，**不是**现在的 UAT。G6 齐套于 2026-09-16 交接确认；U1 已由用户本人反馈。
 
 ## 可用入口（loopback）
 
@@ -19,8 +19,9 @@
 |---|---|---|---|
 | 说明板 | `board_6e9b59dfe3e845328ac0fcf0cd8d1acc` | v15 | TEXT + 两块 METRIC |
 | 原板 | `board_f8b8d7d3926e47309e83da7a7f047c47` | v9 | METRIC×2、EVIDENCE、BAR、LINE、TABLE |
+| G1 新板 | `board_a9bdb747bd6948708d7c152db7b5b9ab` | v8 | 六类；METRIC 副标题含 G2-409-winner |
 
-两板都绑同一 `result_diag_13a0010…`。UAT 默认只读这两块。要练确认保存，请生成**新板**。
+说明板与原板绑同一 `result_diag_13a0010…`。UAT 默认只读这两块，不含 G1 新板。要练确认保存，请生成**新板**。
 
 ## 本人 UAT（U1）— 请逐条回「通过」或卡住位置
 
@@ -30,7 +31,7 @@
 
 15173 只确认：新标签打开、独立登录、DSH 不内嵌。它不是运营验收。
 
-Agent 不代签。T15 只有本人验收后才更新。
+2026-09-16 用户对上列三条路径明确「通过」。Agent 不代签；T15／U1 按该口头确认记账。不是公网或真实经营验收。
 
 ## 公开属性与拒绝边界（G6）
 
@@ -45,15 +46,16 @@ PROCESS／TIMELINE／WATERFALL／FUNNEL 有目录与隔离链，完整变体归 
 
 ## 限制
 
-- VERSION 0.8.0.0，非正式 release，无公网。
+- VERSION 0.8.0.1，非正式 release，无公网。
 - 只绑 127.0.0.1。
-- 6677 加载的是 main-runtime **已构建**插件（`lib/client.js` 短哈希 `08616945adc0562e`）。S4 取证时原仓 lib 为旧包 `c93eb74f86398b59`；不要用未核对的原仓 `lib/` 验收或 `--fresh`。完整本机账本 `.context/checks/s4-g1-g5-20260915/` 不进 Git。
-- 完整 T13／T16／T17、G1 本候选真模型、触控／读屏器未过。
+- 6677 PID **42237**，加载工作树 `m1-remainder` 已构建插件（`lib/client.js` sha256 `5ed332c7373a844a…`）。不要用未核对的原仓 `lib/` 验收或 `--fresh`。本机账本 `.context/checks/g6-20260916/` 不进 Git。
+- 完整 T13 仍 PARTIAL（DuckDB cohort／运行中撤权／网络中断未做）。本候选 2026-09-16 有界真模型复测见 `.context/checks/t13-20260916/`。T16 合成 c1/c5 基线见 `.context/checks/t16-20260916/`，非正式通过。T17 本候选 1440/1024/390／设置／等价表见 `.context/checks/t17-20260916/`；触控／读屏／业务撤权未过。本候选 G1 真模型已跑。
 - 85 历史跳转未定因。
+- 人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`）。合入不等于 6677 已 reload。
 
 ## 回退（不覆盖活库）
 
-1. 用 `scripts/dsh-dev/cli.mjs status` 确认 6677 仍是 PID 12386。不要 `--fresh`。
+1. 用 `scripts/dsh-dev/cli.mjs status` 确认 6677 仍是当前 PID（交接时 **42237**）。不要 `--fresh`。
 2. 板状态在 `.context/checks/s2-c1/synth-state/`（`board-documents/board_documents.sqlite3` 等）。需要备份时用 SQLite `Connection.backup()` 拷到**新目录**，不要覆盖活文件、不要抄 WAL。
 3. 回退代码：保留当前 runtime，把插件路径指回已验证构建，`reload`，不要新 runtime 名。
 4. 先核对未认证 401、已认证能打开、说明板仍 v15／原板仍 v9，再允许编辑。
@@ -65,12 +67,12 @@ PROCESS／TIMELINE／WATERFALL／FUNNEL 有目录与隔离链，完整变体归 
 
 | 项 | 状态 |
 |---|---|
-| 当前候选检查 | SHA、PID、插件路径、状态目录见 [S4 候选表](S4-QA-2026-09-15.md) 与下文回退；构建短哈希写在 S4，完整哈希仅本机账本 |
-| 公开属性与拒绝边界 | 已指向目录与 README；隔离测试覆盖非法属性／重叠 |
-| 可用入口 | 6677／15173／8000／18082 本轮探活 |
+| 当前候选检查 | 2026-09-16 重核：PID 42237、工作树插件、`lib/client.js` sha256 短 `5ed332c7373a844a`、状态目录 s2-c1/synth-state。完整账本 `.context/checks/g6-20260916/` |
+| 公开属性与拒绝边界 | 目录 TABLE 无 `show_values`；G2 现场 409／401；隔离非法属性／重叠仍以 S4 为准 |
+| 可用入口 | 6677 401／已认证 200；15173 200；8000/docs 200；18082 板列表 401／200 |
 | 合成范围 | 合成诊断结果；非真实经营数据 |
-| 限制 | 上文 |
-| 回退 | 上文；未再做一次完整备份恢复演练 |
-| UAT 清单 | 三条路径；待本人签字 |
+| 限制 | 上文（已按本候选改写） |
+| 回退 | `Connection.backup()` 到新目录再 restore-sandbox，heads/v15/v8/v9 与 32 条 revision 一致；未覆盖活库、未抄 WAL |
+| UAT 清单 | 三条路径；2026-09-16 用户明确「通过」 |
 
-G6 不据此勾选。下一步是 U1；G1 真模型须单独授权。
+G6 齐套已按上表交接确认。完整 T13 仍 PARTIAL（见 `.context/checks/t13-20260916/`）。T16／T17、M2、合入 main、正式发布另账。
