@@ -369,14 +369,6 @@ def get_category_churn(
         dest1_ratio = min(top_dest1_users / inter_churned, 1.0) if inter_churned > 0 else 0
         dest2_ratio = min(top_dest2_users / inter_churned, 1.0) if inter_churned > 0 else 0
 
-        suggestion = ""
-        if mean_hazard >= 0.5 and rfm_at_risk > 0:
-            suggestion = "优先触达 RFM 挽留象限，按回购周期召回"
-        elif silent > prev_users * 0.5 and prev_users > 0:
-            suggestion = "发送召回触达，配合首单礼包促进回流"
-        elif top_dest1 != "无":
-            suggestion = f"迁移去向 {top_dest1}，见流转 Tab"
-
         item = {
             "category_name": cat_name,
             "display_name": mask_category_name(cat_name),
@@ -394,7 +386,7 @@ def get_category_churn(
             "top_churn_dest1_ratio": round(dest1_ratio, 4),
             "top_churn_dest2": top_dest2,
             "top_churn_dest2_ratio": round(dest2_ratio, 4),
-            "挽回建议": suggestion,
+            "挽回建议": "",
         }
         scatter_data.append(item)
         bar_data.append(item)
@@ -407,6 +399,13 @@ def get_category_churn(
         row["display_name"] = lookup_display_name(mapping, row["category_name"])
         row["top_churn_dest1"] = lookup_display_name(mapping, row["top_churn_dest1"])
         row["top_churn_dest2"] = lookup_display_name(mapping, row["top_churn_dest2"])
+        dest1 = row["top_churn_dest1"]
+        if row["mean_hazard"] >= 0.5 and row["rfm_at_risk_users"] > 0:
+            row["挽回建议"] = "优先触达 RFM 挽留象限，按回购周期召回"
+        elif row["silent_churn"] > row["previous_users"] * 0.5 and row["previous_users"] > 0:
+            row["挽回建议"] = "发送召回触达，配合首单礼包促进回流"
+        elif dest1 and dest1 != "无":
+            row["挽回建议"] = f"迁移去向 {dest1}，见流转 Tab"
     name_map = {row["category_name"]: row.get("display_name") for row in table}
     for row in scatter_data:
         row["display_name"] = name_map.get(row["category_name"], row["category_name"])
