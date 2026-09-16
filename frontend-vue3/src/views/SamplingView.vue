@@ -15,6 +15,7 @@ import type { XlsxColumn } from '@/utils/exportXlsx'
 import { useFilterStore } from '@/stores/filterStore'
 import { useFormat } from '@/composables/useFormat'
 import { useRouteHashTab } from '@/composables/useRouteHashTab'
+import { maskCategoryName, uniqueDisplayNames } from '@/utils/maskCategoryName'
 
 const { formatNumber, formatPercent, formatCurrency } = useFormat()
 
@@ -290,8 +291,18 @@ const levelLabel = computed(() => {
 
 // 品类明细表格 — Sprint 155 ③ 改 native table + manual rowspan 合并渠道 + 自定义 sort
 type CategoryCol = { key: keyof SamplingCategoryRow; title: string; align: 'left' | 'right' | 'center'; format: (r: SamplingCategoryRow) => string; isString?: boolean }
+const samplingCategoryLabels = computed(() =>
+  uniqueDisplayNames((roiData.value?.category_breakdown ?? []).map((r) => r.category)),
+)
+
+function showSamplingCategory(raw: string | null | undefined): string {
+  const name = (raw || '').trim()
+  if (!name) return '—'
+  return samplingCategoryLabels.value.get(name) || maskCategoryName(name)
+}
+
 const categoryColumns: CategoryCol[] = [
-  { key: 'category', title: '品类', align: 'left', format: r => r.category ?? '—', isString: true },
+  { key: 'category', title: '品类', align: 'left', format: r => showSamplingCategory(r.category), isString: true },
   { key: 'sample_users', title: '派样人数', align: 'right', format: r => (r.sample_users ?? 0).toLocaleString() },
   { key: 'repurchase_users', title: '回购人数', align: 'right', format: r => (r.repurchase_users ?? 0).toLocaleString() },
   { key: 'repurchase_rate', title: '回购率', align: 'center', format: r => `${((r.repurchase_rate ?? 0) * 100).toFixed(1)}%` },
@@ -800,7 +811,7 @@ onUnmounted(() => {
                 <ExportToolbar
                   :filename="`派样明细_${levelLabel}`"
                   :columns="categoryColumnsXlsx"
-                  :data="sortedCategoryRows as any[]"
+                  :data="sortedCategoryRows.map((row) => ({ ...row, category: showSamplingCategory(row.category) })) as any[]"
                   sheet-name="派样明细"
                 />
               </div>

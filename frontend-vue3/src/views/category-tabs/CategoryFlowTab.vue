@@ -324,7 +324,7 @@ const sankeyOption = computed(() => {
           left: 'center',
           bottom: 4,
           style: {
-            text: `左=买「${focusTarget}」之前买的品类  ·  右=买「${focusTarget}」之后买的品类  ·  线条宽度∝关联人数`,
+            text: `左=买「${showCat(focusTarget)}」之前买的品类  ·  右=买「${showCat(focusTarget)}」之后买的品类  ·  线条宽度∝关联人数`,
             fontSize: 10,
             fill: '#94a3b8',
             textAlign: 'center',
@@ -446,7 +446,7 @@ const matrixColumns = computed<DataTableColumns<any>>(() => {
 
   targets.forEach((t, i) => {
     cols.push({
-      title: t,
+      title: showCat(t),
       key: `t_${i}`,
       width: 90,
       align: 'right',
@@ -470,7 +470,7 @@ const matrixTableData = computed(() => {
   const { sources, targets, matrix, row_totals } = data.value.matrix
 
   return sources.map((src, si) => {
-    const row: Record<string, any> = { source: src }
+    const row: Record<string, any> = { source: showCat(src) }
     const rowTotal = row_totals?.[si] ?? 0
 
     targets.forEach((_, ti) => {
