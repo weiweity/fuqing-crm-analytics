@@ -9,9 +9,9 @@ user 7/11 报 Bug #2: 'A 运营登录后退出 (Cmd+Q), B 运营 20 秒后再次
 - _is_account_active 检查 last_active_at < 3min → True → B login 409
 
 治本 (跟 L4.42 + L4.50 + L4.55 + L4.85.x 1:1 stable 永久规则链配套):
-- background task 每 30s 扫 ACTIVE_TOKENS → evict last_active_at > IDLE_THRESHOLD_SECONDS (60s) 的 token
+- background task 每 30s 扫 ACTIVE_TOKENS → evict last_active_at > IDLE_THRESHOLD_SECONDS 的 token
 - 浏览器不在 unload 生命周期登出，避免刷新和站内导航误销毁 token
-- 本模块统一处理关页、断网与进程退出后的幽灵会话，最多延迟 1-2min
+- 本模块统一处理关页、断网与进程退出后的幽灵会话；默认 idle 8h（FQ_AUTH_IDLE_SECONDS），最多再延迟一个扫描间隔
 
 跟 L4.72 RFM cache precompute 1:1 stable 模式 (后台 task + 定期扫).
 跟 L4.50 0 业务代码改动 累计 95+ 次 1:1 stable 永久规则链配套.
@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta
+import os
 
 from backend.routers.auth import ACTIVE_TOKENS, _AUTH_STATE_LOCK
 
@@ -28,8 +29,19 @@ _logger = logging.getLogger(__name__)
 
 # 跟 L4.75 v2 lock_timeout_seconds 5min 1:1 stable 永久规则化沿用
 # 但治本 Bug #2: user 7/11 期望 A 关浏览器后 B 立即能 login
-# 设 60s (1 分钟) 比 _is_account_active 3min 更严格；浏览器关页后统一由后端回收
-IDLE_THRESHOLD_SECONDS = 60  # 1 分钟空闲阈值
+# 默认 8h；前端 idle 登出已关闭，幽灵会话由本 evictor 回收
+DEFAULT_IDLE_SECONDS = 28800
+
+
+def parse_idle_seconds(raw: str | None) -> int:
+    try:
+        value = int((raw or "").strip() or str(DEFAULT_IDLE_SECONDS))
+    except ValueError:
+        return DEFAULT_IDLE_SECONDS
+    return max(1, value)
+
+
+IDLE_THRESHOLD_SECONDS = parse_idle_seconds(os.environ.get("FQ_AUTH_IDLE_SECONDS"))
 
 # 跟 L4.72 RFM cache precompute 1:1 stable 永久规则化沿用
 SCAN_INTERVAL_SECONDS = 30  # 每 30 秒扫一次

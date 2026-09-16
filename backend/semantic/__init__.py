@@ -5,13 +5,13 @@ Sample CRM - 语义层 (Semantic Layer)
 所有 Service 层的 SQL 构造必须通过本层提供的 API，禁止硬编码过滤条件。
 
 核心模块:
-- filters:      SQL 过滤条件构造器（GSV/GMV、时间范围、新老客等）
-- metrics:      指标注册表（统一定义每个指标的名称、公式、口径）
-- calculations: 统一计算规则（YOY、占比、MOM 等，所有 Service 必须调用此模块）
-- dimensions:    维度定义（channel、spu_tier、province 等）
-- segments:     人群分层定义（11象限、新老客、会员等）
-- channels:     渠道漏斗定义（9层渠道判定规则文档化）
-- time:         时间范围构造器（MTD、同比、环比、自由模式）
+- filters:      SQL 过滤条件构造器（GSV/GMV、时间范围、渠道等）
+- calculations: YOY / GSV 谓词（所有 Service 必须调用，禁止自写 YOY）
+- time:         PeriodBuilder（MTD、YTD、季度、近 N 天）
+- channels:     渠道漏斗与 UI↔DB 别名
+- segments:     RFM 8 象限、R 桶、新老客辅助 SQL
+- metrics:      指标目录，未接入查询；出数 SQL 以各 service 为准
+- dimensions:   维度目录，未接入查询；品类层用 service 内 SPU_LEVELS
 """
 
 from .filters import FilterBuilder, OrderFilters, MetricType

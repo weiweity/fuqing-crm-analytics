@@ -182,9 +182,9 @@ const radarOption = computed((): EChartsOption => {
   const hasLy = d.ly_all_store_repurchase_rate != null
 
   const rawValues = [
-    { label: '全店复购率', value: `${(d.all_store_repurchase_rate * 100).toFixed(1)}%`, target: `${(targets.repurchase * 100).toFixed(0)}%` },
-    { label: '本品复购率', value: `${(d.same_product_repurchase_rate * 100).toFixed(1)}%`, target: `${(targets.product * 100).toFixed(0)}%` },
-    { label: '老客占比', value: `${(d.old_customer_gsv_ratio * 100).toFixed(1)}%`, target: `${(targets.ratio * 100).toFixed(0)}%` },
+    { label: '全店复购率', value: `${((d.all_store_repurchase_rate || 0) * 100).toFixed(1)}%`, target: `${(targets.repurchase * 100).toFixed(0)}%` },
+    { label: '本品复购率', value: `${((d.same_product_repurchase_rate || 0) * 100).toFixed(1)}%`, target: `${(targets.product * 100).toFixed(0)}%` },
+    { label: '老客GSV占比', value: `${((d.old_customer_gsv_ratio || 0) * 100).toFixed(1)}%`, target: `${((targets.ratio || 0) * 100).toFixed(0)}%` },
     { label: '老客AUS', value: `¥${d.old_customer_aus.toFixed(0)}`, target: `¥${targets.aus}` },
     { label: '周均复购', value: `${weeklyRepurchase}人/周`, target: `${targets.recent7d}人/周` },
   ]
@@ -252,20 +252,20 @@ const radarOption = computed((): EChartsOption => {
       indicator: [
         {
           name: hasLy
-            ? `全店复购率\n{a|${(d.all_store_repurchase_rate * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_all_store_repurchase_rate != null ? (d.ly_all_store_repurchase_rate * 100).toFixed(1) : '—'}%}`
-            : `全店复购率\n{a|${(d.all_store_repurchase_rate * 100).toFixed(1)}%}`,
+            ? `全店复购率\n{a|${((d.all_store_repurchase_rate || 0) * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_all_store_repurchase_rate != null ? ((d.ly_all_store_repurchase_rate || 0) * 100).toFixed(1) : '—'}%}`
+            : `全店复购率\n{a|${((d.all_store_repurchase_rate || 0) * 100).toFixed(1)}%}`,
           max: 1.5
         },
         {
           name: hasLy
-            ? `本品复购率\n{a|${(d.same_product_repurchase_rate * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_same_product_repurchase_rate != null ? (d.ly_same_product_repurchase_rate * 100).toFixed(1) : '—'}%}`
-            : `本品复购率\n{a|${(d.same_product_repurchase_rate * 100).toFixed(1)}%}`,
+            ? `本品复购率\n{a|${((d.same_product_repurchase_rate || 0) * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_same_product_repurchase_rate != null ? ((d.ly_same_product_repurchase_rate || 0) * 100).toFixed(1) : '—'}%}`
+            : `本品复购率\n{a|${((d.same_product_repurchase_rate || 0) * 100).toFixed(1)}%}`,
           max: 1.5
         },
         {
           name: hasLy
-            ? `老客占比\n{a|${(d.old_customer_gsv_ratio * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_old_customer_gsv_ratio != null ? (d.ly_old_customer_gsv_ratio * 100).toFixed(1) : '—'}%}`
-            : `老客占比\n{a|${(d.old_customer_gsv_ratio * 100).toFixed(1)}%}`,
+            ? `老客GSV占比\n{a|${((d.old_customer_gsv_ratio || 0) * 100).toFixed(1)}%}\n{b|去年同期 ${d.ly_old_customer_gsv_ratio != null ? ((d.ly_old_customer_gsv_ratio || 0) * 100).toFixed(1) : '—'}%}`
+            : `老客GSV占比\n{a|${((d.old_customer_gsv_ratio || 0) * 100).toFixed(1)}%}`,
           max: 1.5
         },
         {

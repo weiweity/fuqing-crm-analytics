@@ -134,3 +134,19 @@ def test_unknown_mode_defaults_production(tmp_path: Path, monkeypatch: pytest.Mo
     validate_startup_db = _call_validate(monkeypatch, db_path)
     with pytest.raises(RuntimeError, match="orders.*为空"):
         validate_startup_db()
+
+
+def test_startup_attaches_quoted_archive_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """FQ_ARCHIVE_DUCKDB 含引号时启动校验仍能 ATTACH，不读归档业务库."""
+    db_path = tmp_path / "wrapper.duckdb"
+    archive = tmp_path / "o'archive.duckdb"
+    _create_orders_table(db_path, [])
+    arch = duckdb.connect(str(archive))
+    try:
+        arch.execute("CREATE TABLE ping (x INTEGER)")
+    finally:
+        arch.close()
+    _set_db_mode(monkeypatch, "schema_test")
+    monkeypatch.setenv("FQ_ARCHIVE_DUCKDB", str(archive))
+    validate_startup_db = _call_validate(monkeypatch, db_path)
+    validate_startup_db()

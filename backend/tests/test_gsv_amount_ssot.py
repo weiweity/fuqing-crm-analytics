@@ -41,6 +41,8 @@ def test_filters_and_metrics_consume_ssot():
     assert METRICS["gsv"].sql_expr == f"SUM({GSV_AMOUNT_COL})"
     assert GSV_PREDICATE in METRICS["member_gsv"].sql_expr
     assert GSV_PREDICATE in METRICS["gsv_order_count"].sql_expr
+    assert "old_gsv" not in METRICS
+    assert "new_gsv" not in METRICS
 
 
 def test_gsv_ssot_and_builders_agree_on_in_memory_orders():

@@ -6,6 +6,7 @@ import { NTooltip } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchCategoryChurn } from '@/api/category'
+import { categoryDisplayName, destColor, destDisplayName, maskCategoryTokensInText, maskDestsInText } from '@/utils/maskCategoryName'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -40,21 +41,18 @@ const {
   staleTime: 60_000,
 })
 
-// ─── 流失严重度散点图 ──────────────────────────────────────────
-// X = 本期用户数(对数), Y = MoM变化率, 气泡大小 = 流失人数
-// 第四象限(左下: 规模大+下滑快) 标红
+// ─── 流失风险散点图 ──────────────────────────────────────────
+// X = 本期用户数(对数), Y = 平均 hazard, 气泡 = 高风险人数
 const scatterOption = computed(() => {
   if (!data.value?.scatter_data?.length) return {}
   const points = data.value.scatter_data
-  // 对数刻度 X 轴，取 log10
   const xData = points.map((p) => ({
-    value: [Math.log10(p.current_users + 1), p.mom_change_rate * 100, p.churn_users],
-    name: p.category_name,
+    value: [Math.log10(p.current_users + 1), p.mean_hazard * 100, p.high_risk_users],
+    name: categoryDisplayName(p),
     ...p,
   }))
 
-  // 找最大流失人数用于气泡缩放
-  const maxChurn = Math.max(...points.map((p) => p.churn_users))
+  const maxChurn = Math.max(...points.map((p) => p.high_risk_users), 1)
 
   return {
     tooltip: {
@@ -67,7 +65,7 @@ const scatterOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any) => {
         const p = params.data
-        return `<b>${encodeHtml(p.name)}</b><br/>本期用户: ${p.current_users.toLocaleString()}<br/>MoM变化: ${(p.mom_change_rate * 100).toFixed(1)}%<br/>流失人数: ${p.churn_users.toLocaleString()}`
+        return `<b>${encodeHtml(categoryDisplayName(p))}</b><br/>本期用户: ${p.current_users.toLocaleString()}<br/>平均风险: ${(p.mean_hazard * 100).toFixed(1)}%<br/>高风险人数: ${p.high_risk_users.toLocaleString()}`
       },
     },
     grid: { left: 56, right: 24, top: 16, bottom: 40 },
@@ -86,7 +84,7 @@ const scatterOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      name: 'MoM变化率(%)',
+      name: '平均流失风险(%)',
       nameTextStyle: { color: '#64748b', fontSize: 10 },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -98,16 +96,16 @@ const scatterOption = computed(() => {
         type: 'scatter',
         symbolSize: (val: number[]) => {
           const ratio = val[2] / maxChurn
-          return 14 + ratio * 46 // 14-60px
+          return 14 + ratio * 46
         },
         data: xData,
         itemStyle: {
           color: (param: any) => {
             const p = param.data
-            const isLargeScale = Math.log10(p.current_users + 1) > 4 // 规模大(>1万)
-            const isDeclining = p.mom_change_rate < 0 // MoM下滑
-            if (isLargeScale && isDeclining) return '#ef4444' // 第四象限标红
-            if (p.mom_change_rate > 0) return '#10b981'
+            const isLargeScale = Math.log10(p.current_users + 1) > 4
+            const isHighRisk = p.mean_hazard >= 0.5
+            if (isLargeScale && isHighRisk) return '#ef4444'
+            if (p.mean_hazard < 0.3) return '#10b981'
             return '#94a3b8'
           },
           opacity: 0.8,
@@ -122,22 +120,21 @@ const scatterOption = computed(() => {
             color: '#0f172a',
             fontWeight: 'bold',
             position: 'top',
-            formatter: (param: any) => encodeHtml(param.data.name),
+            formatter: (param: any) => encodeHtml(categoryDisplayName(param.data)),
           },
         },
       },
     ],
-    // 参考线: Y=0
     markLine: {
       silent: true,
       symbol: 'none',
       lineStyle: { color: '#cbd5e1', type: 'dashed', width: 1 },
-      data: [{ yAxis: 0 }],
+      data: [{ yAxis: 50 }],
     },
   }
 })
 
-// ─── MoM柱状图 ────────────────────────────────────────────────
+// ─── 平均流失风险柱状图 ────────────────────────────────────────────────
 const barOption = computed(() => {
   if (!data.value?.bar_data?.length) return {}
   const rows = data.value.bar_data
@@ -153,13 +150,13 @@ const barOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any[]) => {
         const row = rows[params[0].dataIndex]
-        return `${encodeHtml(row.category_name)}<br/>本期: ${row.current_users.toLocaleString()}<br/>上期: ${row.previous_users.toLocaleString()}<br/>MoM: ${(row.mom_change_rate * 100).toFixed(1)}%`
+        return `${encodeHtml(categoryDisplayName(row))}<br/>本期: ${row.current_users.toLocaleString()}<br/>上期: ${row.previous_users.toLocaleString()}<br/>平均风险: ${(row.mean_hazard * 100).toFixed(1)}%`
       },
     },
     grid: { left: 56, right: 24, top: 16, bottom: 64, containLabel: false },
     xAxis: {
       type: 'category',
-      data: rows.map((r) => r.category_name),
+      data: rows.map((r) => categoryDisplayName(r)),
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { color: '#64748b', fontSize: 10, margin: 12, rotate: 40, interval: 0 },
@@ -173,13 +170,13 @@ const barOption = computed(() => {
     },
     series: [
       {
-        name: 'MoM变化',
+        name: '平均流失风险',
         type: 'bar',
         data: rows.map((r) => ({
-          value: parseFloat((r.mom_change_rate * 100).toFixed(2)),
+          value: parseFloat((r.mean_hazard * 100).toFixed(2)),
           itemStyle: {
-            color: r.mom_change_rate >= 0 ? '#10b981' : '#ef4444',
-            borderRadius: r.mom_change_rate >= 0 ? [3, 3, 0, 0] : [0, 0, 3, 3],
+            color: r.mean_hazard >= 0.5 ? '#ef4444' : '#10b981',
+            borderRadius: [3, 3, 0, 0],
           },
         })),
         barMaxWidth: 40,
@@ -189,15 +186,6 @@ const barOption = computed(() => {
 })
 
 // ─── Table ───────────────────────────────────────────────────────
-const DEST_COLOR: Record<string, string> = {
-  面膜: '#533afd',
-  洁面: '#15be53',
-  精华: '#8b5cf6',
-  '医用凝胶': '#ea2261',
-  面霜: '#f59e0b',
-  防晒: '#10b981',
-}
-
 const tableColumns = computed<DataTableColumns<any>>(() => [
   {
     title: '品类',
@@ -205,6 +193,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     width: 110,
     fixed: 'left',
     align: 'center',
+    render: (row) => categoryDisplayName(row),
   },
   {
     title: '本期用户',
@@ -223,16 +212,24 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     render: (row) => row.previous_users?.toLocaleString() ?? '—',
   },
   {
-    title: 'MoM变化',
-    key: 'mom_change_rate',
+    title: '平均风险',
+    key: 'mean_hazard',
     width: 90,
     align: 'right',
     className: 'bi-cell-number',
     render: (row) => {
-      const v = row.mom_change_rate
-      const cls = v >= 0 ? 'text-emerald-600' : 'text-red-500'
-      return h('span', { class: cls }, `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`)
+      const v = row.mean_hazard || 0
+      const cls = v >= 0.5 ? 'text-red-500' : 'text-emerald-600'
+      return h('span', { class: cls }, `${(v * 100).toFixed(1)}%`)
     },
+  },
+  {
+    title: '高风险人数',
+    key: 'high_risk_users',
+    width: 100,
+    align: 'right',
+    className: 'bi-cell-number',
+    render: (row) => row.high_risk_users?.toLocaleString() ?? '—',
   },
   {
     title: '品类间流失',
@@ -258,11 +255,11 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     render: (row) => {
       const dest = row.top_churn_dest1
       if (!dest) return '—'
-      const color = DEST_COLOR[dest] || '#64748b'
+      const color = destColor(dest)
       return h('span', {
         class: 'inline-flex items-center gap-1',
         style: { color },
-      }, dest)
+      }, destDisplayName(dest))
     },
   },
   {
@@ -271,7 +268,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     width: 75,
     align: 'right',
     className: 'bi-cell-number',
-    render: (row) => row.top_churn_dest1_ratio != null ? `${(row.top_churn_dest1_ratio * 100).toFixed(0)}%` : '—',
+    render: (row) => row.top_churn_dest1_ratio != null ? `${((row.top_churn_dest1_ratio || 0) * 100).toFixed(0)}%` : '—',
   },
   {
     title: '流失去向TOP2',
@@ -281,8 +278,8 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     render: (row) => {
       const dest = row.top_churn_dest2
       if (!dest) return '—'
-      const color = DEST_COLOR[dest] || '#64748b'
-      return h('span', { style: { color } }, dest)
+      const color = destColor(dest)
+      return h('span', { style: { color } }, destDisplayName(dest))
     },
   },
   {
@@ -291,21 +288,22 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     width: 140,
     align: 'left',
     ellipsis: true,
-    render: (row) => row.挽回建议 || '—',
+    render: (row) => maskDestsInText(row.挽回建议, [row.top_churn_dest1, row.top_churn_dest2]),
   },
 ])
 
 const tableData = computed(() => data.value?.table ?? [])
-const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
+const suggestionRows = computed(() =>
+  (data.value?.operation_suggestions ?? []).map((s) => maskCategoryTokensInText(s)),
+)
 
 // ── Sprint 174 XLSX 导出 (Q3) ──
 const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [
-  { header: '品类', key: 'category_name', width: 14 },
+  { header: '品类', key: 'display_name', width: 14 },
   { header: '本期用户', key: 'current_users', width: 12, numFmt: '#,##0' },
   { header: '上期用户', key: 'previous_users', width: 12, numFmt: '#,##0' },
-  { header: '流失人数', key: 'churn_users', width: 12, numFmt: '#,##0' },
-  // L4.91 PR2 (2026-07-11) 治本: mom_ 前缀列加显式 kind enum (auto-detect suffix pattern 不匹配 prefix)
-  { header: 'MoM变化', key: 'mom_change_rate', kind: 'yoy_pct', width: 12, numFmt: '0.0%' },
+  { header: '平均风险', key: 'mean_hazard', width: 12, numFmt: '0.0%' },
+  { header: '高风险人数', key: 'high_risk_users', width: 12, numFmt: '#,##0' },
 ])
 </script>
 
@@ -328,14 +326,14 @@ const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [
       <!-- 上行: 散点图(60%) + 柱状图(40%) -->
       <div class="grid grid-cols-5 gap-5">
         <div class="col-span-3 bi-card p-4">
-          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流失严重度散点图</h3>
-          <p class="text-[11px] text-slate-500 mb-1">X=规模(log)，Y=MoM变化，气泡=流失人数，左下红区=规模大+下滑快</p>
-          <p class="text-[11px] text-slate-400 mb-3">一眼识别最危险的品类：规模大且下滑快的品类在左下红区，需要优先关注</p>
+          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">流失风险散点图</h3>
+          <p class="text-[11px] text-slate-500 mb-1">X=规模(log)，Y=平均流失风险，气泡=高风险人数，红=规模大且风险≥50%</p>
+          <p class="text-[11px] text-slate-400 mb-3">风险来自距上次购买相对品类回购周期的生存 hazard，RFM 挽留象限加权</p>
           <EChartsWrapper :option="scatterOption" height="300px" />
         </div>
         <div class="col-span-2 bi-card p-4">
-          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">各品类MoM变化</h3>
-          <p class="text-[11px] text-slate-500 mb-3">绿色=增长，红色=下滑</p>
+          <h3 class="text-sm font-semibold text-slate-800 mb-0.5">各品类平均流失风险</h3>
+          <p class="text-[11px] text-slate-500 mb-3">绿色=&lt;50%，红色=≥50%</p>
           <EChartsWrapper :option="barOption" height="300px" />
         </div>
       </div>
@@ -352,10 +350,10 @@ const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [
           />
         </div>
         <p class="text-[11px] text-slate-500 mb-1">
-          品类间流失=上期买A本期买B(B≠A)；沉默流失=上期买A本期无订单；跨品类迁移≠流失
+          平均风险=上期购买用户距上次购买相对回购周期的 hazard；高风险=hazard≥0.50；沉默=上期买A本期无订单
         </p>
         <p class="text-[11px] text-slate-400 mb-3">
-          品类间流失说明用户转向了竞品品类（看流失去向可追踪），沉默流失说明用户彻底沉默了——两种流失的挽回策略完全不同
+          品类迁移去向只说明还在买别的东西，判定流失看风险分。迁移细节见流转 Tab。
         </p>
         <DataTablePro
           :columns="tableColumns"

@@ -22,10 +22,12 @@ import YOYGuard from '@/components/YOYGuard.vue'
 import { BRAND_PRIMARY } from '@/composables/useChartTheme'
 import type { EChartTooltipParam, EChartLabelParam } from '@/types/echarts'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { labeledCategoryOptions } from '@/utils/maskCategoryName'
 
 const props = defineProps<{
   /** 品类列表（从 distributionData 获取） */
   categoryOptions: string[]
+  categoryLabels?: Record<string, string>
 }>()
 
 const filterStore = useFilterStore()
@@ -40,7 +42,7 @@ const initCategory = computed(() => {
 })
 
 const categorySelectOptions = computed(() =>
-  props.categoryOptions.map((c) => ({ label: c, value: c }))
+  labeledCategoryOptions(props.categoryOptions, props.categoryLabels),
 )
 
 // 视图模式：category=本品类回购（现有逻辑）, rfm=历史老客回购（不限品类）

@@ -298,7 +298,7 @@ def get_category_churn_api(
     channel: Optional[str] = Query(default=None),
     exclude_channels: Optional[List[str]] = Query(default=None),
 ):
-    """品类流失分析：返回各品类的流失用户数、流失率及特征"""
+    """品类流失预警：返回各品类平均流失风险、高风险用户及迁移去向证据。"""
     if warning := check_future_date(start_date) or check_future_date(end_date):
         response.headers["X-Data-Warning"] = warning
     return get_category_churn(start_date, end_date, level, channel, exclude_channels)

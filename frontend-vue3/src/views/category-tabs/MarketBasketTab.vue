@@ -16,10 +16,12 @@ const props = defineProps<{
   dataQualityNote?: string
   /** 品类列表（从 distributionData 获取，按GSV降序） */
   categoryOptions?: string[]
+  categoryLabels?: Record<string, string>
 }>()
 
 const filterStore = useFilterStore()
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { categoryDisplayName, labeledCategoryOptions } from '@/utils/maskCategoryName'
 
 // 目标品类选择 —— 默认同步 props.categoryOptions[0]
 const targetCategory = ref<string | null>(null)
@@ -37,7 +39,7 @@ const initCategory = computed(() => {
 
 const selectOptions = computed(() => {
   const fromProps = props.categoryOptions || []
-  return fromProps.map(c => ({ label: c, value: c }))
+  return labeledCategoryOptions(fromProps, props.categoryLabels)
 })
 
 // ─── 排序与过滤 ──────────────────────────────────────────────────
@@ -81,6 +83,9 @@ const {
   staleTime: 60_000,
 })
 
+const showBasketName = (raw: string) =>
+  props.categoryLabels?.[raw] || categoryDisplayName({ name: raw })
+
 // ─── 金额渲染辅助：防止长数字换行 ─────────────────────────────────
 function moneySpan(amount: number | null | undefined, prefix = '¥'): any {
   if (amount == null || Number.isNaN(amount)) return h('span', { style: 'white-space: nowrap' }, '—')
@@ -103,6 +108,7 @@ const compactColumns = computed<DataTableColumns<any>>(() => [
     width: 140,
     fixed: 'left',
     align: 'center',
+    render: (row: any) => showBasketName(row.category_name),
   },
   {
     title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
@@ -155,6 +161,7 @@ const fullColumns = computed<DataTableColumns<any>>(() => [
     width: 140,
     fixed: 'left',
     align: 'center',
+    render: (row: any) => showBasketName(row.category_name),
   },
   {
     title: () => hColTip('关联订单数', '同时包含目标品类和该品类的订单数量'),
@@ -345,7 +352,7 @@ async function handleExport() {
   if (!items.length) return
 
   const rows = items.map((row: any) => ({
-    category_name: row.category_name,
+    category_name: showBasketName(row.category_name),
     co_order_count: row.current.co_order_count,
     support: row.current.support,
     confidence: row.current.confidence,

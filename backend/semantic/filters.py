@@ -171,7 +171,7 @@ class FilterBuilder:
         fb.with_time_range("2026-01-01", "2026-01-31")
         fb.with_channels(["直播", "货架"])
         sql, params = fb.build()
-        # sql => "pay_time >= ? AND pay_time <= ? AND order_status LIKE '%成功%' AND is_goujinjin = FALSE AND is_refund = FALSE AND o.channel IN (?,?)"
+        # sql => pay_time range + valid_order() + o.channel IN (?,?)
     """
 
     def __init__(self):
@@ -180,7 +180,6 @@ class FilterBuilder:
         self._end_dt: Optional[str] = None
         self._channels: Optional[List[str]] = None
         self._exclude_channels: Optional[List[str]] = None
-        self._segment_id: Optional[int] = None
         self._member_only: bool = False
         self._dimension: Optional[str] = None
         self._dimension_value: Optional[str] = None
@@ -215,10 +214,6 @@ class FilterBuilder:
 
     def with_exclude_channels(self, channels: Optional[List[str]]) -> "FilterBuilder":
         self._exclude_channels = channels
-        return self
-
-    def with_segment_id(self, segment_id: Optional[int]) -> "FilterBuilder":
-        self._segment_id = segment_id
         return self
 
     def with_member_only(self, member_only: bool = True) -> "FilterBuilder":

@@ -7,6 +7,8 @@ import logging
 import os
 import threading
 
+from backend.semantic.time import DateRange, PeriodBuilder
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,8 +32,52 @@ def warehouse_cutoff_date() -> date | None:
         return _query()
 
 
+def _clip_current_window(current: DateRange, cutoff: date) -> tuple[date, date] | None:
+    if current.empty:
+        return None
+    start = date.fromisoformat(current.start)
+    end = date.fromisoformat(current.end)
+    if end > cutoff:
+        end = cutoff
+    if start > end:
+        return None
+    return start, end
+
+
+def dashboard_windows(cutoff: date) -> list[tuple[date, date]]:
+    """Filter-bar presets with warehouse cutoff as the last data day.
+
+    PeriodBuilder treats ``today`` as exclusive (end = today - 1). Passing
+    ``cutoff + 1 day`` makes yesterday equal the warehouse last day.
+    Future quarter ranges are clipped or dropped so prewarm never asks
+    for dates after cutoff.
+    """
+    today = cutoff + timedelta(days=1)
+    builders = (
+        PeriodBuilder.yesterday,
+        PeriodBuilder.wtd,
+        PeriodBuilder.mtd,
+        PeriodBuilder.ytd,
+        PeriodBuilder.last180days,
+        PeriodBuilder.last365days,
+        PeriodBuilder.q1,
+        PeriodBuilder.q2,
+        PeriodBuilder.q3,
+        PeriodBuilder.q4,
+    )
+    seen: set[tuple[date, date]] = set()
+    out: list[tuple[date, date]] = []
+    for builder in builders:
+        pair = _clip_current_window(builder(today=today)["current"], cutoff)
+        if pair is None or pair in seen:
+            continue
+        seen.add(pair)
+        out.append(pair)
+    return out
+
+
 def prewarm_common_windows() -> None:
-    """Fill rfm_analysis_cache for 365d / 180d / MTD ending at warehouse cutoff."""
+    """Fill rfm_analysis_cache for every dashboard period ending at cutoff."""
 
     from backend.services.dual_conn import read_request_context
     from backend.services.health.rfm_analysis import get_rfm_analysis
@@ -41,13 +87,7 @@ def prewarm_common_windows() -> None:
         if cutoff is None:
             logger.warning("RFM prewarm skipped: orders.max(pay_time) is empty")
             return
-        month_start = cutoff.replace(day=1)
-        windows = [
-            (cutoff - timedelta(days=364), cutoff),
-            (cutoff - timedelta(days=179), cutoff),
-            (month_start, cutoff),
-        ]
-        for start, end in windows:
+        for start, end in dashboard_windows(cutoff):
             start_s, end_s = start.isoformat(), end.isoformat()
             try:
                 get_rfm_analysis(

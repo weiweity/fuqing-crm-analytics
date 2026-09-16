@@ -91,7 +91,7 @@ const kpiCards = computed(() => {
       format: 'currency' as const,
     },
     {
-      title: '新客占比',
+      title: '新客人数占比',
       value: td?.new_customer_ratio?.length
         ? `${((td.new_customer_ratio[lastIdx] || 0) * 100).toFixed(1)}%`
         : '—',
@@ -121,7 +121,7 @@ const trendOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
     },
     legend: {
-      data: ['GMV(万)', '用户数', 'AUS(元)', '新客占比'],
+      data: ['GMV(万)', '用户数', 'AUS(元)', '新客人数占比'],
       bottom: 0,
       icon: 'circle',
       itemGap: 16,
@@ -184,7 +184,7 @@ const trendOption = computed(() => {
         symbolSize: 4,
       },
       {
-        name: '新客占比',
+        name: '新客人数占比',
         type: 'line',
         yAxisIndex: 1,
         data: new_customer_ratio.map((v) => parseFloat((v * 100).toFixed(1))),

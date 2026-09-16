@@ -7,6 +7,7 @@ from .types import RatioField, PercentageField, PpField  # Sprint 14 A.3
 
 class CategoryDistributionItem(BaseModel):
     name: str
+    display_name: str = ""
     user_count: int
     member_count: int = 0
     gmv: float
@@ -28,6 +29,7 @@ class CategoryDistributionResponse(BaseModel):
 
 class CategoryOverviewItem(BaseModel):
     name: str
+    display_name: str = ""
     gsv: float
     gsv_yoy: Optional["PercentageField"] = None
     users: int
@@ -136,6 +138,7 @@ class CategoryRepurchaseFlowResponse(BaseModel):
 class ValueTierTableRow(BaseModel):
     """价值分层-表格行"""
     category_name: str
+    display_name: str = ""
     total_users: int
     high_value_users: int
     high_value_ratio: "RatioField"
@@ -201,13 +204,19 @@ class MarketBasketResponse(BaseModel):
 # ─────────────────────────────────────────────────────────────
 
 class CategoryChurnItem(BaseModel):
-    """品类流失预警-散点/条形/表格通用字段"""
+    """品类流失预警：用户级 hazard，品类迁移只作去向证据。"""
     category_name: str
+    display_name: str = ""
     current_users: int
     previous_users: int = 0
-    mom_change_rate: float = Field(..., description="环比变化率 0-1 decimal, 可负")
-    inter_churn: int = 0         # 品类间流失
-    silent_churn: int = 0        # 沉默流失
+    mean_hazard: float = Field(0.0, description="上期购买用户的平均流失风险 0-1")
+    high_risk_users: int = 0
+    high_risk_ratio: "RatioField" = 0.0
+    median_gap_days: float = 0.0
+    rfm_at_risk_users: int = 0
+    mom_change_rate: float = Field(0.0, description="人数环比，仅作对照不是风险分")
+    inter_churn: int = 0
+    silent_churn: int = 0
     top_churn_dest1: str = ""
     top_churn_dest1_ratio: "RatioField" = 0.0
     top_churn_dest2: str = ""
@@ -235,7 +244,7 @@ class CategoryDailyTrendResponse(BaseModel):
     aus: List[float]
     # Sprint 17 B2 全量 audit: List[RatioField] 必须用 Annotated 才能触发 element-wise 约束
     # Sprint 18 #141: 字段名 _ratio 已被 linter 强制要求 RatioField 0-1 范围, 0-1 decimal
-    new_customer_ratio: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 新客占比")]]
+    new_customer_ratio: List[Annotated[float, Field(ge=0.0, le=1.0, description="0-1 decimal 新客人数占比")]]
 
 
 class UserDetail(BaseModel):

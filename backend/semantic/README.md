@@ -1,113 +1,58 @@
-# Sample CRM - 计算规则文档
+# Sample CRM - 语义层
 
-> 所有计算规则必须在 `calculations.py` 中定义，所有 Service 必须调用此处函数，禁止自行定义。
+查询口径的入口在 `backend/semantic/`。过滤、时间、YOY 和渠道别名由 Service 调用本层；**出数 SQL 以各 service 为准**，`metrics.py` / `dimensions.py` 注册表未接入查询。
 
 ---
 
-## 1. YOY 计算规则
+## 1. YOY 计算规则（L4.81）
+
+后端返回 **raw ratio，不 ×100**。前端 `YOYBadge` / Excel `yoy_pct` 再 ×100 展示。
 
 ### 1.1 绝对值 YOY（金额、人数、客单价等）
 
-**公式**：
-```
-YOY = (当年 - 去年) / 去年
-```
-
-**示例**：
-- GSV YOY = (100 - 80) / 80 = 0.25（即 25%）
-- 人数 YOY = (150 - 100) / 100 = 0.50（即 50%）
-
+**公式**：`(当年 - 去年) / 去年`  
+**存**：`0.25` **展示**：`+25%`  
 **函数**：`yoy_absolute(cur, comp)`
 
----
+### 1.2 占比/比率 YOY（老客GSV占比、会员占比等）
 
-### 1.2 占比/比率 YOY（老客占比、会员占比等）
-
-**公式**：
-```
-YOY = 当年占比 - 去年占比（百分点差）
-```
-
-**示例**：
-- 老客占比 YOY = 60% - 55% = +5pp
-- 会员占比 YOY = 35% - 30% = +5pp
-
-**注意**：占比 YOY 是相减，不是相除！
-
+**公式**：当年占比 − 去年占比（百分点差，不是相除）  
+**存**：`0.05` **展示**：`+5pp`  
 **函数**：`yoy_ratio(cur, comp)`
-
----
 
 ### 1.3 回购率 YOY
 
-**公式**：
-```
-YOY = 当年回购率 - 去年回购率（百分点差）
-```
-
-**示例**：
-- 回购率 YOY = 35% - 30% = +5pp
-
-**函数**：`yoy_repurchase_rate(cur, comp)`
+**公式**：当年回购率 − 去年回购率  
+**函数**：`yoy_repurchase_rate(cur, comp)`（与 `yoy_ratio` 同形）
 
 ---
 
-## 2. MOM 计算规则
+## 2. MOM
 
-### 2.1 绝对值 MOM
-
-**公式**：
-```
-MOM = (本期 - 上期) / 上期
-```
-
-**函数**：`mom_absolute(cur, prev)`
-
----
-
-### 2.2 占比 MOM
-
-**公式**：
-```
-MOM = 本期占比 - 上期占比（百分点差）
-```
-
-**函数**：`mom_ratio(cur, prev)`
+与 YOY 相同：绝对值用除法，占比用减法；均为 raw，前端 ×100。
 
 ---
 
 ## 3. 安全除法
 
-**公式**：
-```
-result = 分子 / 分母  (当分母 != 0)
-result = 默认值       (当分母 == 0)
-```
-
-**函数**：`safe_ratio(numerator, denominator, default=0.0)`
+`safe_ratio(numerator, denominator, default=0.0)`：分母为 0 时返回默认值。
 
 ---
 
-## 4. 前端展示规则
+## 4. 前端展示
 
-### 4.1 百分比展示
-
-- 存储格式：小数（0.60）
-- 展示格式：百分比（60%）
-- 转换：`value * 100` 后展示
-
-### 4.2 YOY 展示
-
-- 绝对值 YOY：直接展示（如 25%）
-- 占比 YOY：直接展示（如 +5pp）
+- 水平占比：存 0–1 decimal，展示 ×100 加 `%`
+- 绝对值 YOY：raw ×100 加 `%`
+- 占比 YOY：raw ×100 加 `pp`
 
 ---
 
 ## 5. 禁止事项
 
-1. **禁止在 Service 中自行定义 YOY 计算函数**，必须调用 `calculations.py` 中的函数
-2. **禁止在前端计算 YOY**，后端返回完整数据，前端只做展示
-3. **占比 YOY 必须用减法**，不能用除法
+1. Service 不得自写 YOY 函数，必须调用 `calculations.py`
+2. 前端不得自己算 YOY；后端返回 raw，前端只做展示换算
+3. 占比 YOY 必须用减法
+4. 不要把 `metrics.MetricRegistry.get_sql()` 当查询口径；品类老客 GSV 在 `category_service.overview`（首购 ≤ 窗口月初前一天）
 
 ---
 
@@ -115,21 +60,27 @@ result = 默认值       (当分母 == 0)
 
 ```
 backend/semantic/
-├── __init__.py          # 导出 calculations 模块
-├── calculations.py       # 统一计算规则（核心）
-├── metrics.py           # 指标定义
-├── filters.py           # 过滤条件构造器
-├── dimensions.py        # 维度定义
-├── segments.py          # 人群分层定义
-├── channels.py          # 渠道漏斗定义
-├── time.py              # 时间范围构造器
-└── README.md           # 本文档
+├── __init__.py
+├── calculations.py       # YOY / GSV 谓词 SSOT
+├── filters.py            # FilterBuilder / OrderFilters
+├── time.py               # PeriodBuilder
+├── channels.py           # 漏斗与 UI↔DB 别名
+├── segments.py           # RFM 8 象限与 R 桶
+├── metrics.py            # 指标目录（未接入查询）
+├── dimensions.py         # 维度目录（未接入查询）
+├── lifetime_value.py
+├── analytics_b0.py       # B0 合成样例，不走 FilterBuilder
+├── analytics_channel_followup.py
+├── analytics_first_purchase_path.py
+├── analytics_handoff_audience.py
+└── README.md
 ```
 
 ---
 
 ## 7. 修改记录
 
-| 日期 | 修改内容 | 修改人 |
-|------|---------|--------|
-| 2026-04-18 | 初始版本，统一 YOY/占比计算规则 | AI |
+| 日期 | 修改内容 |
+|------|---------|
+| 2026-04-18 | 初始版本，统一 YOY/占比计算规则 |
+| 2026-09-16 | 文档对齐 L4.81 raw YOY；8 象限；注册表标明未接入 |

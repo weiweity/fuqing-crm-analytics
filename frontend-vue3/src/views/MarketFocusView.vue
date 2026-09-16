@@ -70,7 +70,7 @@ useRouteHashTab(activeTab, tabList.map(tab => tab.name))
 <template>
   <div class="market-focus-view">
     <div class="flex items-center justify-between mb-4">
-      <PageHeader title="市场对焦" subtitle="核心单品新老客占比 / 全店资产 / 单品资产 / 单品资产-其他 追踪" />
+      <PageHeader title="市场对焦" subtitle="核心单品新老客GSV占比 / 全店资产 / 单品资产 / 单品资产-其他 追踪" />
       <div class="flex items-center gap-3">
         <NSelect
           v-if="activeTab === 'product-customer'"

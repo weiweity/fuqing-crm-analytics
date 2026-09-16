@@ -216,7 +216,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     render: (row) => row.top_repurchase_category || '—',
   },
   {
-    title: '老客占比',
+    title: '老客人数占比',
     key: 'old_user_ratio',
     width: 90,
     align: 'right',

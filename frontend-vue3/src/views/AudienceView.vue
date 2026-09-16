@@ -1742,12 +1742,12 @@ const channelXlsxColumns = computed(() => {
     { header: `${yr}老客GSV`, key: 'old_gsv_2026', width: 14, numFmt: '¥#,##0' },
     { header: `${yr2}老客GSV`, key: 'old_gsv_2025', width: 14, numFmt: '¥#,##0' },
     { header: '老客GSV YOY', key: 'old_gsv_yoy', width: 12, numFmt: '0.0%' },
-    { header: `${yr}老客占比`, key: 'old_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
-    { header: `${yr2}老客占比`, key: 'old_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
-    { header: '老客占比YOY', key: 'old_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
-    { header: `${yr}新客占比`, key: 'new_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
-    { header: `${yr2}新客占比`, key: 'new_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
-    { header: '新客占比YOY', key: 'new_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
+    { header: `${yr}老客GSV占比`, key: 'old_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
+    { header: `${yr2}老客GSV占比`, key: 'old_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
+    { header: '老客GSV占比YOY', key: 'old_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
+    { header: `${yr}新客GSV占比`, key: 'new_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
+    { header: `${yr2}新客GSV占比`, key: 'new_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
+    { header: '新客GSV占比YOY', key: 'new_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
     { header: `${yr}新客人数`, key: 'new_users_2026', width: 12, numFmt: '#,##0' },
     { header: `${yr2}新客人数`, key: 'new_users_2025', width: 12, numFmt: '#,##0' },
     { header: '新客人数YOY', key: 'new_users_yoy', width: 12, numFmt: '0.0%' },
@@ -1789,7 +1789,7 @@ const channelMemberXlsxColumns = computed(() => {
     // 会员新客GSV占比
     { header: `${yr}会员新客GSV占比`, key: 'new_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
     { header: `${yr2}会员新客GSV占比`, key: 'new_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
-    { header: '会员新客占比YOY', key: 'new_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
+    { header: '会员新客GSV占比YOY', key: 'new_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
     { header: `${yr}会员新客人数`, key: 'new_users_2026', width: 12, numFmt: '#,##0' },
     { header: `${yr2}会员新客人数`, key: 'new_users_2025', width: 12, numFmt: '#,##0' },
     { header: '会员新客人数YOY', key: 'new_users_yoy', width: 12, numFmt: '0.0%' },
@@ -1803,7 +1803,7 @@ const channelMemberXlsxColumns = computed(() => {
     // 会员老客GSV占比
     { header: `${yr}会员老客GSV占比`, key: 'old_gsv_ratio_2026', width: 12, numFmt: '0.0%' },
     { header: `${yr2}会员老客GSV占比`, key: 'old_gsv_ratio_2025', width: 12, numFmt: '0.0%' },
-    { header: '会员老客占比YOY', key: 'old_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
+    { header: '会员老客GSV占比YOY', key: 'old_gsv_ratio_yoy', width: 12, numFmt: '0.0%' },
     { header: `${yr}会员老客人数`, key: 'old_users_2026', width: 12, numFmt: '#,##0' },
     { header: `${yr2}会员老客人数`, key: 'old_users_2025', width: 12, numFmt: '#,##0' },
     { header: '会员老客人数YOY', key: 'old_users_yoy', width: 12, numFmt: '0.0%' },
@@ -1876,7 +1876,7 @@ const channelMemberXlsxColumns = computed(() => {
         <n-grid :cols="4" :x-gap="12" :y-gap="12" responsive="screen" :item-responsive="true" class="mt-3">
           <n-gi :span="1" class="h-full">
             <MetricCard
-              title="老客占比"
+              title="老客GSV占比"
               :value="fmtRatio(kpiData?.old_gsv_ratio)"
               :change="kpiChange('old_gsv_ratio_yoy', 'old_gsv_ratio_mom')"
               :loading="kpiLoading"
@@ -1885,7 +1885,7 @@ const channelMemberXlsxColumns = computed(() => {
           </n-gi>
           <n-gi :span="1" class="h-full">
             <MetricCard
-              title="新客占比"
+              title="新客GSV占比"
               :value="fmtRatio(kpiData?.new_gsv_ratio)"
               :change="kpiChange('new_gsv_ratio_yoy', 'new_gsv_ratio_mom')"
               :loading="kpiLoading"
@@ -1996,7 +1996,7 @@ const channelMemberXlsxColumns = computed(() => {
               <div>
                 <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 全店</h3>
                 <p class="text-[11px] text-slate-500">
-                  {{ showDetailChannelAll ? '全量指标：GSV / 人数 / AUS / 新老客 GSV 两年同比与占比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                  {{ showDetailChannelAll ? '全量指标：GSV / 人数 / AUS / 新老客 GSV 两年同比与占比' : '核心指标：GSV 及新老客GSV占比（点击"显示详情"展开全部列）' }}
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -2047,7 +2047,7 @@ const channelMemberXlsxColumns = computed(() => {
               <div>
                 <h3 class="text-sm font-semibold text-slate-800">渠道概览 — 会员</h3>
                 <p class="text-[11px] text-slate-500">
-                  {{ showDetailChannelMember ? '全量指标：会员 GSV / 人数 / AUS / 会员新老客 GSV 两年同比与占比' : '核心指标：会员GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                  {{ showDetailChannelMember ? '全量指标：会员 GSV / 人数 / AUS / 会员新老客 GSV 两年同比与占比' : '核心指标：会员GSV 及新老客GSV占比（点击"显示详情"展开全部列）' }}
                 </p>
               </div>
               <div class="flex items-center gap-2">

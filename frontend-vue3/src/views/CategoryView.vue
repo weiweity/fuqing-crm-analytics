@@ -31,6 +31,7 @@ import ChurnWarningTab from './category-tabs/ChurnWarningTab.vue'
 import CategoryRepurchaseTab from './category-tabs/CategoryRepurchaseTab.vue'
 import ProductClassRepurchaseTab from './category-tabs/ProductClassRepurchaseTab.vue'
 import { useRouteHashTab } from '@/composables/useRouteHashTab'
+import { categoryDisplayName, selectableCategoryNames } from '@/utils/maskCategoryName'
 
 const filterStore = useFilterStore()
 const activeTab = ref('overview')
@@ -98,10 +99,21 @@ const {
   staleTime: 60_000,
 })
 
-// 品类列表（用于回购分析下拉框）
+// 品类列表（用于回购分析下拉框）：value 必须是原名，合计行不能进筛选
 const categoryOptions = computed(() => {
   if (!distributionData.value?.distribution) return []
-  return distributionData.value.distribution.map((d) => d.name)
+  return selectableCategoryNames(distributionData.value.distribution.map((d) => d.name))
+})
+
+const categoryLabelMap = computed(() => {
+  const map: Record<string, string> = {}
+  for (const row of distributionData.value?.distribution ?? []) {
+    if (row.display_name) map[row.name] = row.display_name
+  }
+  for (const row of overviewData.value?.all_rows ?? []) {
+    if (row.display_name) map[row.name] = row.display_name
+  }
+  return map
 })
 
 
@@ -123,14 +135,14 @@ const topPenetration = computed(() => {
   const items = distributionData.value?.distribution
   if (!items?.length) return '—'
   const top = [...items].sort((a, b) => b.penetration_rate - a.penetration_rate)[0]
-  return `${top.name} ${(top.penetration_rate * 100).toFixed(1)}%`
+  return `${categoryDisplayName(top)} ${((top.penetration_rate || 0) * 100).toFixed(1)}%`
 })
 
 const topGsvCategory = computed(() => {
   const items = sortedDistribution.value
   if (!items?.length) return '—'
   const top = items[0]
-  return `${top.name} ¥${(top.gmv / 10000).toFixed(1)}万`
+  return `${categoryDisplayName(top)} ¥${(top.gmv / 10000).toFixed(1)}万`
 })
 
 // 按GSV降序排序的品类分布（饼图和表格统一使用）
@@ -192,7 +204,7 @@ const pieChartOption = computed(() => {
           label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#0f172a' },
         },
         labelLine: { show: true, length: 10, length2: 8, lineStyle: { color: '#cbd5e1' } },
-        data: items.map((item: CategoryDistributionItem) => ({ name: item.name, value: item.gmv })),
+        data: items.map((item: CategoryDistributionItem) => ({ name: categoryDisplayName(item), value: item.gmv })),
       },
     ],
   }
@@ -270,7 +282,7 @@ function ausChildren(valKey: string, yoyKey: string): SubCol[] {
 function ratioChildren(valKey: string, yoyKey: string): SubCol[] {
   return [
     {
-      title: '占比',
+      title: 'GSV占比',
       key: valKey,
       width: 80,
       align: 'center',
@@ -309,6 +321,7 @@ const compactColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -347,6 +360,7 @@ const compactMemberColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -401,6 +415,7 @@ const allColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -461,6 +476,7 @@ const memberColumns: DataTableColumns<CategoryOverviewItem> = [
     fixed: 'left',
     align: 'center',
     sorter: 'default',
+    render: (row: CategoryOverviewItem) => categoryDisplayName(row),
   },
   {
     title: '全店',
@@ -535,7 +551,7 @@ const categoryDistributionXlsxColumns = computed<XlsxColumn[]>(() => [
 // - ratio YOY (member_ratio/old_ratio/new_ratio) → kind='yoy_pp' (raw *100 = pp 后缀, 跟 L4.81 yoy_ratio 1:1 stable 永久规则化沿用)
 // - 各类占比 本体 → kind='number' + numFmt='0.0%' (raw 0-1 → Excel *100 = "49.0%" 显示)
 const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
-  { header: '产品分类', key: 'name', kind: 'text', width: 14 },
+  { header: '产品分类', key: 'display_name', kind: 'text', width: 14 },
   // 全店 group (9 columns: GSV/YOY/会员占比/YOY/用户数/YOY/AUS/YOY)
   { header: '全店-GSV (元)', key: 'gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '全店-GSV YOY%', key: 'gsv_yoy', kind: 'yoy_pct', width: 12 },
@@ -549,8 +565,8 @@ const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   // 老客 group (8 columns: GSV/YOY/占比/YOY/用户数/YOY/AUS/YOY)
   { header: '老客-GSV (元)', key: 'old_gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '老客-GSV YOY%', key: 'old_gsv_yoy', kind: 'yoy_pct', width: 12 },
-  { header: '老客-占比', key: 'old_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
-  { header: '老客-占比 YOY (pp)', key: 'old_ratio_yoy', kind: 'yoy_pp', width: 12 },
+  { header: '老客-GSV占比', key: 'old_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
+  { header: '老客-GSV占比 YOY (pp)', key: 'old_ratio_yoy', kind: 'yoy_pp', width: 12 },
   { header: '老客-用户数', key: 'old_users', kind: 'number', width: 12, numFmt: '#,##0' },
   { header: '老客-用户数 YOY%', key: 'old_users_yoy', kind: 'yoy_pct', width: 12 },
   { header: '老客-AUS', key: 'old_aus', kind: 'number', width: 12, numFmt: '¥#,##0' },
@@ -558,8 +574,8 @@ const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   // 新客 group (8 columns: GSV/YOY/占比/YOY/用户数/YOY/AUS/YOY)
   { header: '新客-GSV (元)', key: 'new_gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '新客-GSV YOY%', key: 'new_gsv_yoy', kind: 'yoy_pct', width: 12 },
-  { header: '新客-占比', key: 'new_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
-  { header: '新客-占比 YOY (pp)', key: 'new_ratio_yoy', kind: 'yoy_pp', width: 12 },
+  { header: '新客-GSV占比', key: 'new_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
+  { header: '新客-GSV占比 YOY (pp)', key: 'new_ratio_yoy', kind: 'yoy_pp', width: 12 },
   { header: '新客-用户数', key: 'new_users', kind: 'number', width: 12, numFmt: '#,##0' },
   { header: '新客-用户数 YOY%', key: 'new_users_yoy', kind: 'yoy_pct', width: 12 },
   { header: '新客-AUS', key: 'new_aus', kind: 'number', width: 12, numFmt: '¥#,##0' },
@@ -569,7 +585,7 @@ const allCompactXlsxColumns = computed<XlsxColumn[]>(() => [
 // 会员 view 同样 26 列 WYSIWYG (跟 frontend memberColumns 1:1 stable 沿用, 老客/新客 改用 member_data 子字典)
 // L4.91 PR1 治本 Bug #3: 跟 allCompactXlsxColumns 1:1 stable 永久规则化沿用 (kind enum 显式分支)
 const memberCompactXlsxColumns = computed<XlsxColumn[]>(() => [
-  { header: '产品分类', key: 'name', kind: 'text', width: 14 },
+  { header: '产品分类', key: 'display_name', kind: 'text', width: 14 },
   // 全店 group (9 columns, 会员口径)
   { header: '全店-GSV (元)', key: 'gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '全店-GSV YOY%', key: 'gsv_yoy', kind: 'yoy_pct', width: 12 },
@@ -583,8 +599,8 @@ const memberCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   // 老客 group (8 columns, 会员口径)
   { header: '老客-GSV (元)', key: 'old_gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '老客-GSV YOY%', key: 'old_gsv_yoy', kind: 'yoy_pct', width: 12 },
-  { header: '老客-占比', key: 'old_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
-  { header: '老客-占比 YOY (pp)', key: 'old_ratio_yoy', kind: 'yoy_pp', width: 12 },
+  { header: '老客-GSV占比', key: 'old_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
+  { header: '老客-GSV占比 YOY (pp)', key: 'old_ratio_yoy', kind: 'yoy_pp', width: 12 },
   { header: '老客-用户数', key: 'old_users', kind: 'number', width: 12, numFmt: '#,##0' },
   { header: '老客-用户数 YOY%', key: 'old_users_yoy', kind: 'yoy_pct', width: 12 },
   { header: '老客-AUS', key: 'old_aus', kind: 'number', width: 12, numFmt: '¥#,##0' },
@@ -592,8 +608,8 @@ const memberCompactXlsxColumns = computed<XlsxColumn[]>(() => [
   // 新客 group (8 columns, 会员口径)
   { header: '新客-GSV (元)', key: 'new_gsv', kind: 'number', width: 16, numFmt: '¥#,##0' },
   { header: '新客-GSV YOY%', key: 'new_gsv_yoy', kind: 'yoy_pct', width: 12 },
-  { header: '新客-占比', key: 'new_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
-  { header: '新客-占比 YOY (pp)', key: 'new_ratio_yoy', kind: 'yoy_pp', width: 12 },
+  { header: '新客-GSV占比', key: 'new_ratio', kind: 'number', width: 12, numFmt: '0.0%' },
+  { header: '新客-GSV占比 YOY (pp)', key: 'new_ratio_yoy', kind: 'yoy_pp', width: 12 },
   { header: '新客-用户数', key: 'new_users', kind: 'number', width: 12, numFmt: '#,##0' },
   { header: '新客-用户数 YOY%', key: 'new_users_yoy', kind: 'yoy_pct', width: 12 },
   { header: '新客-AUS', key: 'new_aus', kind: 'number', width: 12, numFmt: '¥#,##0' },
@@ -606,7 +622,8 @@ const exportFilenamePrefix = computed(() => `品类分析_${filterStore.dateRang
 // L4.79 + L4.80 flatten compactXlsxColumns 26 列到行: 从 CategoryOverviewItem 提取 (全店 + 老客 + 新客 + 会员占比 + 会员渗透率)
 function flattenOverviewRow(row: Record<string, any>, includeMember: boolean): Record<string, any> {
   const base: Record<string, any> = {
-    name: row.name,
+    name: categoryDisplayName(row),
+    display_name: categoryDisplayName(row),
     // 全店 group
     gsv: row.gsv,
     gsv_yoy: row.gsv_yoy,
@@ -654,7 +671,7 @@ const memberCompactXlsxData = computed(() =>
 )
 const distributionXlsxData = computed(() =>
   sortedDistribution.value.map((r: any) => ({
-    name: r.name,
+    name: categoryDisplayName(r),
     gmv: r.gmv,
     user_count: r.user_count,
     member_ratio: r.member_ratio,
@@ -750,7 +767,7 @@ const distributionXlsxData = computed(() =>
                     <p class="text-[11px] text-slate-500 mb-3">各品类GSV与用户规模（按GSV降序）</p>
                     <DataTablePro
                       :columns="[
-                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', align: 'center', sorter: 'default' },
+                        { title: '品类名称', key: 'name', width: 180, fixed: 'left', align: 'center', sorter: 'default', render: (row: CategoryDistributionItem) => categoryDisplayName(row) },
                         { title: 'GSV', key: 'gmv', width: 130, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.gmv ?? 0) - (b.gmv ?? 0), render: (row: any) => `¥${(row.gmv / 10000).toFixed(1)}万` },
                         { title: '用户数', key: 'user_count', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.user_count ?? 0) - (b.user_count ?? 0) },
                         { title: '会员占比', key: 'member_ratio', width: 100, align: 'center', className: 'bi-cell-number', sorter: (a: any, b: any) => (a.member_ratio ?? 0) - (b.member_ratio ?? 0), render: (row: any) => `${((row.member_ratio || 0) * 100).toFixed(1)}%` },
@@ -786,7 +803,7 @@ const distributionXlsxData = computed(() =>
                 </div>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
-                {{ showDetailAll ? '全量指标：GSV / 人数 / AUS / 占比 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                {{ showDetailAll ? '全量指标：GSV / 人数 / AUS / 占比 及同比' : '核心指标：GSV 及新老客GSV占比（点击"显示详情"展开全部列）' }}
               </p>
               <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
               <LoadingState v-else-if="overviewLoading" />
@@ -834,7 +851,7 @@ const distributionXlsxData = computed(() =>
                 </div>
               </div>
               <p class="text-[11px] text-slate-500 mb-3">
-                {{ showDetailMember ? '全量指标：GSV / 会员占比 / 人数 / AUS 及同比' : '核心指标：GSV 及新老客占比（点击"显示详情"展开全部列）' }}
+                {{ showDetailMember ? '全量指标：GSV / 会员占比 / 人数 / AUS 及同比' : '核心指标：GSV 及新老客GSV占比（点击"显示详情"展开全部列）' }}
               </p>
               <ErrorState v-if="overviewError" :message="(overviewError as Error).message" @retry="overviewRefetch()" />
               <LoadingState v-else-if="overviewLoading" />
@@ -870,7 +887,7 @@ const distributionXlsxData = computed(() =>
             解决问题：同一笔订单里哪些品类经常一起被买？——指导组合装设计、关联推荐和满减门槛设置
           </p>
           <div class="space-y-5">
-            <MarketBasketTab :category-options="categoryOptions" />
+            <MarketBasketTab :category-options="categoryOptions" :category-labels="categoryLabelMap" />
           </div>
         </n-tab-pane>
 
@@ -890,7 +907,7 @@ const distributionXlsxData = computed(() =>
             解决问题：买了某品类的老客，多久回来？回来买了同品还是其他品类？——识别品类复购周期和品类间的承接关系
           </p>
           <div class="space-y-5">
-            <CategoryRepurchaseTab :category-options="categoryOptions" />
+            <CategoryRepurchaseTab :category-options="categoryOptions" :category-labels="categoryLabelMap" />
           </div>
         </n-tab-pane>
 
@@ -900,7 +917,7 @@ const distributionXlsxData = computed(() =>
             解决问题：用户买了A品类之后流向了哪个品类？——看清品类间的承接关系，指导关联推荐和品类组合策略
           </p>
           <div class="space-y-5">
-            <CategoryFlowTab :category-options="categoryOptions" />
+            <CategoryFlowTab :category-options="categoryOptions" :category-labels="categoryLabelMap" />
           </div>
         </n-tab-pane>
 
