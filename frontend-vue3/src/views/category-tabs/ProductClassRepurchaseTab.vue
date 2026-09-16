@@ -12,6 +12,10 @@ import ExportToolbar from '@/components/ExportToolbar.vue'
 import BaseStyleButton from '@/components/BaseStyleButton.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
 import { LOW_PRICE_CHANNELS } from '@/constants/channels'
+import { maskCategoryName, uniqueDisplayNames } from '@/utils/maskCategoryName'
+import { useFormat } from '@/composables/useFormat'
+
+const { formatPercent } = useFormat()
 
 interface ProductItem {
   product_class: string
@@ -147,9 +151,31 @@ const productXlsxColumns = computed<XlsxColumn[]>(() =>
   activeView.value === 'same' ? productXlsxColumnsSame : productXlsxColumnsCross
 )
 
+const productLabels = computed(() =>
+  uniqueDisplayNames([
+    ...(data.value?.by_product_class ?? []).map((r) => r.product_class),
+    ...(((data.value as { by_product_class_return?: ProductItem[] } | undefined)
+      ?.by_product_class_return ?? []).map((r) => r.product_class)),
+  ]),
+)
+
+function showProduct(raw: string | null | undefined): string {
+  const name = (raw || '').trim()
+  if (!name) return '—'
+  return productLabels.value.get(name) || maskCategoryName(name)
+}
+
 // ── 简化版列：品类 + 核心指标（10列）──
 const simpleColumns: DataTableColumns<ProductItem> = [
-  { title: '品类', key: 'product_class', sorter: 'default', width: 130, fixed: 'left', align: 'center' },
+  {
+    title: '品类',
+    key: 'product_class',
+    sorter: 'default',
+    width: 130,
+    fixed: 'left',
+    align: 'center',
+    render: (row) => showProduct(row.product_class),
+  },
   { title: '购买人数', key: 'total_buyers', align: 'center', sorter: 'default', width: 95 },
   { title: '复购人数', key: 'repurchase_users', align: 'center', sorter: 'default', width: 95 },
   {
@@ -158,7 +184,7 @@ const simpleColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 90,
-    render: (row) => `${(row.repurchase_rate * 100).toFixed(1)}%`,
+    render: (row) => formatPercent(row.repurchase_rate),
   },
   {
     title: '去年同期复购率',
@@ -167,7 +193,7 @@ const simpleColumns: DataTableColumns<ProductItem> = [
     sorter: 'default',
     width: 120,
     render: (row) => row.ly_repurchase_rate != null
-      ? `${(row.ly_repurchase_rate * 100).toFixed(1)}%`
+      ? formatPercent(row.ly_repurchase_rate)
       : h('span', { class: 'text-slate-400' }, '—'),
   },
   {
@@ -209,7 +235,15 @@ const simpleColumns: DataTableColumns<ProductItem> = [
 
 // ── 展开版列：全部指标（18列）──
 const expandedColumns: DataTableColumns<ProductItem> = [
-  { title: '品类', key: 'product_class', sorter: 'default', width: 120, fixed: 'left', align: 'center' },
+  {
+    title: '品类',
+    key: 'product_class',
+    sorter: 'default',
+    width: 120,
+    fixed: 'left',
+    align: 'center',
+    render: (row) => showProduct(row.product_class),
+  },
   { title: '购买人数', key: 'total_buyers', align: 'center', sorter: 'default', width: 90 },
   { title: '复购人数', key: 'repurchase_users', align: 'center', sorter: 'default', width: 90 },
   {
@@ -218,7 +252,7 @@ const expandedColumns: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 90,
-    render: (row) => `${(row.repurchase_rate * 100).toFixed(1)}%`,
+    render: (row) => formatPercent(row.repurchase_rate),
   },
   {
     title: '去年同期复购率',
@@ -227,7 +261,7 @@ const expandedColumns: DataTableColumns<ProductItem> = [
     sorter: 'default',
     width: 120,
     render: (row) => row.ly_repurchase_rate != null
-      ? `${(row.ly_repurchase_rate * 100).toFixed(1)}%`
+      ? formatPercent(row.ly_repurchase_rate)
       : h('span', { class: 'text-slate-400' }, '—'),
   },
   {
@@ -341,7 +375,15 @@ const expandedColumns: DataTableColumns<ProductItem> = [
 
 // ── 展开版列：跨品类回购店铺（18列）──
 const expandedColumnsCross: DataTableColumns<ProductItem> = [
-  { title: '品类', key: 'product_class', sorter: 'default', width: 120, fixed: 'left', align: 'center' },
+  {
+    title: '品类',
+    key: 'product_class',
+    sorter: 'default',
+    width: 120,
+    fixed: 'left',
+    align: 'center',
+    render: (row) => showProduct(row.product_class),
+  },
   { title: '购买人数', key: 'total_buyers', align: 'center', sorter: 'default', width: 90 },
   { title: '回购人数', key: 'repurchase_users', align: 'center', sorter: 'default', width: 90 },
   {
@@ -350,7 +392,7 @@ const expandedColumnsCross: DataTableColumns<ProductItem> = [
     align: 'center',
     sorter: 'default',
     width: 90,
-    render: (row) => `${(row.repurchase_rate * 100).toFixed(1)}%`,
+    render: (row) => formatPercent(row.repurchase_rate),
   },
   {
     title: '去年同期回购率',
@@ -359,7 +401,7 @@ const expandedColumnsCross: DataTableColumns<ProductItem> = [
     sorter: 'default',
     width: 120,
     render: (row) => row.ly_repurchase_rate != null
-      ? `${(row.ly_repurchase_rate * 100).toFixed(1)}%`
+      ? formatPercent(row.ly_repurchase_rate)
       : h('span', { class: 'text-slate-400' }, '—'),
   },
   {
@@ -529,7 +571,7 @@ const currentSheetName = computed(() =>
             <ExportToolbar
               :filename="currentExportFilename"
               :columns="productXlsxColumns"
-              :data="activeView === 'same' ? data.by_product_class : (data as any).by_product_class_return"
+              :data="((activeView === 'same' ? data.by_product_class : (data as any).by_product_class_return) ?? []).map((row: ProductItem) => ({ ...row, product_class: showProduct(row.product_class) }))"
               :sheet-name="currentSheetName"
             />
             <div class="flex items-center bg-slate-100 rounded-lg p-0.5">

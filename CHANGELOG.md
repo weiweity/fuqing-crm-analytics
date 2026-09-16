@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
+
 - 账本：6677 已切到 DSH **0.1.6-alpha.1**（PID 69395，原 runtime，未 `--fresh`）。生成预览取消回归已记。不升版本、不上公网、合入不等于再 reload。
 - 健康页 RFM overlay：把源年 `user_rfm_precompute` 最近 3650 快照（2023-07-09）映射到 2026-07-01 / 2026-07-06 的 SYN26 用户，不抄 2026 分。不另升版本。
 - 合成用户 overlay RFM：归档没有 2023 GMV/90 as-of 时，用源窗口订单按语义层阈值现算，不抄 2026 分。不另升版本。

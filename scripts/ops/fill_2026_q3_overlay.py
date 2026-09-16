@@ -250,7 +250,7 @@ def main() -> int:
             f"""
             CREATE TABLE fill_daily_visitors AS
             SELECT
-                date + INTERVAL 1 YEAR AS date,
+                CAST(date + INTERVAL 1 YEAR AS DATE) AS date,
                 visitors,
                 new_members,
                 member_join_rate

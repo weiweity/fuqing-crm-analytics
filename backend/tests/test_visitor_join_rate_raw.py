@@ -31,6 +31,32 @@ def test_visitor_summary_and_trend_use_raw_ratio(monkeypatch):
     conn.close()
 
 
+def test_visitor_daily_trend_accepts_timestamp_dates(monkeypatch):
+    conn = duckdb.connect(":memory:")
+    conn.execute(
+        """
+        CREATE TABLE daily_visitors (
+            date TIMESTAMP,
+            visitors INTEGER,
+            new_members INTEGER,
+            member_join_rate DOUBLE
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO daily_visitors VALUES (TIMESTAMP '2026-09-01 00:00:00', 10, 1, 0.1)"
+    )
+    conn.execute(
+        "INSERT INTO daily_visitors VALUES (TIMESTAMP '2025-09-01 00:00:00', 8, 1, 0.125)"
+    )
+    monkeypatch.setattr(visitor_service, "get_connection", lambda: conn)
+    trend = visitor_service.get_visitor_daily_trend("2026-09-01", "2026-09-01")
+    assert trend[0]["date"] == "2026-09-01"
+    assert trend[0]["visitors"] == 10
+    assert trend[0]["ly_visitors"] == 8
+    conn.close()
+
+
 def test_visitor_service_source_does_not_scale_by_100():
     from pathlib import Path
     source = Path(visitor_service.__file__).read_text(encoding="utf8")

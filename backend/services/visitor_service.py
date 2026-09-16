@@ -2,11 +2,20 @@
 访客数据服务 - 提供会员入会率及入会趋势查询
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from backend.db.connection import get_connection
 from backend.semantic.calculations import yoy_absolute
+
+
+def _coerce_date(value: Any) -> date:
+    """DuckDB DATE + INTERVAL (and UNION views) often return TIMESTAMP."""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return datetime.strptime(str(value).strip()[:10], "%Y-%m-%d").date()
 
 
 # ── 公共 SQL 模板 ──────────────────────────────────────────────
@@ -139,7 +148,7 @@ def get_visitor_daily_trend(start_date: str, end_date: str,
             WHERE date >= ?::DATE AND date <= ?::DATE
             ORDER BY date
         """, [comp_start, comp_end]).fetchall()
-        comp_map = {row[0]: row for row in comp_rows}
+        comp_map = {_coerce_date(row[0]): row for row in comp_rows}
 
         # 循环前决定日期匹配策略，避免逐行判断
         is_custom = bool(compare_start_date and compare_end_date)
@@ -149,22 +158,20 @@ def get_visitor_daily_trend(start_date: str, end_date: str,
 
         result = []
         for row in rows:
-            date_val = row[0]
+            date_val = _coerce_date(row[0])
             visitors = int(row[1]) if row[1] else 0
             new_members = int(row[2]) if row[2] else 0
             rate = float(row[3]) if row[3] else 0.0
 
             # 按策略找对比期对应天
             if is_custom:
-                comp_date = (datetime.strptime(str(date_val), "%Y-%m-%d")
-                             + timedelta(days=comp_offset)).date()
+                comp_date = date_val + timedelta(days=comp_offset)
             else:
-                comp_date = (datetime.strptime(str(date_val), "%Y-%m-%d")
-                             - relativedelta(years=1)).date()
+                comp_date = date_val - relativedelta(years=1)
             comp_row = comp_map.get(comp_date)
 
             result.append({
-                "date": str(date_val),
+                "date": date_val.isoformat(),
                 "visitors": visitors,
                 "new_members": new_members,
                 "member_join_rate": round(rate, 6),
