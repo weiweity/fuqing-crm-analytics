@@ -105,10 +105,10 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 - [x] 完整 T13：分项取证已有。2026-09-16 本候选有界复测 + 会话中途断网／401 + 小型 DuckDB 6 用户。2026-09-17 用户确认 `diag.fixed_cohort` 保持 UNSUPPORTED 也算关。131GB 未开。证据 `.context/checks/t13-20260916/`（不进 Git）。不是真实经营成板。离线 eval 不代替已记账的真实模型复测。
 - [x] T15：分析师 / 运营 / 老板 S5 三条路径，2026-09-16 用户本人「通过」。不要用 4325／15173 代替运营。不是公网或真实经营验收。
 - [ ] T16：正式阈值与归档规模仍开放。2026-09-16 本候选合成基线：18082 GET 480/480，c1 与 c5 各 30 到达；多板 v15/v8/v9；results 分页；未重启故非冷启动。6677 1440 五次 reload FCP 中位 92ms。大候选 0 行未测。证据 `.context/checks/t16-20260916/`（不进 Git）。禁止先宣布性能通过。
-- [ ] T17：完整视觉仍开放。2026-09-16 本候选 6677：1440/1024/390 无横向溢出、设置可达、Commands 含 compact（未执行）、LINE 31 条等价表、消费者壳无 DSH Local Build。键盘／热插拔沿用 G4。业务撤权、触控／读屏、本候选 Stop／compact 实跑仍开放。证据 `.context/checks/t17-20260916/`（不进 Git）。
+- [x] T17：2026-09-16 视口／设置／等价表；随后 Stop／compact 实跑、a11y 树／390 触控尺寸。2026-09-17 用户确认缺口也算关：真机读屏／触控 NOT_RUN、4328+18084 native Stop 未在本候选重跑（不抢 6677 锁）、DSH 壳无批准 Figma。证据 `.context/checks/t17-20260916/`、`t17-compact-stop-20260916/`、`t17-remainder-20260917/`、`t17-complete-gaps-20260917/`（不进 Git）。不是正式视觉通过。
 - [x] 本机正式候选 **v0.9.0.0**：环境 127.0.0.1:6677／15173／18082／8000；G6 sqlite backup 演练已有；`--fresh` 后切回原 runtime 关键路径已核。**不上公网**。产品仍 PARTIAL。见 [LOCAL-RELEASE-2026-09-16](LOCAL-RELEASE-2026-09-16.md)。
 
-历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13 已按 UNSUPPORTED 收口。产品仍 PARTIAL（T16／T17）。
+历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T17 已按缺口也算关收口。产品仍 PARTIAL（T16）。
 
 ## 已在 main 的证据（不要当成未完成任务）
 

@@ -2,6 +2,7 @@
 
 - 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
 
+- 账本：完整 T17 收口。真机读屏／触控、本候选 4328+18084 native Stop、DSH 视觉稿保持缺口（用户确认也算关）。不是正式视觉通过。产品仍 PARTIAL（T16）。
 - 账本：完整 T13 收口。`diag.fixed_cohort` 保持 UNSUPPORTED（用户确认也算关）。131GB 未开。不是真实经营成板。产品仍 PARTIAL。
 - 账本：T13 中途撤权后 18082 已用原 token 拉回。现役 6677 PID **57925**、15173 PID **85899**、8000 PID **85883**、18082 PID **83173**。DSH **0.1.6-alpha.1**。不上公网。
 - 账本：首次启动 `--fresh` 复现后已切回原 runtime。现役 6677 PID **57925**（0.9.0.2 journal）、15173 PID **85899**、8000 PID **85883**、18082 PID **73236**。DSH **0.1.6-alpha.1**。不上公网。
