@@ -516,6 +516,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/metrics/cutoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Metrics Cutoff
+         * @description Warehouse last pay_time as YYYY-MM-DD for dashboard default windows.
+         */
+        get: operations["get_metrics_cutoff_api_v1_metrics_cutoff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/metrics/overview": {
         parameters: {
             query?: never;
@@ -2570,11 +2590,16 @@ export interface components {
         };
         /**
          * CategoryChurnItem
-         * @description 品类流失预警-散点/条形/表格通用字段
+         * @description 品类流失预警：用户级 hazard，品类迁移只作去向证据。
          */
         CategoryChurnItem: {
             /** Category Name */
             category_name: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
             /** Current Users */
             current_users: number;
             /**
@@ -2583,8 +2608,36 @@ export interface components {
              */
             previous_users: number;
             /**
+             * Mean Hazard
+             * @description 上期购买用户的平均流失风险 0-1
+             * @default 0
+             */
+            mean_hazard: number;
+            /**
+             * High Risk Users
+             * @default 0
+             */
+            high_risk_users: number;
+            /**
+             * High Risk Ratio
+             * @description 0-1 decimal (e.g. 0.42 = 42%), 4 位精度
+             * @default 0
+             */
+            high_risk_ratio: number;
+            /**
+             * Median Gap Days
+             * @default 0
+             */
+            median_gap_days: number;
+            /**
+             * Rfm At Risk Users
+             * @default 0
+             */
+            rfm_at_risk_users: number;
+            /**
              * Mom Change Rate
-             * @description 环比变化率 0-1 decimal, 可负
+             * @description 人数环比，仅作对照不是风险分
+             * @default 0
              */
             mom_change_rate: number;
             /**
@@ -2670,6 +2723,11 @@ export interface components {
         CategoryDistributionItem: {
             /** Name */
             name: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
             /** User Count */
             user_count: number;
             /**
@@ -2810,6 +2868,11 @@ export interface components {
         CategoryOverviewItem: {
             /** Name */
             name: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
             /** Gsv */
             gsv: number;
             /** Gsv Yoy */
@@ -3831,7 +3894,7 @@ export interface components {
             yoy_same_product_repurchase_rate?: number | null;
             /**
              * Yoy Old Customer Gsv Ratio Ppt
-             * @description 老客占比同比 (pp 差)
+             * @description 老客GSV占比同比 (pp 差)
              */
             yoy_old_customer_gsv_ratio_ppt?: number | null;
             /**
@@ -3923,7 +3986,7 @@ export interface components {
             same_product_repurchase_rate: number;
             /**
              * Old Customer Gsv Ratio
-             * @description 老客占比目标 0-1 decimal
+             * @description 老客GSV占比目标 0-1 decimal
              */
             old_customer_gsv_ratio: number;
             /**
@@ -6888,6 +6951,11 @@ export interface components {
         ValueTierTableRow: {
             /** Category Name */
             category_name: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
             /** Total Users */
             total_users: number;
             /** High Value Users */
@@ -6992,25 +7060,44 @@ export interface components {
         };
         /**
          * WoolPartyBreakdown
-         * @description 羊毛党细分统计
+         * @description 羊毛风险：用户级证据分的品类聚合，不是窗口 100% 小样布尔。
          */
         WoolPartyBreakdown: {
-            /** Type1 Count */
-            type1_count: number;
-            /** Type2 Count */
-            type2_count: number;
-            /** Total Count */
-            total_count: number;
             /**
-             * Type1 Ratio
-             * @description type1 人数 / 品类总人数, 0-1 decimal, 可超 1
+             * High Risk Count
+             * @description score>=0.70 的用户数
              */
-            type1_ratio: number;
+            high_risk_count: number;
             /**
-             * Type2 Ratio
-             * @description type2 人数 / 品类总人数, 0-1 decimal, 可超 1
+             * Mean Score
+             * @description 平均风险分 0-1
              */
-            type2_ratio: number;
+            mean_score: number;
+            /**
+             * Never Converted Count
+             * @description 截止窗口末日从未买正装
+             */
+            never_converted_count: number;
+            /**
+             * Converted Then Sample Count
+             * @description 曾买正装、窗口内仍 100% 小样
+             */
+            converted_then_sample_count: number;
+            /**
+             * Sample Only Window Count
+             * @description 窗口内 100% 小样
+             */
+            sample_only_window_count: number;
+            /**
+             * Scored Users
+             * @description 参与计分的窗口用户数
+             */
+            scored_users: number;
+            /**
+             * High Risk Ratio
+             * @description 高风险人数 / 品类人数, 已钳到 0-1
+             */
+            high_risk_ratio: number;
         };
         /**
          * YoyBattleRequest
@@ -7804,6 +7891,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_metrics_cutoff_api_v1_metrics_cutoff_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

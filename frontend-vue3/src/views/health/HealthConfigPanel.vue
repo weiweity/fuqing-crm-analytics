@@ -14,7 +14,7 @@ const show = defineModel<boolean>('show', { default: false })
 const WEIGHT_LABELS: Record<string, string> = {
   all_store_repurchase_rate: '全店复购率',
   same_product_repurchase_rate: '本品复购率',
-  old_customer_gsv_ratio: '老客占比',
+  old_customer_gsv_ratio: '老客GSV占比',
   old_customer_aus: '老客AUS',
   recent_7d_repurchase_users: '周均复购人数',
 }
@@ -91,7 +91,7 @@ function fmtNum(val: number): string {
                 <span class="text-sm font-medium text-slate-800">{{ fmtPct(config.targets.same_product_repurchase_rate) }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-slate-500 w-20 shrink-0 text-right">老客占比</span>
+                <span class="text-sm text-slate-500 w-20 shrink-0 text-right">老客GSV占比</span>
                 <span class="text-sm font-medium text-slate-800">{{ fmtPct(config.targets.old_customer_gsv_ratio) }}</span>
               </div>
               <div class="flex items-center gap-3">
@@ -114,7 +114,7 @@ function fmtNum(val: number): string {
                 <span class="text-sm font-medium text-slate-800">{{ fmtPct(config.alert_thresholds.all_store_repurchase_rate_low) }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-sm text-slate-500 w-20 shrink-0 text-right">老客占比低</span>
+                <span class="text-sm text-slate-500 w-20 shrink-0 text-right">老客GSV占比低</span>
                 <span class="text-sm font-medium text-slate-800">{{ fmtPct(config.alert_thresholds.old_customer_gsv_ratio_low) }}</span>
               </div>
               <div class="flex items-center gap-3">

@@ -13,7 +13,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
-import { maskCategoryName } from '@/utils/maskCategoryName'
+import { categoryDisplayName } from '@/utils/maskCategoryName'
 
 const WINDOW_LABELS: Record<string, string> = {
   default: '当前周期',
@@ -63,11 +63,11 @@ const dualAxisOption = computed(() => {
       textStyle: { color: '#0f172a', fontSize: 12 },
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any[]) => {
-        return params.map((p) => `${p.marker} ${encodeHtml(p.seriesName)}: ${(p.value * 100).toFixed(1)}%`).join('<br/>')
+        return params.map((p) => `${p.marker} ${encodeHtml(p.seriesName)}: ${Number(p.value).toFixed(1)}%`).join('<br/>')
       },
     },
     legend: {
-      data: ['羊毛党占比', '高价值占比'],
+      data: ['羊毛高风险占比', '高价值占比'],
       bottom: 0,
       icon: 'circle',
       itemGap: 16,
@@ -84,7 +84,7 @@ const dualAxisOption = computed(() => {
     yAxis: [
       {
         type: 'value',
-        name: '羊毛党占比',
+        name: '羊毛高风险占比',
         nameTextStyle: { color: '#64748b', fontSize: 10 },
         axisLine: { show: false },
         axisTick: { show: false },
@@ -103,7 +103,7 @@ const dualAxisOption = computed(() => {
     ],
     series: [
       {
-        name: '羊毛党占比',
+        name: '羊毛高风险占比',
         type: 'line',
         yAxisIndex: 0,
         data: wool_party_ratios.map((v) => parseFloat((v * 100).toFixed(2))),
@@ -145,7 +145,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     width: 120,
     fixed: 'left',
     align: 'center',
-    render: (row) => maskCategoryName(row.category_name),
+    render: (row) => categoryDisplayName(row),
   },
   {
     title: '总人数',
@@ -172,28 +172,24 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
     render: (row) => `${((row.high_value_ratio || 0) * 100).toFixed(1)}%`,
   },
   {
-    title: '羊毛党-T1',
-    key: 'wool_type1',
-    width: 100,
+    title: '高风险人数',
+    key: 'wool_high_risk',
+    width: 110,
     align: 'right',
     className: 'bi-cell-number',
     render: (row) => {
-      const t1 = row.wool_party?.type1_count ?? 0
-      const t1r = (row.wool_party?.type1_ratio || 0) * 100
-      return `${t1.toLocaleString()} (${t1r.toFixed(1)}%)`
+      const n = row.wool_party?.high_risk_count ?? 0
+      const r = (row.wool_party?.high_risk_ratio || 0) * 100
+      return `${n.toLocaleString()} (${r.toFixed(1)}%)`
     },
   },
   {
-    title: '羊毛党-T2',
-    key: 'wool_type2',
+    title: '平均风险分',
+    key: 'wool_mean_score',
     width: 100,
     align: 'right',
     className: 'bi-cell-number',
-    render: (row) => {
-      const t2 = row.wool_party?.type2_count ?? 0
-      const t2r = (row.wool_party?.type2_ratio || 0) * 100
-      return `${t2.toLocaleString()} (${t2r.toFixed(1)}%)`
-    },
+    render: (row) => `${((row.wool_party?.mean_score || 0) * 100).toFixed(0)}`,
   },
   {
     title: '会员占比',
@@ -253,10 +249,11 @@ const valueTierXlsxColumns = computed<XlsxColumn[]>(() => [
   { header: '总人数', key: 'total_users', width: 12, numFmt: '#,##0' },
   { header: '高价值人数', key: 'high_value_users', width: 14, numFmt: '#,##0' },
   { header: '高价值占比', key: 'high_value_ratio', width: 14, numFmt: '0.0%' },
-  { header: '羊毛党-T1', key: 'wool_type1_count', width: 14, numFmt: '#,##0' },
-  { header: '羊毛党-T1率', key: 'wool_type1_ratio', width: 14, numFmt: '0.0%' },
-  { header: '羊毛党-T2', key: 'wool_type2_count', width: 14, numFmt: '#,##0' },
-  { header: '羊毛党-T2率', key: 'wool_type2_ratio', width: 14, numFmt: '0.0%' },
+  { header: '高风险人数', key: 'wool_high_risk_count', width: 14, numFmt: '#,##0' },
+  { header: '高风险占比', key: 'wool_high_risk_ratio', width: 14, numFmt: '0.0%' },
+  { header: '平均风险分', key: 'wool_mean_score', width: 14, numFmt: '0.0%' },
+  { header: '从未转正', key: 'wool_never_converted', width: 12, numFmt: '#,##0' },
+  { header: '转正后全小样', key: 'wool_converted_then_sample', width: 14, numFmt: '#,##0' },
   { header: '会员占比', key: 'member_ratio', width: 12, numFmt: '0.0%' },
   { header: '平均AUS', key: 'avg_aus', width: 12, numFmt: '¥#,##0' },
   { header: '价值评分', key: 'value_score', width: 12, numFmt: '0.0' },
@@ -264,14 +261,15 @@ const valueTierXlsxColumns = computed<XlsxColumn[]>(() => [
 ])
 function flattenValueTierRow(row: any): any {
   return {
-    category_name: maskCategoryName(row.category_name),
+    category_name: categoryDisplayName(row),
     total_users: row.total_users,
     high_value_users: row.high_value_users,
     high_value_ratio: row.high_value_ratio,
-    wool_type1_count: row.wool_party?.type1_count,
-    wool_type1_ratio: row.wool_party?.type1_ratio,
-    wool_type2_count: row.wool_party?.type2_count,
-    wool_type2_ratio: row.wool_party?.type2_ratio,
+    wool_high_risk_count: row.wool_party?.high_risk_count,
+    wool_high_risk_ratio: row.wool_party?.high_risk_ratio,
+    wool_mean_score: row.wool_party?.mean_score,
+    wool_never_converted: row.wool_party?.never_converted_count,
+    wool_converted_then_sample: row.wool_party?.converted_then_sample_count,
     member_ratio: row.member_ratio,
     avg_aus: row.avg_aus,
     value_score: row.value_score,
@@ -300,8 +298,8 @@ const windowValueTierXlsxData = computed(() => windowTableData.value.map(flatten
     <template v-else-if="data">
       <!-- 双轴折线图: 羊毛党 vs 高价值占比 -->
       <div class="bi-card p-4">
-        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">羊毛党占比 vs 高价值占比</h3>
-        <p class="text-[11px] text-slate-500 mb-1">红色系=羊毛党占比(T1+T2)，蓝色系=高价值占比(Champions+Loyal)</p>
+        <h3 class="text-sm font-semibold text-slate-800 mb-0.5">羊毛高风险占比 vs 高价值占比</h3>
+        <p class="text-[11px] text-slate-500 mb-1">红色系=风险分≥0.70 的用户占比，蓝色系=高价值占比(Champions+Loyal)</p>
         <p class="text-[11px] text-slate-400 mb-3">一眼看出哪些品类用户质量高、哪些品类薅羊毛严重——红高蓝低的品类需警惕</p>
         <EChartsWrapper :option="dualAxisOption" height="300px" />
       </div>
@@ -334,9 +332,9 @@ const windowValueTierXlsxData = computed(() => windowTableData.value.map(flatten
           <p class="text-[11px] text-slate-400 leading-relaxed">
             <span class="font-medium text-slate-500">指标定义：</span>
             高价值占比 = RFM Champions(最近购买+高频+高金额) + Loyal(较远购买+高频+高金额) 的用户数占比  |
-            羊毛党-T1 = 历史上买过正装、窗口期内100%买小样的用户数  |
-            羊毛党-T2 = 历史上从未买正装、窗口期内100%买小样的用户数  |
-            价值评分 = 高价值排名×0.4 + (100-羊毛党排名)×0.3 + 会员占比排名×0.2 + AUS排名×0.1
+            羊毛风险分 = 窗口小样占比×0.55 + 截止窗口末日从未转正×0.25 + 曾转正但窗口仍全小样×0.20  |
+            高风险 = 风险分≥0.70  |
+            价值评分 = 高价值排名×0.4 + (100-羊毛高风险排名)×0.3 + 会员占比排名×0.2 + AUS排名×0.1
           </p>
           <p class="text-[11px] text-slate-400 leading-relaxed mt-1">
             <span class="text-amber-500">⚠️</span>

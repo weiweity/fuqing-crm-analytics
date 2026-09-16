@@ -20,7 +20,7 @@ test.describe('category-detail 路由', () => {
     })
 
     // 断言 4 个 MetricCard 标题 (无真实数据时也可能不渲染, 用 catch 接受)
-    const metrics = ['总用户数', '累计GMV', '新客占比', '平均AUS']
+    const metrics = ['总用户数', '累计GMV', '新客人数占比', '平均AUS']
     for (const m of metrics) {
       await expect(page.getByText(m).first()).toBeVisible({ timeout: 5000 }).catch(() => {
         // CI 无 production DuckDB 时可能显示 EmptyState, 接受

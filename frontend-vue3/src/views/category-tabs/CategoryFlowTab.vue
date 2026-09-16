@@ -14,12 +14,13 @@ import DataTablePro from '@/components/DataTablePro.vue'
 import ExportToolbar from '@/components/ExportToolbar.vue'
 import type { XlsxColumn } from '@/utils/exportXlsx'
 import { CHART_COLORS } from '@/composables/useChartTheme'
-import { maskCategoryName } from '@/utils/maskCategoryName'
+import { labeledCategoryOptions, maskCategoryName } from '@/utils/maskCategoryName'
 
 const props = defineProps<{
   dataQualityNote?: string
   /** 品类列表（从 distributionData 获取，按GSV降序） */
   categoryOptions?: string[]
+  categoryLabels?: Record<string, string>
 }>()
 
 const filterStore = useFilterStore()
@@ -46,11 +47,13 @@ const matrixExpanded = ref(false)
 const matrixDisplayMode = ref<'percentage' | 'value'>('percentage')
 
 
+const showCat = (raw: string) => props.categoryLabels?.[raw] || maskCategoryName(raw)
+
 const targetCategoryOptions = computed(() => {
   // 优先使用父组件传入的品类列表（与连带分析保持一致）
   const fromProps = props.categoryOptions || []
   if (fromProps.length > 0) {
-    return fromProps.map((c) => ({ label: maskCategoryName(c), value: c }))
+    return labeledCategoryOptions(fromProps, props.categoryLabels)
   }
   // fallback: 从桑基图节点动态计算（选项较少）
   if (!data.value?.sankey_data?.nodes) return []
@@ -62,7 +65,7 @@ const targetCategoryOptions = computed(() => {
     nodeFlow[l.target] = (nodeFlow[l.target] || 0) + l.value
   }
   return nodes
-    .map((n) => ({ label: maskCategoryName(n.name), value: n.name, flow: nodeFlow[n.name] || 0 }))
+    .map((n) => ({ label: showCat(n.name), value: n.name, flow: nodeFlow[n.name] || 0 }))
     .sort((a, b) => b.flow - a.flow)
 })
 
@@ -278,11 +281,11 @@ const sankeyOption = computed(() => {
         extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
         formatter: (params: any) => {
           if (params.dataType === 'edge') {
-            const srcName = maskCategoryName(nodes[params.data.source]?.name ?? params.data.source)
-            const tgtName = maskCategoryName(nodes[params.data.target]?.name ?? params.data.target)
+            const srcName = showCat(nodes[params.data.source]?.name ?? params.data.source)
+            const tgtName = showCat(nodes[params.data.target]?.name ?? params.data.target)
             return `${encodeHtml(srcName)} → ${encodeHtml(tgtName)}<br/>关联人数: ${params.data.value.toLocaleString()}`
           }
-          return encodeHtml(maskCategoryName(params.name))
+          return encodeHtml(showCat(params.name))
         },
       },
       grid: { left: 8, right: 8, top: 8, bottom: 8 },
@@ -299,7 +302,7 @@ const sankeyOption = computed(() => {
             fontSize: 11,
             color: '#334155',
             formatter: (p: any) => {
-              const name = maskCategoryName(p.name as string)
+              const name = showCat(p.name as string)
               return name.length > 8 ? name.slice(0, 7) + '…' : name
             },
           },
@@ -373,11 +376,11 @@ const sankeyOption = computed(() => {
       extraCssText: 'box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); border-radius: 4px;',
       formatter: (params: any) => {
         if (params.dataType === 'edge') {
-          const srcName = maskCategoryName(nodes[params.data.source]?.name ?? params.data.source)
-          const tgtName = maskCategoryName(nodes[params.data.target]?.name ?? params.data.target)
+          const srcName = showCat(nodes[params.data.source]?.name ?? params.data.source)
+          const tgtName = showCat(nodes[params.data.target]?.name ?? params.data.target)
           return `${encodeHtml(srcName)} → ${encodeHtml(tgtName)}<br/>流转人数: ${params.data.value.toLocaleString()}`
         }
-        return encodeHtml(maskCategoryName(params.name))
+        return encodeHtml(showCat(params.name))
       },
     },
     grid: { left: 8, right: 8, top: 8, bottom: 8 },
@@ -394,7 +397,7 @@ const sankeyOption = computed(() => {
           fontSize: 11,
           color: '#334155',
           formatter: (p: any) => {
-            const name = maskCategoryName(p.name as string)
+            const name = showCat(p.name as string)
             return name.length > 8 ? name.slice(0, 7) + '…' : name
           },
         },
@@ -485,7 +488,7 @@ const matrixTableData = computed(() => {
 
 // ─── Temporal Association ─────────────────────────────────────────
 const ASSOC_COLS: DataTableColumns<any> = [
-  { title: '品类', key: 'category_name', width: 140, fixed: 'left', render: (r: any) => maskCategoryName(r.category_name) },
+  { title: '品类', key: 'category_name', width: 140, fixed: 'left', render: (r: any) => showCat(r.category_name) },
   {
     title: '关联人数',
     key: 'user_count',

@@ -145,11 +145,13 @@ export function fetchCategoryUserProfile(params: { date: string; lookback_days?:
 // ============================================================
 
 export interface WoolPartyBreakdown {
-  type1_count: number  // 历史有正装，后续一直买小样
-  type2_count: number  // 历史只买小样
-  total_count: number
-  type1_ratio: number
-  type2_ratio: number
+  high_risk_count: number
+  mean_score: number
+  never_converted_count: number
+  converted_then_sample_count: number
+  sample_only_window_count: number
+  scored_users: number
+  high_risk_ratio: number
 }
 
 export interface DualAxisLineData {
@@ -160,6 +162,7 @@ export interface DualAxisLineData {
 
 export interface ValueTierTableRow {
   category_name: string
+  display_name?: string
   total_users: number
   high_value_users: number
   high_value_ratio: number
@@ -345,26 +348,16 @@ export function fetchMarketBasket(params: {
 // ChurnWarningTab
 // ============================================================
 
-export interface ChurnScatterPoint {
-  category_name: string
-  current_users: number
-  mom_change_rate: number
-  churn_users: number
-  inter_churn: number
-  silent_churn: number
-}
-
-export interface ChurnBarData {
-  category_name: string
-  current_users: number
-  previous_users: number
-  mom_change_rate: number
-}
-
 export interface ChurnTableRow {
   category_name: string
+  display_name?: string
   current_users: number
   previous_users: number
+  mean_hazard: number
+  high_risk_users: number
+  high_risk_ratio: number
+  median_gap_days: number
+  rfm_at_risk_users: number
   mom_change_rate: number
   inter_churn: number
   silent_churn: number
@@ -376,8 +369,8 @@ export interface ChurnTableRow {
 }
 
 export interface CategoryChurnResponse {
-  scatter_data: ChurnScatterPoint[]
-  bar_data: ChurnBarData[]
+  scatter_data: ChurnTableRow[]
+  bar_data: ChurnTableRow[]
   table: ChurnTableRow[]
   operation_suggestions: string[]
   data_quality_note: string

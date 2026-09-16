@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   CATEGORY_NAME_PASSTHROUGH,
   categoryDisplayName,
+  destColor,
+  labeledCategoryOptions,
   maskCategoryName,
   selectableCategoryNames,
+  uniqueDisplayNames,
 } from './maskCategoryName'
 
 describe('maskCategoryName', () => {
@@ -45,10 +48,37 @@ describe('maskCategoryName', () => {
     expect(categoryDisplayName({ name: '凉茶次抛', display_name: '' })).toBe('爆款次抛')
   })
 
+  it('disambiguates colliding masks with A/B suffixes', () => {
+    const map = uniqueDisplayNames(['经典膜', '水杨酸面膜', '凉茶次抛'])
+    expect(map.get('凉茶次抛')).toBe('爆款次抛')
+    expect(map.get('经典膜')).not.toBe(map.get('水杨酸面膜'))
+    expect(map.get('经典膜')?.startsWith('爆款面膜')).toBe(true)
+    expect(map.get('水杨酸面膜')?.startsWith('爆款面膜')).toBe(true)
+  })
+
   it('drops totals and empty names from filter options', () => {
     expect(selectableCategoryNames(['凉茶次抛', '合计', 'TTL', '', '全部', '全店', null])).toEqual([
       '凉茶次抛',
     ])
     expect(selectableCategoryNames([])).toEqual([])
+  })
+
+  it('labeledCategoryOptions prefers catalog labels and drops totals', () => {
+    expect(
+      labeledCategoryOptions(['经典膜', '水杨酸面膜', '合计'], {
+        经典膜: '爆款面膜A',
+        水杨酸面膜: '爆款面膜B',
+      }),
+    ).toEqual([
+      { label: '爆款面膜A', value: '经典膜' },
+      { label: '爆款面膜B', value: '水杨酸面膜' },
+    ])
+  })
+
+  it('destColor matches masked suffix names', () => {
+    expect(destColor('爆款面膜A')).toBe('#533afd')
+    expect(destColor('爆款凝胶')).toBe('#ea2261')
+    expect(destColor('沉默流失')).toBe('#64748b')
+    expect(destColor('无')).toBe('#64748b')
   })
 })
