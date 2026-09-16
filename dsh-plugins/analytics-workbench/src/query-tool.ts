@@ -1,7 +1,7 @@
 import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
-import { requestForTool } from './native-evidence.mjs';
+import { nativeJournal, requestForToolIn } from './native-evidence.mjs';
 import { isRegisteredSession } from './runtime-family.mjs';
 import {
   QUERY_RECEIPT_LIMIT, QUERY_TOOL_NAME,
@@ -44,6 +44,7 @@ const queryConsts = {
 };
 
 export function apply(ctx: Context): void {
+  nativeJournal(ctx);
   ctx.tools.register(defineTool({
     name: QUERY_TOOL_NAME,
     description: 'Synthetic channel-follow-up query only. Submit the full registered G2 request to the local run kernel; no real database or arbitrary SQL.',
@@ -139,7 +140,7 @@ export function apply(ctx: Context): void {
       if (!token || !agent || !isRegisteredSession(agent.id)) throw new Error('query tool has no bound execution context');
       const request = decodeQueryRequest(args);
       if (!request) throw new Error('query tool rejected invalid parameters');
-      const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
+      const requestId = requestForToolIn(nativeJournal(ctx).of(agent.session), exec.callId);
       if (!requestId) throw new Error('query tool has no journal-correlated native request');
       const response = await fetch(kernelUrl('/internal/native/channel-followup'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },

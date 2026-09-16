@@ -2,7 +2,7 @@ import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { TOOL_NAME, decodeFixture } from './model.mjs';
-import { requestForTool } from './native-evidence.mjs';
+import { nativeJournal, requestForToolIn } from './native-evidence.mjs';
 import { COMPETITION_FAMILY, FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
 import { apply as applyQueryTool } from './query-tool.ts';
 import { apply as applyFirstPurchaseQueryTool } from './first-purchase-query-tool.ts';
@@ -23,6 +23,7 @@ export function apply(ctx: Context): void {
   if (runtimeFamily() === COMPETITION_FAMILY) {
     return;
   }
+  nativeJournal(ctx);
   ctx.tools.register(defineTool({
     name: TOOL_NAME,
     description: 'B0 synthetic fixture only. Request the fixed channel sample from the local run kernel; no real database or arbitrary SQL.',
@@ -57,7 +58,7 @@ export function apply(ctx: Context): void {
       const token = process.env.B0_RUNTIME_TOKEN;
       const agent = exec.agent;
       if (!token || !agent || agent.id !== process.env.B0_SESSION_ID) throw new Error('B0 tool has no bound execution context');
-      const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
+      const requestId = requestForToolIn(nativeJournal(ctx).of(agent.session), exec.callId);
       if (!requestId) throw new Error('B0 tool has no journal-correlated native request');
       const response = await fetch(kernelUrl('/internal/native/fixture'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
