@@ -123,6 +123,17 @@ export function maskDestsInText(
   return next
 }
 
+const CATEGORY_TOKEN_RE = /[^\s，。：:、,（）()]+(?:次抛|面膜|洁面|护理液|美瞳|面霜|水乳|凝胶|棉片|护理贴)/g
+
+export function maskCategoryTokensInText(text: string | null | undefined): string {
+  let next = (text || '').trim()
+  if (!next) return ''
+  for (const [raw, label] of Object.entries(EXACT)) {
+    if (next.includes(raw)) next = next.split(raw).join(label)
+  }
+  return next.replace(CATEGORY_TOKEN_RE, (token) => maskCategoryName(token))
+}
+
 export function selectableCategoryNames(names: Array<string | null | undefined>): string[] {
   return names.filter((name): name is string => {
     if (!name) return false

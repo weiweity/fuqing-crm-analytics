@@ -6,7 +6,7 @@ import { NTooltip } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchCategoryChurn } from '@/api/category'
-import { categoryDisplayName, destColor, destDisplayName, maskDestsInText } from '@/utils/maskCategoryName'
+import { categoryDisplayName, destColor, destDisplayName, maskCategoryTokensInText, maskDestsInText } from '@/utils/maskCategoryName'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -293,7 +293,9 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
 ])
 
 const tableData = computed(() => data.value?.table ?? [])
-const suggestionRows = computed(() => data.value?.operation_suggestions ?? [])
+const suggestionRows = computed(() =>
+  (data.value?.operation_suggestions ?? []).map((s) => maskCategoryTokensInText(s)),
+)
 
 // ── Sprint 174 XLSX 导出 (Q3) ──
 const churnTableXlsxColumns = computed<XlsxColumn[]>(() => [

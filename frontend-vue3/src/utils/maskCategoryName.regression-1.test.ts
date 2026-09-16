@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { destDisplayName, maskDestsInText } from './maskCategoryName'
+import { destDisplayName, maskCategoryTokensInText, maskDestsInText } from './maskCategoryName'
 
 // Regression: ISSUE-002 — 流失 TOP 去向把原名画在表格上
 // Found by /qa on 2026-09-16
@@ -18,5 +18,10 @@ describe('destDisplayName', () => {
   it('replaces raw dests inside suggestion copy', () => {
     expect(maskDestsInText('触达推送 医用洁面', ['医用洁面', '白膜'])).toBe('触达推送 爆款洁面')
     expect(maskDestsInText('', ['医用洁面'])).toBe('—')
+  })
+
+  it('masks raw category tokens in ops suggestion copy', () => {
+    expect(maskCategoryTokensInText('紧急:医用凝胶 流失加速')).toBe('紧急:爆款凝胶 流失加速')
+    expect(maskCategoryTokensInText('触达推送 医用洁面')).toBe('触达推送 爆款洁面')
   })
 })
