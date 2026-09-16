@@ -526,6 +526,123 @@ def test_fill_script_computes_gmv90_when_copied_user_rfm_empty(monkeypatch, tmp_
         wrap.close()
 
 
+def test_fill_script_overlays_health_precompute_from_source_asof(monkeypatch, tmp_path):
+    fill = _load_fill_script()
+    archive = tmp_path / "archive.duckdb"
+    wrapper = tmp_path / "wrapper.duckdb"
+    src = duckdb.connect(str(archive))
+    src.execute(
+        """
+        CREATE TABLE orders (
+            order_id VARCHAR,
+            user_id VARCHAR,
+            order_time TIMESTAMP,
+            pay_time TIMESTAMP,
+            ship_time TIMESTAMP,
+            actual_amount DOUBLE,
+            is_member BOOLEAN,
+            is_goujinjin BOOLEAN,
+            order_status VARCHAR,
+            is_refund BOOLEAN,
+            spu_product_subclass VARCHAR
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO orders VALUES
+        ('o1', 'u1', TIMESTAMP '2023-08-01 10:00:00', TIMESTAMP '2023-08-01 10:00:00',
+         TIMESTAMP '2023-08-02 10:00:00', 100, TRUE, FALSE, '交易成功', FALSE, '凉茶次抛')
+        """
+    )
+    src.execute(
+        """
+        CREATE TABLE user_rfm (
+            user_id VARCHAR, user_nickname VARCHAR, analysis_date DATE,
+            metric_type VARCHAR, lookback_days INTEGER, channel VARCHAR,
+            recency_days INTEGER, frequency INTEGER, monetary DECIMAL(12,2),
+            r_score INTEGER, f_score INTEGER, m_score INTEGER,
+            rfm_tier VARCHAR, rfm_tier_en VARCHAR, segment_id INTEGER,
+            first_order_date DATE, last_order_date DATE, created_at TIMESTAMP,
+            is_member BOOLEAN
+        )
+        """
+    )
+    src.execute(
+        """
+        CREATE TABLE user_rfm_precompute (
+            as_of_date DATE,
+            lookback_days INTEGER,
+            user_id VARCHAR,
+            last_pay_time TIMESTAMP,
+            order_count BIGINT,
+            gsv DOUBLE,
+            is_member BOOLEAN,
+            r_score INTEGER,
+            f_score INTEGER,
+            m_score INTEGER,
+            r_interval VARCHAR,
+            rfm_segment VARCHAR,
+            updated_at TIMESTAMP
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO user_rfm_precompute VALUES
+        (DATE '2023-07-09', 3650, 'u1', TIMESTAMP '2023-06-01 10:00:00',
+         8, 1200, TRUE, 2, 5, 5, '近4-6月已购客', '重要保持客户', TIMESTAMP '2023-07-09'),
+        (DATE '2026-07-01', 3650, 'u1', TIMESTAMP '2026-06-01 10:00:00',
+         99, 9999, TRUE, 5, 5, 5, '近1个月已购客', '重要价值客户', TIMESTAMP '2026-07-01')
+        """
+    )
+    src.close()
+    monkeypatch.setenv("FQ_ARCHIVE_DUCKDB", str(archive))
+    monkeypatch.setenv("FQ_DUCKDB_WRAPPER", str(wrapper))
+    assert fill.main() == 0
+
+    wrap = duckdb.connect(str(wrapper))
+    try:
+        wrap.execute(
+            f"ATTACH IF NOT EXISTS '{fill.quote_duckdb_literal(str(archive))}' AS src (READ_ONLY)"
+        )
+        rows = wrap.execute(
+            """
+            SELECT as_of_date, user_id, lookback_days, rfm_segment, r_score, order_count
+            FROM fill_user_rfm_precompute
+            ORDER BY as_of_date
+            """
+        ).fetchall()
+        assert len(rows) == 2
+        dates = []
+        for as_of, user_id, lookback, segment, r_score, order_count in rows:
+            as_of_d = as_of.date() if hasattr(as_of, "date") else as_of
+            dates.append(as_of_d)
+            assert str(user_id) == "SYN26-U-u1"
+            assert int(lookback) == 3650
+            assert segment == "重要保持客户"
+            assert int(r_score) == 2
+            assert int(order_count) == 8
+        assert dates == [date(2026, 7, 1), date(2026, 7, 6)]
+        # Must not copy the 2026 precompute snapshot onto SYN26 users.
+        copied = wrap.execute(
+            """
+            SELECT count(*) FROM fill_user_rfm_precompute
+            WHERE rfm_segment = '重要价值客户' OR order_count = 99
+            """
+        ).fetchone()[0]
+        assert copied == 0
+        union_n = wrap.execute(
+            """
+            SELECT count(*) FROM user_rfm_precompute
+            WHERE user_id = 'SYN26-U-u1' AND as_of_date = DATE '2026-07-01'
+            """
+        ).fetchone()[0]
+        assert union_n == 1
+    finally:
+        wrap.close()
+
+
 def test_category_payloads_include_display_name():
     dist_src = inspect.getsource(distribution_mod.get_category_distribution)
     over_src = inspect.getsource(overview_mod.get_category_overview)
