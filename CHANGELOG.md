@@ -2,6 +2,7 @@
 
 - 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
 
+- 账本：完整 M2 Figma 收口。完整属性／整板编辑／DSH 稿／真数据瀑布保持缺口（用户确认也算关）。未知金额 WATERFALL 仍 422。**不是 Figma 通过**。产品仍 PARTIAL。
 - 账本：首次启动误报本候选关账。5 次未复现（含 `--fresh` Continue）。不改 DSH 上游。**不是修好**。产品仍 PARTIAL。
 - 账本：完整 T16 收口。合成 c1/c5 基线已记（用户确认基线也算关）。**不是 SLO 通过**。131GB 未开。产品仍 PARTIAL（公网／正式 release）。
 - 账本：完整 T17 收口。真机读屏／触控、本候选 4328+18084 native Stop、DSH 视觉稿保持缺口（用户确认也算关）。不是正式视觉通过。产品仍 PARTIAL（T16）。

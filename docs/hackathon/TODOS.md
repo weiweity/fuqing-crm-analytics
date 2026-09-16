@@ -75,7 +75,7 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 
 ### M2 扩库完善
 
-- [ ] PROCESS／TIMELINE／WATERFALL／FUNNEL已有目录、渲染与保存链，以及隔离浏览器分项；继续补完整属性、整板编辑、密集／长内容、Figma与真实模型验收，不删除实验成果。
+- [x] PROCESS／TIMELINE／WATERFALL／FUNNEL 目录、渲染与保存链及隔离浏览器分项已有。密集 FUNNEL 板已记。未知金额 WATERFALL 按合同 422。2026-09-17 用户确认完整属性／整板编辑／Figma／真数据瀑布保持缺口也算关。现稿是旧 Vue 董事会，不是 DSH／M2 扩库稿。**不是 Figma 通过、不是真数据瀑布。** 不删除实验成果。
 - [ ] 其他公共样式变体、完整触控／读屏器、多层极端滚动及容量性能矩阵；不得用2000行边界测试代替性能结论。
 - [ ] 已知 low UX：唯一已保存板仍需下拉选择；是否自动打开留后续小改，不混入收尾。
 
@@ -108,7 +108,7 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 - [x] T17：2026-09-16 视口／设置／等价表；随后 Stop／compact 实跑、a11y 树／390 触控尺寸。2026-09-17 用户确认缺口也算关：真机读屏／触控 NOT_RUN、4328+18084 native Stop 未在本候选重跑（不抢 6677 锁）、DSH 壳无批准 Figma。证据 `.context/checks/t17-20260916/`、`t17-compact-stop-20260916/`、`t17-remainder-20260917/`、`t17-complete-gaps-20260917/`（不进 Git）。不是正式视觉通过。
 - [x] 本机正式候选 **v0.9.0.0**：环境 127.0.0.1:6677／15173／18082／8000；G6 sqlite backup 演练已有；`--fresh` 后切回原 runtime 关键路径已核。**不上公网**。产品仍 PARTIAL。见 [LOCAL-RELEASE-2026-09-16](LOCAL-RELEASE-2026-09-16.md)。
 
-历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17 已按缺口／基线也算关收口。T16 **不是 SLO 通过**。产品仍 PARTIAL（公网／正式 release）。
+历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17 与 M2 Figma 已按缺口／基线也算关收口。T16 **不是 SLO 通过**。M2 **不是 Figma 通过**。产品仍 PARTIAL（公网／正式 release）。
 
 ## 已在 main 的证据（不要当成未完成任务）
 
