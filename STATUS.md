@@ -5,13 +5,13 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.8.0.1**。origin/main **`25ffc1f7`**（[#169](https://github.com/weiweity/fuqing-crm-analytics/pull/169)；[#165](https://github.com/weiweity/fuqing-crm-analytics/pull/165) `308180fd` 品类脱敏）。非正式 release。 |
+| VERSION / main | VERSION **0.9.0.0** 本机正式候选。origin/main **`5a8329c3`**（#171）。loopback 6677／15173／18082。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
-| T13 | 2026-09-16 本候选有界复测：未接通重复调用、口径、等价问法／改期／INHERIT／RFM 恶意／422 已取证；运行中撤权／网络中断与真实 DuckDB cohort 仍开放。完整 T13 仍 PARTIAL |
+| T13 | 有界复测 + 比赛 HTTP 断网／token 轮换已取证；131GB 归档仍禁止打开。完整 T13 仍 PARTIAL |
 | T15 / T16 / T17 | T15 本人「通过」；T16 合成 c1/c5 基线已记、未确认 SLO；T17 2026-09-16 本候选 1440/1024/390／设置／等价表已取证，撤权／触控／读屏仍开放 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；约 131GB。禁止打开、复制、改写或对其执行 SQL |
-| 发布 | 非正式 release。公网部署仍要独立授权 |
+| 发布 | 本机正式候选 v0.9.0.0（loopback）。公网部署仍要独立授权 |
 
 ## 本轮施工计划（现行，不要只记在对话里）
 
@@ -41,7 +41,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
 - Git 合入不等于部署。6677 runtime 在原仓 `.context/dsh-dev/runtime`，插件 `--plugin-path` 指向 `m1-remainder`。比赛看板 15173 PID 37919／8000 PID 37918 在 `board-main`（`25ffc1f7`）。18082 仍 71160。未 `--fresh`。改 remainder 插件不要走会编译原仓的官方 `reload`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：完整 T13（DuckDB／运行中撤权仍开放）／T16 SLO／T17 撤权与触控读屏、M2、正式发布。#169 `25ffc1f7`。Q3 overlay 已灌（订单/首购/访客）；`fill_user_rfm=0`。
+- `HANDOVER-CODEX.md` 不提交。下一产品：T16 SLO、T17 触控／读屏、M2 Figma／WATERFALL 真数据、公网。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）
 
