@@ -5,9 +5,9 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.2**。origin/main **`288c4f5d`**（#187）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.2**。origin/main **`bd151d57`**（#188）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **57925** 已切（原仓 runtime + 原仓 0.9.0.2 journal 插件，未 `--fresh`）。15173 PID **85899**。 |
-| 产品 | 仍 PARTIAL。首次启动已关。M2 Figma 缺口也算关（不是真数据瀑布／DSH 稿通过）。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| 产品 | 仍 PARTIAL。首次启动／M2 Figma 已关。原 App 全量 Goal 仍 PAUSED，本候选不恢复（不是 Goal 完成）。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED（用户确认也算关）。131GB 仍禁止打开 |
 | T15 / T16 / T17 | T15 本人「通过」。T16 本候选收口：合成 c1/c5 基线已记（用户确认基线也算关），**不是 SLO 通过**。T17 缺口也算关 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；约 131GB。禁止打开、复制、改写或对其执行 SQL |
@@ -39,9 +39,9 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - S3 指定 Figma 矩阵已通过，示例金额不作 facts；历史证据见 [首批记录](docs/hackathon/S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](docs/hackathon/S3-CROSS-MATRIX-2026-09-15.md)。85 历史意外返回对话仍未定因，88 设置失败导致的同正文 v15 保留。R-1 代码已合 #153；有界复验观察到布局重叠预检与 FUNNEL 保留，Chrome 取消未保存。TABLE `show_values` 与 bash 越界本轮未复现。
 - **S4** 6677 现加载工作树插件。G2 现场：同 head 双预览一胜一 409；未授权 401；跨 session 不串板。G3 现场：新板布局取消仍 v8、确认 **v8→v9**、陈旧 layout-preview 409、未知属性 422、只读重开 v15／原板 v9。说明板仍 v15、原板仍 v9。G4 热插拔后 PID **14287**。G5 390／长内容已复核。G6 已交接确认。本机账本 `.context/checks/g{1–6}-20260916/` 不进 Git。
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
-- 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
+- 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED；本候选不恢复旧 Vue 全量 CRM，**不是 Goal 完成**。
 - Git 合入不等于部署。6677 runtime 与插件都在原仓（PID **57925**）。比赛看板 15173 PID **85899**、8000 PID **85883**、18082 PID **83173** 也在原仓。现役未 `--fresh`。不要用会编原仓插件的官方 `reload`。工作树已收口，只留 `main`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：原 App 全量 Goal（仍 PAUSED）、公网。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
+- `HANDOVER-CODEX.md` 不提交。下一产品：M2 其余（触控矩阵／下拉）、公网。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）
 
