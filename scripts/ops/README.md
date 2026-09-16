@@ -15,6 +15,8 @@ Monitor scripts for launchd (local = production).
 
 `fill_2026_q3_overlay.py` 只 ATTACH 只读归档，不改写归档文件。必填 `FQ_ARCHIVE_DUCKDB` 与 `FQ_DUCKDB_WRAPPER`，且必须是两条不同绝对路径。wrapper 若已存在会先 `unlink` 再重建，不是追加。脚本把 2023-07-06～2023-09-15 订单平移到 2026-07-06～2026-09-15（`SYN26-U-` 用户前缀），访客用 2025-07-06～2025-09-15 +1 年；不是覆盖整个「7 月后」。wrapper 仍保留归档原表视图，不是纯合成演示库。启动 API 必须同时设 `DUCKDB_PATH=<wrapper>` 和 `FQ_ARCHIVE_DUCKDB=<archive>`，否则 `src.*` 视图无法解析。未授权不要对 131GB 归档执行 SQL。
 
+本机归档 `src.user_rfm` 没有 `analysis_date <= 2023-09-15` 的行，所以 `fill_user_rfm=0`。`user_rfm_precompute` 在该窗口只有 lookback 3650，不能映射品类 GMV/90 as-of。不要把 2026 RFM 抄给合成用户。健康页 RFM 走 `rfm_dashboard_full` / `user_rfm_precompute`，合成用户也不在这两张表里。现役 wrapper：`/tmp/fuqing-crm-analytics-15173-501/wrapper-q3-20260916.duckdb`。
+
 `FQ_AUTH_IDLE_SECONDS`：后端回收无请求 token 的秒数。默认 `28800`（8 小时）。非法值回退默认。`0` 会被钳成 `1` 秒，不是关闭回收。前端 3 分钟踢人已关掉。
 
 ## 安装 / 重载（必做，否则 ~/Library/LaunchAgents 会指到已删路径）

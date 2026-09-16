@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.8.0.1**。origin/main **`308180fd`**（[#165](https://github.com/weiweity/fuqing-crm-analytics/pull/165) 品类脱敏）。非正式 release。 |
+| VERSION / main | VERSION **0.8.0.1**。origin/main **`25ffc1f7`**（[#169](https://github.com/weiweity/fuqing-crm-analytics/pull/169)；[#165](https://github.com/weiweity/fuqing-crm-analytics/pull/165) `308180fd` 品类脱敏）。非正式 release。 |
 | DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 2026-09-16 本候选有界复测：未接通重复调用、口径、等价问法／改期／INHERIT／RFM 恶意／422 已取证；运行中撤权／网络中断与真实 DuckDB cohort 仍开放。完整 T13 仍 PARTIAL |
@@ -40,8 +40,8 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S4** 6677 现加载工作树插件。G2 现场：同 head 双预览一胜一 409；未授权 401；跨 session 不串板。G3 现场：新板布局取消仍 v8、确认 **v8→v9**、陈旧 layout-preview 409、未知属性 422、只读重开 v15／原板 v9。说明板仍 v15、原板仍 v9。G4 热插拔后 PID **14287**。G5 390／长内容已复核。G6 已交接确认。本机账本 `.context/checks/g{1–6}-20260916/` 不进 Git。
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED，本次未恢复或关闭它。
-- Git 合入不等于部署。6677 runtime 在原仓 `.context/dsh-dev/runtime`，插件 `--plugin-path` 指向 `m1-remainder`。比赛看板 15173 PID 32580／8000 PID 97777 在 `board-rfm-synth` 工作树，勿停。18082 仍 71160。未 `--fresh`。改 remainder 插件不要走会编译原仓的官方 `reload`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：完整 T13（DuckDB／运行中撤权仍开放）／T16 SLO／T17 撤权与触控读屏、M2、正式发布。#165 已合 `308180fd`；未灌 overlay。
+- Git 合入不等于部署。6677 runtime 在原仓 `.context/dsh-dev/runtime`，插件 `--plugin-path` 指向 `m1-remainder`。比赛看板 15173 PID 37919／8000 PID 37918 在 `board-main`（`25ffc1f7`）。18082 仍 71160。未 `--fresh`。改 remainder 插件不要走会编译原仓的官方 `reload`。
+- `HANDOVER-CODEX.md` 不提交。下一产品：完整 T13（DuckDB／运行中撤权仍开放）／T16 SLO／T17 撤权与触控读屏、M2、正式发布。#169 `25ffc1f7`。Q3 overlay 已灌（订单/首购/访客）；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）
 
