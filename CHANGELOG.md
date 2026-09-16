@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- ship 审核收口：品类 catalog 缓存按底层 DuckDB 连接；RFM as-of 只排窗口用户；overview 导出产品分类用 display_name；羊毛双轴 tooltip 不再二次 ×100。不升版本、未发布。
+- 品类脱敏碰撞后稳定加 A/B/C，界面只展示唯一 display_name。羊毛党改为用户级证据分（终身是否转正），流失预警改为回购周期 hazard + RFM 挽留象限。7 月后合成订单换合成用户并把首购 +3 年以恢复源年新客结构；访客按 2025 同期 +1 年回填。GSV 份额文案改为老客/新客GSV占比。品类日趋势新客占比改用全量分母。不升版本、未发布。
+- 按 ship 前审核：脱敏 A/B 改全量 catalog 稳定映射；流失不再从 2000 扫全单，去向占比分母回到间流失；合成用户 overlay RFM 且 as-of `analysis_date <= end`；日趋势 cutoff 占位符改到 CASE 之前。不升版本、未发布。
 - 语义层文档对齐 L4.81 raw YOY 与 RFM 8 象限；指标/维度注册表标明未接入查询，去掉错误的老客公式空壳。FilterBuilder 不再提供无效的 segment_id。RFM 预热窗口按 PeriodBuilder 算法、以仓库 cutoff 为最后一天。不升版本、未发布。
 - 比赛看板品类页：界面和导出显示脱敏名，筛选项仍用原品类名；合计/TTL 不进筛选。空闲登出改由后端默认 8 小时回收，前端不再 3 分钟踢人。RFM 预热补上年至今窗口。包装库只读挂接归档，不改写 131GB 原库。不升版本、未发布。
 - 比赛看板：品类 `overview/batch` 走 HTTP 读池，避免与只读连接指纹冲突导致 500；RFM 连接与读池对齐，production 后台按仓库 `max(pay_time)` 预热常用窗口；筛选默认日期对齐 cutoff，不再用日历今天造成空窗。`DELETE /session` 401 不再连锁 refresh。不升版本、未发布。
