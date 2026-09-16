@@ -137,7 +137,7 @@ def _generate_summary(
     total_users = new_users + old_users
     if total_users > 0:
         new_ratio = new_users / total_users * 100
-        insights.append(f"新客占比 {new_ratio:.1f}%，老客 {100 - new_ratio:.1f}%")
+        insights.append(f"新客GSV占比 {new_ratio:.1f}%，老客GSV占比 {100 - new_ratio:.1f}%")
 
     # 会员占比 (overview.member_ratio 是 0-1 ratio, Sprint 14.5 OverviewMetrics.member_ratio
     # 治根后保持 0-1 decimal; Sprint 27 同路线, 显示时 caller 自 ×100, 跟 AudienceView.vue:1073 模式一致)

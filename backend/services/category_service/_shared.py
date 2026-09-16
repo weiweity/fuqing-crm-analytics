@@ -1,6 +1,6 @@
 """品类分析服务 - 共享常量和工具函数"""
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 SPU_LEVELS = {
     "category": "spu_category",      # 一级品类
@@ -30,6 +30,36 @@ def _excluded_cat_filter(field: str) -> str:
     """生成排除非产品品类的 SQL 片段"""
     placeholders = ",".join(["?"] * len(EXCLUDED_PRODUCT_CATEGORIES))
     return f"AND TRIM(COALESCE(o.{field}, '未知')) NOT IN ({placeholders})"
+
+
+_RFM_ASOF_USER_CTES = frozenset({
+    "previous_period_users",
+    "period_orders",
+    "category_users",
+    "window_users",
+})
+
+
+def rfm_asof_cte(end_date: str, users_cte: str) -> Tuple[str, List[Any]]:
+    """窗口用户上，取 analysis_date <= end_date 的最近一条 GMV/90 RFM."""
+    if users_cte not in _RFM_ASOF_USER_CTES:
+        raise ValueError(f"unsupported rfm users cte: {users_cte}")
+    sql = f"""
+    rfm_asof AS (
+      SELECT user_id, segment_id
+      FROM (
+        SELECT w.user_id, r.segment_id,
+               ROW_NUMBER() OVER (PARTITION BY w.user_id ORDER BY r.analysis_date DESC) AS rn
+        FROM (SELECT DISTINCT user_id FROM {users_cte}) w
+        LEFT JOIN user_rfm r
+          ON r.user_id = w.user_id
+         AND r.metric_type = 'GMV' AND r.lookback_days = 90
+         AND r.analysis_date <= DATE(?)
+      ) _rfm_ranked
+      WHERE rn = 1
+    )
+    """
+    return sql, [end_date]
 
 
 # L2043-2046: 关联缓存

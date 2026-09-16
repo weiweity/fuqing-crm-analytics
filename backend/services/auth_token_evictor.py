@@ -11,7 +11,7 @@ user 7/11 报 Bug #2: 'A 运营登录后退出 (Cmd+Q), B 运营 20 秒后再次
 治本 (跟 L4.42 + L4.50 + L4.55 + L4.85.x 1:1 stable 永久规则链配套):
 - background task 每 30s 扫 ACTIVE_TOKENS → evict last_active_at > IDLE_THRESHOLD_SECONDS 的 token
 - 浏览器不在 unload 生命周期登出，避免刷新和站内导航误销毁 token
-- 本模块统一处理关页、断网与进程退出后的幽灵会话，最多延迟 1-2min
+- 本模块统一处理关页、断网与进程退出后的幽灵会话；默认 idle 8h（FQ_AUTH_IDLE_SECONDS），最多再延迟一个扫描间隔
 
 跟 L4.72 RFM cache precompute 1:1 stable 模式 (后台 task + 定期扫).
 跟 L4.50 0 业务代码改动 累计 95+ 次 1:1 stable 永久规则链配套.

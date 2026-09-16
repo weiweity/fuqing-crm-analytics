@@ -11,12 +11,18 @@ Sprint 53.5 L3 FilterBuilder 改造 (Sprint 34.1 + 36-4 治根闭环):
 - helper 接受受控值 (level / granularity) 时, 通过 `AND ? = ?` 形式入 params
   保持 L3 完整性, 同时不改变查询语义 (helper 内部自洽)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List, Tuple
 
 
 from backend.db.connection import get_connection
 from backend.semantic.filters import FilterBuilder, MetricType
+from backend.services.category_display import (
+    catalog_display_map,
+    lookup_display_name,
+    mask_category_name,
+)
+from backend.services.category_service._shared import rfm_asof_cte
 
 
 
@@ -149,18 +155,9 @@ def get_category_churn(
     channel: Optional[str] = None,
     exclude_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """
-    品类流失 - MoM变化 + 流失去向 + 流失用户数
+    """品类流失风险：上期购买用户相对回购周期的 hazard + RFM 挽留象限.
 
-    Args:
-        start_date: 周期开始日期
-        end_date: 周期结束日期
-        level: 品类级别
-        channel: 渠道筛选
-        exclude_channels: 排除渠道列表
-
-    Returns:
-        CategoryChurnResponse 结构
+    品类迁移（去向）只作证据，不作为风险分。
     """
 
     conn = get_connection()
@@ -170,16 +167,20 @@ def get_category_churn(
 
     prev_start = (start_dt - timedelta(days=period_days)).strftime("%Y-%m-%d")
     prev_end = (end_dt - timedelta(days=period_days)).strftime("%Y-%m-%d")
+    gap_start = (end_dt - timedelta(days=365)).strftime("%Y-%m-%d")
 
     level_col = SPU_LEVELS.get(level, "spu_product_class")
 
-    # Sprint 53.5 L3: 双 CTE 各 build 一次 filter (参数化)
     current_where, current_params = _build_churn_filter(
         start_date, end_date, channel, exclude_channels, level
     )
     previous_where, previous_params = _build_churn_filter(
         prev_start, prev_end, channel, exclude_channels, level
     )
+    gap_where, gap_params = _build_churn_filter(
+        gap_start, end_date, channel, exclude_channels, level
+    )
+    rfm_cte, rfm_params = rfm_asof_cte(end_date, "previous_period_users")
 
     sql = f"""
     WITH current_period_users AS (
@@ -189,45 +190,39 @@ def get_category_churn(
         FROM orders o
         WHERE {current_where}
     ),
-    previous_period_users AS (
-        SELECT DISTINCT
+    previous_period_orders AS (
+        SELECT
             {_cat_expr(level_col)} AS category_name,
-            o.user_id
+            o.user_id,
+            o.pay_time
         FROM orders o
         WHERE {previous_where}
     ),
+    previous_period_users AS (
+        SELECT DISTINCT category_name, user_id
+        FROM previous_period_orders
+    ),
+    {rfm_cte},
     current_period_totals AS (
-        -- 本期各品类总用户数(用于展示"本期规模")
-        SELECT
-            category_name,
-            COUNT(DISTINCT user_id) AS curr_total_users
+        SELECT category_name, COUNT(DISTINCT user_id) AS curr_total_users
         FROM current_period_users
         GROUP BY category_name
     ),
-    category_churn AS (
-        SELECT
-            p.category_name,
-            COUNT(DISTINCT p.user_id) AS prev_users,
-            COUNT(DISTINCT c.user_id) AS curr_users,
-            COUNT(DISTINCT CASE WHEN c.user_id IS NOT NULL THEN p.user_id END) AS retained_users,
-            COUNT(DISTINCT CASE WHEN c.user_id IS NULL THEN p.user_id END) AS churned_users
-        FROM previous_period_users p
-        LEFT JOIN current_period_users c ON p.user_id = c.user_id AND p.category_name = c.category_name
-        GROUP BY p.category_name
-    ),
     inter_category_churn AS (
-        -- 上期买A,本期买B(B!=A)的用户
         SELECT
             p.category_name AS from_category,
-            COALESCE(c.category_name, '沉默流失') AS to_category,
+            c.category_name AS to_category,
             COUNT(DISTINCT p.user_id) AS inter_churn_users
         FROM previous_period_users p
         INNER JOIN current_period_users c ON p.user_id = c.user_id
         WHERE p.category_name != c.category_name
+          AND NOT EXISTS (
+              SELECT 1 FROM current_period_users s
+              WHERE s.user_id = p.user_id AND s.category_name = p.category_name
+          )
         GROUP BY p.category_name, c.category_name
     ),
     silent_churn AS (
-        -- 上期买A,本期无订单
         SELECT
             p.category_name,
             COUNT(DISTINCT p.user_id) AS silent_users
@@ -242,27 +237,111 @@ def get_category_churn(
             inter_churn_users,
             ROW_NUMBER() OVER (PARTITION BY from_category ORDER BY inter_churn_users DESC) AS rn
         FROM inter_category_churn
+    ),
+    gap_orders AS (
+        SELECT
+            p.category_name,
+            o.user_id,
+            o.pay_time,
+            lag(o.pay_time) OVER (
+                PARTITION BY p.category_name, o.user_id ORDER BY o.pay_time
+            ) AS prev_pay
+        FROM orders o
+        INNER JOIN previous_period_users p
+          ON o.user_id = p.user_id
+         AND {_cat_expr(level_col)} = p.category_name
+        WHERE {gap_where}
+    ),
+    median_gap AS (
+        SELECT
+            category_name,
+            quantile_cont(date_diff('day', prev_pay, pay_time), 0.5) AS med_gap
+        FROM gap_orders
+        WHERE prev_pay IS NOT NULL
+        GROUP BY category_name
+    ),
+    last_cat AS (
+        SELECT
+            category_name,
+            user_id,
+            max(pay_time) AS last_pay
+        FROM previous_period_orders
+        GROUP BY 1, 2
+    ),
+    scored AS (
+        SELECT
+            p.category_name,
+            p.user_id,
+            COALESCE(m.med_gap, 90) AS med_gap,
+            CASE WHEN cur.user_id IS NOT NULL THEN 1 ELSE 0 END AS survived,
+            CASE WHEN cur.user_id IS NOT NULL THEN 0.0
+                 ELSE LEAST(1.0, 1.0 - exp(
+                    -GREATEST(date_diff('day', COALESCE(l.last_pay, TIMESTAMP '1970-01-01'), ?::TIMESTAMP), 0)
+                    / GREATEST(COALESCE(m.med_gap, 90), 14.0)
+                 ))
+            END AS base_hazard,
+            COALESCE(r.segment_id, 9) AS segment_id
+        FROM previous_period_users p
+        LEFT JOIN last_cat l
+          ON p.user_id = l.user_id AND p.category_name = l.category_name
+        LEFT JOIN current_period_users cur
+          ON p.user_id = cur.user_id AND p.category_name = cur.category_name
+        LEFT JOIN median_gap m ON p.category_name = m.category_name
+        LEFT JOIN rfm_asof r ON p.user_id = r.user_id
+    ),
+    with_hazard AS (
+        SELECT
+            category_name,
+            user_id,
+            med_gap,
+            segment_id,
+            survived,
+            LEAST(1.0, base_hazard + CASE WHEN segment_id IN (4, 8) THEN 0.15 ELSE 0 END) AS hazard
+        FROM scored
+    ),
+    hazard_agg AS (
+        SELECT
+            category_name,
+            COUNT(DISTINCT user_id) AS prev_users,
+            AVG(hazard) AS mean_hazard,
+            COUNT(DISTINCT CASE WHEN hazard >= 0.5 THEN user_id END) AS high_risk_users,
+            AVG(med_gap) AS median_gap_days,
+            COUNT(DISTINCT CASE WHEN segment_id IN (4, 8) THEN user_id END) AS rfm_at_risk_users,
+            COUNT(DISTINCT CASE WHEN survived = 1 THEN user_id END) AS retained_users
+        FROM with_hazard
+        GROUP BY category_name
     )
     SELECT
-        cc.category_name,
-        cc.prev_users,
+        ha.category_name,
+        ha.prev_users,
         COALESCE(ct.curr_total_users, 0) AS curr_total_users,
-        cc.retained_users,
-        cc.churned_users,
+        ha.mean_hazard,
+        ha.high_risk_users,
+        ha.median_gap_days,
+        ha.rfm_at_risk_users,
+        ha.retained_users,
         COALESCE(sc.silent_users, 0) AS silent_users,
         tcd1.to_category AS top_dest1,
         tcd1.inter_churn_users AS top_dest1_users,
         tcd2.to_category AS top_dest2,
         tcd2.inter_churn_users AS top_dest2_users
-    FROM category_churn cc
-    LEFT JOIN current_period_totals ct ON cc.category_name = ct.category_name
-    LEFT JOIN silent_churn sc ON cc.category_name = sc.category_name
-    LEFT JOIN top_churn_dest tcd1 ON cc.category_name = tcd1.from_category AND tcd1.rn = 1
-    LEFT JOIN top_churn_dest tcd2 ON cc.category_name = tcd2.from_category AND tcd2.rn = 2
+    FROM hazard_agg ha
+    LEFT JOIN current_period_totals ct ON ha.category_name = ct.category_name
+    LEFT JOIN silent_churn sc ON ha.category_name = sc.category_name
+    LEFT JOIN top_churn_dest tcd1 ON ha.category_name = tcd1.from_category AND tcd1.rn = 1
+    LEFT JOIN top_churn_dest tcd2 ON ha.category_name = tcd2.from_category AND tcd2.rn = 2
     """
-    # Sprint 53.5 L3: params 顺序: current CTE params + previous CTE params
-    params = current_params + previous_params
-    result = conn.execute(sql, params).fetchall()
+    params = (
+        list(current_params)
+        + list(previous_params)
+        + list(rfm_params)
+        + list(gap_params)
+        + [f"{end_date} 23:59:59"]
+    )
+    assert sql.count("?") == len(params), (
+        f"get_category_churn params mismatch: SQL has {sql.count('?')} ? "
+        f"but params list has {len(params)} items."
+    )
     result = conn.execute(sql, params).fetchall()
 
     scatter_data = []
@@ -272,49 +351,42 @@ def get_category_churn(
     for row in result:
         cat_name = row[0]
         prev_users = int(row[1] or 0)
-        curr_total_users = int(row[2] or 0)  # 本期该品类总用户数
-        int(row[3] or 0)
-        churned = int(row[4] or 0)
-        silent = int(row[5] or 0)
-        inter_churned = churned - silent  # 品类间流失 = 总流失 - 沉默流失
+        curr_total_users = int(row[2] or 0)
+        mean_hazard = float(row[3] or 0)
+        high_risk_users = int(row[4] or 0)
+        median_gap_days = float(row[5] or 0)
+        rfm_at_risk = int(row[6] or 0)
+        retained = int(row[7] or 0)
+        silent = int(row[8] or 0)
+        top_dest1 = row[9] if row[9] else "无"
+        top_dest1_users = int(row[10] or 0)
+        top_dest2 = row[11] if row[11] else "无"
+        top_dest2_users = int(row[12] or 0)
 
         mom_change = (curr_total_users - prev_users) / prev_users if prev_users > 0 else 0
+        high_risk_ratio = high_risk_users / prev_users if prev_users > 0 else 0
+        inter_churned = max(prev_users - silent - retained, 0)
+        dest1_ratio = min(top_dest1_users / inter_churned, 1.0) if inter_churned > 0 else 0
+        dest2_ratio = min(top_dest2_users / inter_churned, 1.0) if inter_churned > 0 else 0
 
-        top_dest1 = row[6] if row[6] else "无"
-        top_dest1_users = int(row[7] or 0)
-        top_dest2 = row[8] if row[8] else "无"
-        top_dest2_users = int(row[9] or 0)
-
-        dest1_ratio = top_dest1_users / inter_churned if inter_churned > 0 else 0
-        dest2_ratio = top_dest2_users / inter_churned if inter_churned > 0 else 0
-
-        scatter_data.append({
-            "category_name": cat_name,
-            "current_users": curr_total_users,
-            "mom_change_rate": round(mom_change, 4),
-            "churn_users": churned,
-            "inter_churn": inter_churned,
-            "silent_churn": silent,
-        })
-
-        bar_data.append({
-            "category_name": cat_name,
-            "current_users": curr_total_users,
-            "previous_users": prev_users,
-            "mom_change_rate": round(mom_change, 4),
-        })
-
-        # 挽回建议
         suggestion = ""
-        if inter_churned > 0 and top_dest1 != "无":
-            suggestion = f"触达推送 {top_dest1}"
-        elif silent > churned * 0.5:
-            suggestion = "发送召回触达,配合首单礼包促进回流"
+        if mean_hazard >= 0.5 and rfm_at_risk > 0:
+            suggestion = "优先触达 RFM 挽留象限，按回购周期召回"
+        elif silent > prev_users * 0.5 and prev_users > 0:
+            suggestion = "发送召回触达，配合首单礼包促进回流"
+        elif top_dest1 != "无":
+            suggestion = f"迁移去向 {top_dest1}，见流转 Tab"
 
-        table.append({
+        item = {
             "category_name": cat_name,
+            "display_name": mask_category_name(cat_name),
             "current_users": curr_total_users,
             "previous_users": prev_users,
+            "mean_hazard": round(mean_hazard, 4),
+            "high_risk_users": high_risk_users,
+            "high_risk_ratio": round(high_risk_ratio, 4),
+            "median_gap_days": round(median_gap_days, 1),
+            "rfm_at_risk_users": rfm_at_risk,
             "mom_change_rate": round(mom_change, 4),
             "inter_churn": inter_churned,
             "silent_churn": silent,
@@ -323,23 +395,42 @@ def get_category_churn(
             "top_churn_dest2": top_dest2,
             "top_churn_dest2_ratio": round(dest2_ratio, 4),
             "挽回建议": suggestion,
-        })
+        }
+        scatter_data.append(item)
+        bar_data.append(item)
+        table.append(item)
 
-    # 按流失严重度排序
-    scatter_data.sort(key=lambda x: x["mom_change_rate"])
-    table.sort(key=lambda x: x["mom_change_rate"])
+    scatter_data.sort(key=lambda x: x["mean_hazard"], reverse=True)
+    table.sort(key=lambda x: x["mean_hazard"], reverse=True)
+    mapping = catalog_display_map(conn, SPU_LEVELS.get(level, "spu_product_class"))
+    for row in table:
+        row["display_name"] = lookup_display_name(mapping, row["category_name"])
+        row["top_churn_dest1"] = lookup_display_name(mapping, row["top_churn_dest1"])
+        row["top_churn_dest2"] = lookup_display_name(mapping, row["top_churn_dest2"])
+    name_map = {row["category_name"]: row.get("display_name") for row in table}
+    for row in scatter_data:
+        row["display_name"] = name_map.get(row["category_name"], row["category_name"])
+    for row in bar_data:
+        row["display_name"] = name_map.get(row["category_name"], row["category_name"])
 
     suggestions = []
-    large_decline = [t for t in table if t["mom_change_rate"] < -0.2 and t["previous_users"] > 1000]
-    if large_decline:
-        suggestions.append(f"⚠️ 紧急:{large_decline[0]['category_name']} 流失加速(<-20%),建议重新评估资源分配")
+    urgent = [t for t in table if t["mean_hazard"] >= 0.5 and t["previous_users"] > 1000]
+    if urgent:
+        suggestions.append(
+            f"⚠️ 高风险:{urgent[0].get('display_name') or urgent[0]['category_name']} "
+            f"平均流失风险 {urgent[0]['mean_hazard']*100:.0f}%，建议按回购周期召回"
+        )
 
     return {
         "scatter_data": scatter_data,
         "bar_data": bar_data,
         "table": table,
         "operation_suggestions": suggestions,
-        "data_quality_note": f"本期: {start_date}~{end_date},上期: {prev_start}~{prev_end}",
+        "data_quality_note": (
+            f"本期: {start_date}~{end_date},上期: {prev_start}~{prev_end}。"
+            f"风险分=距上次购买相对品类回购周期的生存 hazard，RFM 挽留象限 +0.15。"
+            f"品类迁移去向不是流失判定。"
+        ),
     }
 
 def get_category_daily_trend(
@@ -384,22 +475,26 @@ def get_category_daily_trend(
             SUM(actual_amount) AS gmv,
             COUNT(DISTINCT o.user_id) AS user_count,
             COUNT(DISTINCT CASE
-                WHEN u.first_pay_date > ?::DATE THEN o.user_id
+                WHEN u.first_pay_date >= ?::DATE THEN o.user_id
             END) AS new_user_count
         FROM orders o
-        JOIN user_first_purchase u ON o.user_id = u.user_id
+        LEFT JOIN user_first_purchase u ON o.user_id = u.user_id
         WHERE {where_sql}
-          AND u.first_pay_date > ?::DATE
         GROUP BY {date_col}
         ORDER BY {date_col}
     )
     SELECT {date_key_name}, gmv, user_count, new_user_count
     FROM daily_data
     """
-    # cutoff = start_date - 1天 (参考 overview.py:55 calculate_new_old_users 口径)
-    cutoff_date = (datetime.strptime(start_date, "%Y-%m-%d").date() - timedelta(days=1)).strftime("%Y-%m-%d")
-    # Sprint 53.5 L3: params = helper params + cutoff_date
-    result = conn.execute(sql, where_params + [cutoff_date]).fetchall()
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    cutoff_date = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+    # CASE WHEN first_pay_date >= ? appears before {where_sql} in the SQL text.
+    params = [cutoff_date] + list(where_params)
+    assert sql.count("?") == len(params), (
+        f"get_category_daily_trend params mismatch: SQL has {sql.count('?')} ? "
+        f"but params list has {len(params)} items."
+    )
+    result = conn.execute(sql, params).fetchall()
 
     dates = [row[0] for row in result]
     gmv = [float(row[1] or 0) for row in result]
@@ -446,6 +541,7 @@ def get_category_user_list(
     where_sql, where_params = _build_user_list_filter(
         start_date, end_date, category_id
     )
+    rfm_cte, rfm_params = rfm_asof_cte(end_date, "category_users")
 
     sql = f"""
     WITH category_users AS (
@@ -459,13 +555,7 @@ def get_category_user_list(
         WHERE {where_sql}
         GROUP BY o.user_id
     ),
-    user_segments AS (
-        SELECT r.user_id, r.segment_id
-        FROM user_rfm r
-        WHERE r.analysis_date = (
-            SELECT MAX(analysis_date) FROM user_rfm
-        )
-    )
+    {rfm_cte}
     SELECT
         cu.user_id,
         cu.order_count,
@@ -475,12 +565,13 @@ def get_category_user_list(
         COALESCE(us.segment_id, 9) AS segment_id,
         EXISTS(SELECT 1 FROM orders o WHERE o.user_id = cu.user_id AND o.is_member = TRUE LIMIT 1) AS is_member
     FROM category_users cu
-    LEFT JOIN user_segments us ON cu.user_id = us.user_id
+    LEFT JOIN rfm_asof us ON cu.user_id = us.user_id
     ORDER BY cu.total_gmv DESC
     LIMIT ?
     """
-    # Sprint 53.5 L3: params = helper params + limit
-    result = conn.execute(sql, where_params + [limit]).fetchall()
+    list_params = list(where_params) + list(rfm_params) + [limit]
+    assert sql.count("?") == len(list_params)
+    result = conn.execute(sql, list_params).fetchall()
 
     # 获取总用户数 — count_sql 共用同一份 filter
     count_sql = f"SELECT COUNT(DISTINCT user_id) FROM orders o WHERE {where_sql}"
@@ -507,8 +598,9 @@ def get_category_user_list(
             "segment_id": seg_id,
             "segment_name": seg_name,
             "is_member": bool(row[6]),
-            "is_wool_party": False,  # 简化
+            "is_wool_party": False,
         })
+    _stamp_wool_party_flags(conn, users, start_date, end_date, category_id)
 
     return {
         "category_id": category_id,
@@ -516,3 +608,64 @@ def get_category_user_list(
         "total_users": total_users,
         "users": users,
     }
+
+
+def _stamp_wool_party_flags(
+    conn,
+    users: List[Dict[str, Any]],
+    start_date: str,
+    end_date: str,
+    category_id: str,
+) -> None:
+    """用户列表的羊毛标记：同一套 0-1 分，high_risk = score>=0.70。"""
+    if not users:
+        return
+    SAMPLE_CHANNELS = ('U先派样', '百补派样', '赠品&0.01渠道', '其他')
+    ids = [u["user_id"] for u in users]
+    placeholders = ",".join(["?"] * len(ids))
+    where_sql, where_params = _build_user_list_filter(start_date, end_date, category_id)
+    fb_life = FilterBuilder()
+    fb_life.with_metric_type(MetricType.GSV)
+    fb_life.add_extra("pay_time <= ?", [f"{end_date} 23:59:59.999999"])
+    life_sql, life_params = fb_life.build()
+    params = list(where_params) + list(ids) + list(life_params) + list(ids)
+    sql = f"""
+    WITH window_orders AS (
+        SELECT o.user_id, o.channel
+        FROM orders o
+        WHERE {where_sql}
+          AND o.user_id IN ({placeholders})
+    ),
+    window_summary AS (
+        SELECT
+            user_id,
+            COUNT(*) AS total_orders,
+            COUNT(CASE WHEN channel IN {SAMPLE_CHANNELS} THEN 1 END) AS sample_orders
+        FROM window_orders
+        GROUP BY user_id
+    ),
+    lifetime_formal AS (
+        SELECT
+            o.user_id,
+            COUNT(CASE WHEN o.channel NOT IN {SAMPLE_CHANNELS} THEN 1 END) AS formal_orders
+        FROM orders o
+        WHERE {life_sql}
+          AND o.user_id IN ({placeholders})
+        GROUP BY o.user_id
+    )
+    SELECT
+        ws.user_id,
+        LEAST(1.0,
+            0.55 * (CASE WHEN ws.total_orders > 0 THEN ws.sample_orders * 1.0 / ws.total_orders ELSE 0 END)
+            + 0.25 * (CASE WHEN COALESCE(lf.formal_orders, 0) = 0 THEN 1 ELSE 0 END)
+            + 0.20 * (CASE WHEN COALESCE(lf.formal_orders, 0) > 0
+                            AND ws.sample_orders = ws.total_orders THEN 1 ELSE 0 END)
+        ) AS score
+    FROM window_summary ws
+    LEFT JOIN lifetime_formal lf ON ws.user_id = lf.user_id
+    """
+    assert sql.count("?") == len(params)
+    rows = conn.execute(sql, params).fetchall()
+    scores = {str(row[0]): float(row[1] or 0) for row in rows}
+    for user in users:
+        user["is_wool_party"] = scores.get(str(user["user_id"]), 0.0) >= 0.70

@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import duckdb
+import pytest
 
 from backend.services.auth_token_evictor import parse_idle_seconds
 from backend.services.category_display import mask_category_name
@@ -47,6 +48,113 @@ def test_mask_suffix_unknown_and_whitespace():
     assert mask_category_name("夜间凝胶") == "爆款凝胶"
     assert mask_category_name("未知小品类") == "爆款品类"
     assert mask_category_name("爆款护理贴") == "爆款护理贴"
+
+
+def test_unique_display_names_suffixes_collisions():
+    from backend.services.category_display import unique_display_names
+
+    mapping = unique_display_names(["经典膜", "水杨酸面膜", "凉茶次抛"])
+    assert mapping["凉茶次抛"] == "爆款次抛"
+    assert mapping["水杨酸面膜"] != mapping["经典膜"]
+    assert mapping["水杨酸面膜"].startswith("爆款面膜")
+    assert mapping["经典膜"].startswith("爆款面膜")
+    assert mapping["水杨酸面膜"][-1] in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    assert mapping["经典膜"][-1] in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    assert mapping["水杨酸面膜"] != mapping["经典膜"]
+
+
+def test_catalog_display_map_stable_for_subset_lookup():
+    from backend.services.category_display import catalog_display_map, lookup_display_name
+
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE orders (spu_product_class VARCHAR)")
+    con.execute(
+        "INSERT INTO orders VALUES ('经典膜'), ('水杨酸面膜'), ('积雪草冻干面膜')"
+    )
+    mapping = catalog_display_map(con, "spu_product_class")
+    classic = lookup_display_name(mapping, "经典膜")
+    acid = lookup_display_name(mapping, "水杨酸面膜")
+    freeze = lookup_display_name(mapping, "积雪草冻干面膜")
+    assert len({classic, acid, freeze}) == 3
+    assert classic.startswith("爆款面膜")
+    assert lookup_display_name(mapping, "经典膜") == classic
+    from backend.services.category_display import unique_display_names
+
+    assert unique_display_names(["水杨酸面膜"])["水杨酸面膜"] == "爆款面膜"
+    assert acid.startswith("爆款面膜") and acid != "爆款面膜"
+    con.close()
+
+
+def test_catalog_display_map_rejects_non_whitelist_column():
+    from backend.services.category_display import catalog_display_map
+
+    class Boom:
+        def execute(self, *a, **k):
+            raise AssertionError("must not interpolate")
+
+    with pytest.raises(ValueError, match="unsupported category column"):
+        catalog_display_map(Boom(), "spu_product_class; DROP TABLE orders")
+
+
+def test_catalog_cache_uses_inner_connection_id():
+    from backend.db.connection import ThreadSafeConnection
+    from backend.services import category_display as cd
+
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE orders (spu_product_class VARCHAR)")
+    con.execute("INSERT INTO orders VALUES ('凉茶次抛')")
+    wrap_a = ThreadSafeConnection(con)
+    wrap_b = ThreadSafeConnection(con)
+    first = cd.catalog_display_map(wrap_a, "spu_product_class")
+    second = cd.catalog_display_map(wrap_b, "spu_product_class")
+    assert first is second
+    con.close()
+
+
+def test_apply_catalog_display_names_stamps_without_rewriting_query_key():
+    from backend.services.category_display import apply_catalog_display_names
+
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE orders (spu_product_class VARCHAR)")
+    con.execute("INSERT INTO orders VALUES ('经典膜'), ('水杨酸面膜')")
+    rows = [
+        {"name": "经典膜", "query_key": "经典膜"},
+        {"name": "水杨酸面膜", "query_key": "水杨酸面膜"},
+    ]
+    apply_catalog_display_names(con, rows, "spu_product_class")
+    assert rows[0]["query_key"] == "经典膜"
+    assert rows[1]["query_key"] == "水杨酸面膜"
+    assert rows[0]["display_name"] != rows[1]["display_name"]
+    assert str(rows[0]["display_name"]).startswith("爆款面膜")
+    con.close()
+
+
+def test_wool_party_breakdown_ratio_bounds():
+    from pydantic import ValidationError
+    from backend.contracts.common import WoolPartyBreakdown
+
+    base = dict(
+        high_risk_count=1,
+        mean_score=0.8,
+        never_converted_count=1,
+        converted_then_sample_count=0,
+        sample_only_window_count=1,
+        scored_users=1,
+        high_risk_ratio=1.0,
+    )
+    WoolPartyBreakdown(**base)
+    with pytest.raises(ValidationError):
+        WoolPartyBreakdown(**{**base, "high_risk_ratio": 1.5})
+    with pytest.raises(ValidationError):
+        WoolPartyBreakdown(**{**base, "mean_score": 1.2})
+
+
+def test_unique_display_names_passthrough_and_dedup():
+    from backend.services.category_display import unique_display_names
+
+    mapping = unique_display_names(["TTL", "TTL", "合计", None, ""])
+    assert mapping["TTL"] == "TTL"
+    assert mapping["合计"] == "合计"
 
 
 def test_dashboard_windows_include_ytd():
@@ -204,6 +312,60 @@ def test_fill_script_builds_tiny_overlay(monkeypatch, tmp_path):
     )
     src.execute(
         """
+        CREATE TABLE user_first_purchase (
+            user_id VARCHAR,
+            first_pay_date DATE
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO user_first_purchase VALUES
+        ('u1', DATE '2023-08-01'),
+        ('u2', DATE '2021-01-01')
+        """
+    )
+    src.execute(
+        """
+        CREATE TABLE user_rfm (
+            user_id VARCHAR,
+            user_nickname VARCHAR,
+            analysis_date DATE,
+            metric_type VARCHAR,
+            lookback_days INTEGER,
+            channel VARCHAR,
+            recency_days INTEGER,
+            frequency INTEGER,
+            monetary DECIMAL(12,2),
+            r_score INTEGER,
+            f_score INTEGER,
+            m_score INTEGER,
+            rfm_tier VARCHAR,
+            rfm_tier_en VARCHAR,
+            segment_id INTEGER,
+            first_order_date DATE,
+            last_order_date DATE,
+            created_at TIMESTAMP,
+            is_member BOOLEAN
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO user_rfm VALUES
+        ('u1', 'n', DATE '2023-07-01', 'GMV', 90, '全店', 10, 2, 100,
+         4, 3, 3, '重要价值客户', 'champions', 2,
+         DATE '2023-07-01', DATE '2023-07-01', TIMESTAMP '2023-07-01', TRUE),
+        ('u1', 'n', DATE '2023-08-01', 'GMV', 90, '全店', 10, 2, 100,
+         4, 3, 3, '重要价值客户', 'champions', 1,
+         DATE '2023-07-01', DATE '2023-08-01', TIMESTAMP '2023-08-01', TRUE),
+        ('u1', 'n', DATE '2023-09-20', 'GMV', 90, '全店', 10, 2, 100,
+         4, 3, 3, '重要价值客户', 'champions', 4,
+         DATE '2023-07-01', DATE '2023-09-20', TIMESTAMP '2023-09-20', TRUE)
+        """
+    )
+    src.execute(
+        """
         CREATE TABLE daily_visitors (
             date DATE, visitors INTEGER, new_members INTEGER, member_join_rate DOUBLE
         )
@@ -212,8 +374,8 @@ def test_fill_script_builds_tiny_overlay(monkeypatch, tmp_path):
     src.execute(
         """
         INSERT INTO daily_visitors VALUES
-        (DATE '2023-08-01', 10, 1, 0.1),
-        (DATE '2023-01-01', 5, 0, 0.0)
+        (DATE '2025-08-01', 10, 1, 0.1),
+        (DATE '2023-08-01', 5, 0, 0.0)
         """
     )
     src.execute("CREATE TABLE extra (id INTEGER)")
@@ -233,7 +395,24 @@ def test_fill_script_builds_tiny_overlay(monkeypatch, tmp_path):
             "SELECT order_id, pay_time FROM fill_orders"
         ).fetchone()
         assert str(order_id).startswith("SYN26-")
+        user_id = wrap.execute("SELECT user_id FROM fill_orders").fetchone()[0]
+        assert str(user_id).startswith("SYN26-U-")
         assert pay_time.year == 2026
+        first_pay = wrap.execute(
+            "SELECT first_pay_date FROM fill_user_first_purchase WHERE user_id = ?",
+            [user_id],
+        ).fetchone()[0]
+        assert first_pay.year == 2026
+        vis_date = wrap.execute("SELECT date FROM fill_daily_visitors").fetchone()[0]
+        assert vis_date.year == 2026
+        rfm_rows = wrap.execute(
+            "SELECT user_id, analysis_date, segment_id FROM fill_user_rfm"
+        ).fetchall()
+        assert len(rfm_rows) == 1
+        rfm_user, rfm_date, seg = rfm_rows[0]
+        assert str(rfm_user).startswith("SYN26-U-")
+        assert rfm_date.year == 2026 and rfm_date.month == 8
+        assert int(seg) == 1
         assert wrap.execute("SELECT count(*) FROM fill_daily_visitors").fetchone()[0] == 1
         assert wrap.execute("SELECT count(*) FROM orders").fetchone()[0] == 3
         assert wrap.execute("SELECT id FROM extra").fetchone()[0] == 7
@@ -249,8 +428,8 @@ def test_fill_script_builds_tiny_overlay(monkeypatch, tmp_path):
 def test_category_payloads_include_display_name():
     dist_src = inspect.getsource(distribution_mod.get_category_distribution)
     over_src = inspect.getsource(overview_mod.get_category_overview)
-    assert '"display_name": mask_category_name(category_name)' in dist_src
-    assert '"display_name": mask_category_name(name)' in over_src
+    assert "apply_catalog_display_names(conn, distribution" in dist_src
+    assert "apply_catalog_display_names(conn, all_rows" in over_src
 
 
 def test_prewarm_skips_empty_cutoff(monkeypatch):

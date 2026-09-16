@@ -9,7 +9,11 @@ from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List, Tuple
 
 from backend.db.connection import get_connection
-from backend.services.category_display import mask_category_name
+from backend.services.category_display import (
+    apply_catalog_display_names,
+    mask_category_name,
+)
+from backend.services.category_service._shared import rfm_asof_cte
 from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
 from backend.semantic.calculations import yoy_absolute, yoy_ratio
 
@@ -160,10 +164,10 @@ def _build_wool_party_filter(
     end_date: str,
     channel: Optional[str],
 ) -> Tuple[str, List[Any]]:
-    """_compute_wool_party_breakdown 过滤器 (GSV 口径, 不应用 exclude_channels).
+    """窗口订单过滤器 (GSV 口径, 不应用 exclude_channels).
 
-    NOTE: 羊毛党定义依赖低价渠道订单, exclude_channels 通常就是低价渠道列表,
-    若应用则 sample_orders 永远为 0.
+    NOTE: 羊毛党证据依赖低价渠道订单, exclude_channels 通常就是低价渠道列表,
+    若应用则窗口小样占比永远为 0.
     """
     fb = FilterBuilder()
     fb.with_metric_type(MetricType.GSV)
@@ -173,6 +177,14 @@ def _build_wool_party_filter(
         if not db_channels:
             raise ValueError(f"渠道'{channel}'未在channels.py中注册，请检查UI_TO_DB映射")
         fb.with_channels(db_channels)
+    return fb.build()
+
+
+def _build_wool_lifetime_filter(end_date: str) -> Tuple[str, List[Any]]:
+    """终身正装证据：GSV 有效单，截止到窗口末日，无时间窗起点、无渠道剔除."""
+    fb = FilterBuilder()
+    fb.with_metric_type(MetricType.GSV)
+    fb.add_extra("pay_time <= ?", [f"{end_date} 23:59:59.999999"])
     return fb.build()
 
 
@@ -527,6 +539,11 @@ def get_category_overview(
             comp_total_member_gsv / comp_total_gsv
         )
 
+    level_col = SPU_LEVELS.get(level, "spu_product_class")
+    apply_catalog_display_names(conn, all_rows, level_col)
+    apply_catalog_display_names(conn, member_rows, level_col)
+    apply_catalog_display_names(conn, [all_ttl, member_ttl], level_col)
+
     return {
         "date_start": start_date,
         "date_end": end_date,
@@ -574,33 +591,41 @@ def _build_value_score(
 
     return round(total_score, 1), grade
 
+_EMPTY_WOOL = {
+    "high_risk_count": 0,
+    "mean_score": 0.0,
+    "never_converted_count": 0,
+    "converted_then_sample_count": 0,
+    "sample_only_window_count": 0,
+    "scored_users": 0,
+    "high_risk_ratio": 0.0,
+}
+
+
 def _compute_wool_party_breakdown(
     conn: "duckdb.DuckDBPyConnection",
     start_date: str, end_date: str,
     level: str, channel: Optional[str], exclude_channels: Optional[List[str]]
 ) -> Dict[str, Dict[str, Any]]:
-    """
-    计算羊毛党细分统计（Type1 + Type2），按品类聚合。
+    """按品类聚合用户级羊毛风险分。
 
-    Type1: 历史有正装订单，在窗口内 100% 订单为小样
-    Type2: 历史无正装订单，在窗口内 100% 订单为小样
+    证据（用户级，不是窗口 100% 小样布尔）:
+    - 窗口小样订单占比
+    - 截止窗口末日是否从未买过正装
+    - 曾转正、窗口内仍 100% 小样
 
-    NOTE: 羊毛党定义依赖低价渠道订单，因此**不应用** exclude_channels 过滤。
-          exclude_channels 通常就是低价渠道列表，若应用则 sample_orders 永远为 0。
+    分数 0-1；high_risk = score >= 0.70。不应用 exclude_channels。
     """
+    del exclude_channels  # 羊毛证据必须看见低价渠道
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     excluded_cat_sql = _excluded_cat_filter(level_col)
-
-    # 正装 = 非低价渠道；小样 = 低价渠道
     SAMPLE_CHANNELS = ('U先派样', '百补派样', '赠品&0.01渠道', '其他')
 
-    # Sprint 54 Lane A L3: 用 _build_wool_party_filter 替代 f-string 拼接
-    # (time range + valid_order + channel 全走 ? 占位; 不应用 exclude_channels).
     where_sql, where_params = _build_wool_party_filter(
         start_date, end_date, channel,
     )
-    # params 顺序: start_date + end_date (window_orders 里 2 个) + EXCLUDED_PRODUCT_CATEGORIES + where_params
-    params = [start_date, end_date] + list(EXCLUDED_PRODUCT_CATEGORIES) + where_params
+    life_sql, life_params = _build_wool_lifetime_filter(end_date)
+    params = list(where_params) + list(EXCLUDED_PRODUCT_CATEGORIES) + list(life_params)
 
     sql = f"""
     WITH window_orders AS (
@@ -621,49 +646,78 @@ def _compute_wool_party_breakdown(
         FROM window_orders
         GROUP BY category_name, user_id
     ),
-    ever_formal_users AS (
-        -- 历史上买过正装的用户(只检查窗口内出现的用户，减少扫描范围)
-        SELECT DISTINCT o.user_id
-        FROM orders o
-        WHERE o.user_id IN (SELECT DISTINCT user_id FROM window_orders)
-          AND {where_sql}
-          AND o.channel NOT IN {SAMPLE_CHANNELS}
+    window_users AS (
+        SELECT DISTINCT user_id FROM window_orders
     ),
-    wool_classified AS (
+    lifetime_formal AS (
+        SELECT
+            o.user_id,
+            COUNT(CASE WHEN o.channel NOT IN {SAMPLE_CHANNELS} THEN 1 END) AS formal_orders
+        FROM orders o
+        INNER JOIN window_users w ON o.user_id = w.user_id
+        WHERE {life_sql}
+        GROUP BY o.user_id
+    ),
+    scored AS (
         SELECT
             ws.category_name,
             ws.user_id,
-            CASE
-                WHEN ef.user_id IS NOT NULL THEN 'type1'
-                ELSE 'type2'
-            END AS wool_type
+            CASE WHEN ws.total_orders > 0
+                 THEN ws.sample_orders * 1.0 / ws.total_orders ELSE 0 END AS window_sample_ratio,
+            CASE WHEN COALESCE(lf.formal_orders, 0) = 0 THEN 1 ELSE 0 END AS never_converted,
+            CASE WHEN COALESCE(lf.formal_orders, 0) > 0
+                  AND ws.sample_orders = ws.total_orders AND ws.total_orders > 0
+                 THEN 1 ELSE 0 END AS converted_then_sample,
+            CASE WHEN ws.sample_orders = ws.total_orders AND ws.total_orders > 0
+                 THEN 1 ELSE 0 END AS sample_only_window
         FROM user_window_summary ws
-        LEFT JOIN ever_formal_users ef ON ws.user_id = ef.user_id
+        LEFT JOIN lifetime_formal lf ON ws.user_id = lf.user_id
         WHERE ws.total_orders > 0
-          AND ws.sample_orders = ws.total_orders  -- 100% 小样
+    ),
+    with_score AS (
+        SELECT
+            category_name,
+            user_id,
+            never_converted,
+            converted_then_sample,
+            sample_only_window,
+            LEAST(1.0,
+                0.55 * window_sample_ratio
+                + 0.25 * never_converted
+                + 0.20 * converted_then_sample
+            ) AS score
+        FROM scored
     )
     SELECT
         category_name,
-        COUNT(DISTINCT CASE WHEN wool_type = 'type1' THEN user_id END) AS type1_count,
-        COUNT(DISTINCT CASE WHEN wool_type = 'type2' THEN user_id END) AS type2_count,
-        COUNT(DISTINCT user_id) AS total_wool_count
-    FROM wool_classified
+        COUNT(DISTINCT CASE WHEN score >= 0.70 THEN user_id END) AS high_risk_count,
+        AVG(score) AS mean_score,
+        COUNT(DISTINCT CASE WHEN never_converted = 1 THEN user_id END) AS never_converted_count,
+        COUNT(DISTINCT CASE WHEN converted_then_sample = 1 THEN user_id END) AS converted_then_sample_count,
+        COUNT(DISTINCT CASE WHEN sample_only_window = 1 THEN user_id END) AS sample_only_window_count,
+        COUNT(DISTINCT user_id) AS scored_users
+    FROM with_score
     GROUP BY category_name
     """
-    # Sprint 90 L4.7 ground-truth-lint: 防 params 顺序错位回归 (Sprint 60+60.1.1 实战 fix 模式).
     assert sql.count('?') == len(params), (
         f"_compute_wool_party_breakdown params mismatch: SQL has {sql.count('?')} ? placeholders "
         f"but params list has {len(params)} items. Check params order vs SQL `?` positions."
     )
     result = conn.execute(sql, params).fetchall()
-    return {
-        row[0]: {
-            "type1_count": int(row[1] or 0),
-            "type2_count": int(row[2] or 0),
-            "total_count": int(row[3] or 0),
+    out: Dict[str, Dict[str, Any]] = {}
+    for row in result:
+        scored_users = int(row[6] or 0)
+        high_risk = int(row[1] or 0)
+        out[row[0]] = {
+            "high_risk_count": high_risk,
+            "mean_score": round(float(row[2] or 0), 4),
+            "never_converted_count": int(row[3] or 0),
+            "converted_then_sample_count": int(row[4] or 0),
+            "sample_only_window_count": int(row[5] or 0),
+            "scored_users": scored_users,
+            "high_risk_ratio": round(high_risk / scored_users, 4) if scored_users > 0 else 0.0,
         }
-        for row in result
-    }
+    return out
 
 def _compute_value_tier_base(
     conn: "duckdb.DuckDBPyConnection",
@@ -674,42 +728,29 @@ def _compute_value_tier_base(
     level_col = SPU_LEVELS.get(level, "spu_product_class")
     excluded_cat_sql = _excluded_cat_filter(level_col)
 
-    # 查询 user_rfm 最新分析日期
-    latest_rfm_row = conn.execute(
-        "SELECT MAX(analysis_date) FROM user_rfm WHERE metric_type = 'GMV' AND lookback_days = 90"
-    ).fetchone()
-    latest_rfm_date = latest_rfm_row[0] if latest_rfm_row and latest_rfm_row[0] else cutoff
-
-    # Sprint 54 Lane A L3: 用 _build_value_tier_filter 替代 f-string 拼接
-    # (time range + valid_order + channel + exclude_channels 全走 ? 占位).
     where_sql, where_params = _build_value_tier_filter(
         start_date, end_date, channel, exclude_channels,
     )
-    # params 顺序: SQL `?` 占位符位置一一对应.
-    # SQL 顺序 (按 SQL 文本出现位置):
-    #   1) DATE(?) latest_rfm_date (line 575 JOIN ON `r.analysis_date = DATE(?)`)
-    #   2-3) pay_time >= ? AND pay_time <= ? (where_sql time range, line 576)
-    #   4-21) NOT IN (?,?,...×18) EXCLUDED_PRODUCT_CATEGORIES (line 577)
-    # Sprint 60 治本: 跟 _compute_category_period 同根因错位, 修正顺序.
-    params = [latest_rfm_date] + list(where_params) + list(EXCLUDED_PRODUCT_CATEGORIES)
+    rfm_cte, rfm_params = rfm_asof_cte(end_date, "period_orders")
+    params = list(where_params) + list(EXCLUDED_PRODUCT_CATEGORIES) + list(rfm_params)
 
     sql = f"""
     WITH period_orders AS (
         SELECT {_cat_expr(level_col)} AS category_name,
-               o.user_id, o.actual_amount, o.is_member,
-               COALESCE(r.segment_id, 9) AS segment_id
+               o.user_id, o.actual_amount, o.is_member
         FROM orders o
-        LEFT JOIN user_rfm r ON o.user_id = r.user_id
-            AND r.analysis_date = DATE(?) AND r.metric_type = 'GMV' AND r.lookback_days = 90
         WHERE {where_sql}
           {excluded_cat_sql}
-    )
-    SELECT category_name,
-           COUNT(DISTINCT user_id) AS total_users,
-           SUM(actual_amount) AS total_gsv,
-           COUNT(DISTINCT CASE WHEN segment_id IN (1, 2) THEN user_id END) AS high_value_users,
-           SUM(CASE WHEN is_member THEN actual_amount ELSE 0 END) AS member_gsv
-    FROM period_orders GROUP BY category_name
+    ),
+    {rfm_cte}
+    SELECT p.category_name,
+           COUNT(DISTINCT p.user_id) AS total_users,
+           SUM(p.actual_amount) AS total_gsv,
+           COUNT(DISTINCT CASE WHEN COALESCE(r.segment_id, 9) IN (1, 2) THEN p.user_id END) AS high_value_users,
+           SUM(CASE WHEN p.is_member THEN p.actual_amount ELSE 0 END) AS member_gsv
+    FROM period_orders p
+    LEFT JOIN rfm_asof r ON p.user_id = r.user_id
+    GROUP BY p.category_name
     """
     # Sprint 90 L4.7 ground-truth-lint: 防 params 顺序错位回归 (Sprint 60+60.1.1 实战 fix 模式).
     assert sql.count('?') == len(params), (
@@ -737,33 +778,30 @@ def get_category_value_tier(
     - default: 使用传入的 start_date~end_date 作为默认窗口
     - 30d: end_date 往前推 30 天
     - 90d: end_date 往前推 90 天
-    - all: 全部历史(2020-01-01 ~ end_date)
+    - all: 全部历史(2000-01-01 ~ end_date)
     """
 
     conn = get_connection()
-    try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    cutoff = (date(start_dt.year, start_dt.month, 1) - timedelta(days=1)).strftime("%Y-%m-%d")
 
-        # ---- 默认窗口(用户选择的时间范围) ----
-        result, wool_breakdown = _compute_value_tier_base(
-            conn, start_date, end_date, cutoff, level, channel, exclude_channels)
+    # ---- 默认窗口(用户选择的时间范围) ----
+    result, wool_breakdown = _compute_value_tier_base(
+        conn, start_date, end_date, cutoff, level, channel, exclude_channels)
 
-        # ---- 多窗口羊毛党计算 ----
-        # 30天窗口
-        start_30d = (end_dt - timedelta(days=30)).strftime("%Y-%m-%d")
-        wool_30d = _compute_wool_party_breakdown(
-            conn, start_30d, end_date, level, channel, exclude_channels)
-        # 90天窗口
-        start_90d = (end_dt - timedelta(days=90)).strftime("%Y-%m-%d")
-        wool_90d = _compute_wool_party_breakdown(
-            conn, start_90d, end_date, level, channel, exclude_channels)
-        # 全部历史
-        wool_all = _compute_wool_party_breakdown(
-            conn, "2000-01-01", end_date, level, channel, exclude_channels)
-    finally:
-        pass
+    # ---- 多窗口羊毛党计算 ----
+    # 30天窗口
+    start_30d = (end_dt - timedelta(days=30)).strftime("%Y-%m-%d")
+    wool_30d = _compute_wool_party_breakdown(
+        conn, start_30d, end_date, level, channel, exclude_channels)
+    # 90天窗口
+    start_90d = (end_dt - timedelta(days=90)).strftime("%Y-%m-%d")
+    wool_90d = _compute_wool_party_breakdown(
+        conn, start_90d, end_date, level, channel, exclude_channels)
+    # 全部历史
+    wool_all = _compute_wool_party_breakdown(
+        conn, "2000-01-01", end_date, level, channel, exclude_channels)
 
     # 构建品类数据
     MIN_USERS_FOR_SCORING = 100  # 用户基数门槛: 低于此数不参与评分排名
@@ -775,21 +813,19 @@ def get_category_value_tier(
         total_gsv = float(row[2] or 0)
         high_value_users = int(row[3] or 0)
         member_gsv = float(row[4] or 0)
-        wool = wool_breakdown.get(row[0], {"type1_count": 0, "type2_count": 0, "total_count": 0})
-        wool_total = wool["total_count"]
+        wool = {**_EMPTY_WOOL, **wool_breakdown.get(row[0], {})}
+        high_risk_ratio = min(
+            round(wool["high_risk_count"] / total_users, 4) if total_users > 0 else 0.0,
+            1.0,
+        )
+        wool["high_risk_ratio"] = high_risk_ratio
         cat_data.append({
             "category_name": row[0],
             "total_users": total_users,
             "total_gsv": total_gsv,
             "high_value_users": high_value_users,
             "high_value_ratio": high_value_users / total_users,
-            "wool_party": {
-                "type1_count": wool["type1_count"],
-                "type2_count": wool["type2_count"],
-                "total_count": wool_total,
-                "type1_ratio": wool["type1_count"] / total_users if total_users > 0 else 0,
-                "type2_ratio": wool["type2_count"] / total_users if total_users > 0 else 0,
-            },
+            "wool_party": wool,
             "member_ratio": member_gsv / total_gsv if total_gsv > 0 else 0,
             "avg_aus": total_gsv / total_users,
             "is_sample_insufficient": total_users < MIN_USERS_FOR_SCORING,
@@ -804,7 +840,7 @@ def get_category_value_tier(
     if total_count > 0:
         rank_map = {c["category_name"]: {"high_val": i+1, "wool": i+1, "member": i+1, "aus": i+1}
                     for i, c in enumerate(sorted(qualifying, key=lambda x: x["high_value_ratio"], reverse=True))}
-        for i, c in enumerate(sorted(qualifying, key=lambda x: x["wool_party"]["total_count"] / max(x["total_users"], 1), reverse=True)):
+        for i, c in enumerate(sorted(qualifying, key=lambda x: x["wool_party"]["high_risk_ratio"], reverse=True)):
             rank_map[c["category_name"]]["wool"] = i + 1
         for i, c in enumerate(sorted(qualifying, key=lambda x: x["member_ratio"], reverse=True)):
             rank_map[c["category_name"]]["member"] = i + 1
@@ -815,7 +851,7 @@ def get_category_value_tier(
             ranks = rank_map[c["category_name"]]
             score, grade = _build_value_score(
                 c["high_value_ratio"],
-                c["wool_party"]["total_count"] / c["total_users"] if c["total_users"] > 0 else 0,
+                c["wool_party"]["high_risk_ratio"],
                 c["member_ratio"], c["avg_aus"],
                 ranks["high_val"], ranks["wool"], ranks["member"], ranks["aus"], total_count)
             c["value_score"] = score
@@ -830,18 +866,22 @@ def get_category_value_tier(
     qualifying.sort(key=lambda x: x["total_users"], reverse=True)
     insufficient.sort(key=lambda x: x["total_users"], reverse=True)
     cat_data = qualifying + insufficient
+    apply_catalog_display_names(
+        conn, cat_data, SPU_LEVELS.get(level, "spu_product_class"), name_key="category_name",
+    )
 
     dual_axis = {
-        "categories": [c["category_name"] for c in cat_data],
+        "categories": [c.get("display_name") or c["category_name"] for c in cat_data],
         # Sprint 60.1.1 fix: wool_party.total_count 是"100% 小样用户" (不应用 exclude_channels),
         # 但 total_users 应用了 exclude_channels, 羊毛党用户 100% 在低价 → 排除低价后
         # total_users 缩水, ratio 数学上可能 > 1. 强截断到 1.0 保持 contract 0-1 范围
         # (跟 Sprint 27 YOYBadge |v|>1e6 异常值守卫模式一致).
         # 注: cat_data 在 line 664 已经过滤 total_users == 0, 这里不需要重复.
-        "wool_party_ratios": [min(round(c["wool_party"]["total_count"] / c["total_users"], 4), 1.0) for c in cat_data],
+        "wool_party_ratios": [c["wool_party"]["high_risk_ratio"] for c in cat_data],
         "high_value_ratios": [round(c["high_value_ratio"], 4) for c in cat_data],
     }
     table = [{"category_name": c["category_name"],
+              "display_name": c.get("display_name") or c["category_name"],
               "total_users": c["total_users"],
               "high_value_users": c["high_value_users"],
               "high_value_ratio": round(c["high_value_ratio"], 4),
@@ -856,20 +896,20 @@ def get_category_value_tier(
         rows = []
         for c in cat_data:
             cat = c["category_name"]
-            w = wool_map.get(cat, {"type1_count": 0, "type2_count": 0, "total_count": 0})
+            w = {**_EMPTY_WOOL, **wool_map.get(cat, {})}
             tu = c["total_users"]
+            packed = dict(w)
+            packed["high_risk_ratio"] = min(
+                round(packed["high_risk_count"] / tu, 4) if tu > 0 else 0.0,
+                1.0,
+            )
             rows.append({
                 "category_name": cat,
+                "display_name": c.get("display_name") or cat,
                 "total_users": tu,
                 "high_value_users": c["high_value_users"],
                 "high_value_ratio": round(c["high_value_ratio"], 4),
-                "wool_party": {
-                    "type1_count": w["type1_count"],
-                    "type2_count": w["type2_count"],
-                    "total_count": w["total_count"],
-                    "type1_ratio": w["type1_count"] / tu if tu > 0 else 0,
-                    "type2_ratio": w["type2_count"] / tu if tu > 0 else 0,
-                },
+                "wool_party": packed,
                 "member_ratio": round(c["member_ratio"], 4),
                 "avg_aus": round(c["avg_aus"], 2),
                 "value_score": c["value_score"],
@@ -885,9 +925,11 @@ def get_category_value_tier(
     }
 
     suggestions = []
-    high_wool = [c for c in cat_data if c["wool_party"]["total_count"] / c["total_users"] > 0.4]
+    high_wool = [c for c in cat_data if c["wool_party"]["high_risk_ratio"] > 0.4]
     if high_wool:
-        suggestions.append(f"羊毛党占比 > 40%: {high_wool[0]['category_name']} 建议重新评估该品类渠道ROI")
+        suggestions.append(
+            f"高风险羊毛分占比 > 40%: {high_wool[0].get('display_name') or high_wool[0]['category_name']} 建议重新评估该品类渠道ROI"
+        )
 
     return {
         "dual_axis_line": dual_axis,
@@ -897,7 +939,8 @@ def get_category_value_tier(
             f"基于 {sum(c['total_users'] for c in cat_data)} 名用户 / {start_date}~{end_date} 计算。"
             f"排名仅统计用户数 ≥ {MIN_USERS_FOR_SCORING} 的品类，共 {len(qualifying)} 个。"
             f"样本不足(<{MIN_USERS_FOR_SCORING}人)的 {len(insufficient)} 个品类不参与评分排名。"
-            f"羊毛党统计基于渠道分类(U先派样/百补派样/赠品&0.01/其他=小样)，不受'剔除低价'筛选影响。"
+            f"羊毛风险=窗口小样占比×0.55+从未转正×0.25+转正后窗口仍全小样×0.20；"
+            f"正装证据截止窗口末日、不套窗口时间。不受'剔除低价'筛选影响。"
         ),
         "wool_party_by_window": wool_party_by_window,
     }

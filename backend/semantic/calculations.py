@@ -65,7 +65,7 @@ def yoy_absolute(cur: Optional[float], comp: Optional[float]) -> Optional[float]
 
 def yoy_ratio(cur: Optional[float], comp: Optional[float]) -> Optional[float]:
     """
-    占比/比率 YOY（老客占比、会员占比、回购率等）
+    占比/比率 YOY（老客GSV占比、会员占比、回购率等）
 
     公式：cur - comp
     单位：raw ratio 差 (no *100, e.g. 0.05 = +5pp / 100, frontend caller *100 显示)
@@ -76,7 +76,7 @@ def yoy_ratio(cur: Optional[float], comp: Optional[float]) -> Optional[float]:
     - frontend YOYBadge / MetricCard / Excel 导出 必 *100 显示 (unit: 'pp' / 'raw' 灵活)
 
     Example:
-        老客占比 YOY = 0.60 - 0.55 = 0.05 (frontend *100 = +5pp)
+        老客GSV占比 YOY = 0.60 - 0.55 = 0.05 (frontend *100 = +5pp)
     """
     try:
         cur_f = float(cur) if cur is not None else 0.0

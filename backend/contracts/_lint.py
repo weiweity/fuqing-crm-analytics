@@ -59,16 +59,8 @@ _LIST_RATIO_FIELDS = frozenset({
     "new_customer_ratio",  # churn.py CategoryDailyTrendResponse
 })
 
-# Sprint 22 #29 白名单: 4 字段业务上可超 1, 命名 _ratio 是历史遗留, 实际既不是 0-1 ratio
-# 也不是 -100~+100 pp 差. 跟 Sprint 18 #141 yoy_*_ratio 同款决定走白名单兜底, 不改类型不改命名.
-# 业务语义: 单品类 0-1, 跨品类累加或 (cur-ly)*100 可超 1.
-# 验证: backend/tests/test_contracts_b2_audit.py test_common_type1_ratio_accepts_above_one
-#  (type1_ratio=1.5 > 1 合法, 跨品类用户重复计) 跟 sampling.py:96/145 注释 "实际可超 1".
-_NON_RATIO_BUSINESS_OVER_ONE = frozenset({
-    # common.py: WoolPartyBreakdown.type1/2_ratio — type1/2 人数 / 品类总人数, 跨品类累加可超 1
-    "type1_ratio", "type2_ratio",
-    # Sprint 203 R9: sampling.py SamplingLockYOY.new_locked_ratio 删除, 白名单同步
-})
+# 曾允许部分 *_ratio 超过 1；羊毛 type1_ratio 已改为 high_risk_ratio RatioField。
+_NON_RATIO_BUSINESS_OVER_ONE = frozenset()
 
 
 @dataclass

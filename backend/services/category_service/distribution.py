@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 
 
 from backend.db.connection import get_connection
-from backend.services.category_display import mask_category_name
+from backend.services.category_display import apply_catalog_display_names, mask_category_name
 from backend.semantic.segments import _segment_meta
 from backend.semantic.time import normalize_date as _normalize_date
 from backend.semantic.filters import FilterBuilder, MetricType, expand_channels
@@ -253,6 +253,8 @@ def get_category_distribution(
             "penetration_rate": penetration_rate,
             "member_ratio": member_ratio,
         })
+
+    apply_catalog_display_names(conn, distribution, SPU_LEVELS.get(level, "spu_product_class"))
 
     return {
         "date": date_str,

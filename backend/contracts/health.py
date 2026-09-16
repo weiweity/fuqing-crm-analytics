@@ -54,7 +54,7 @@ class HealthOverviewMetrics(BaseModel):
     # 同比（vs去年同期同周期）
     yoy_all_store_repurchase_rate: Optional["PpField"] = Field(None, description="全店复购率同比 (pp 差)")
     yoy_same_product_repurchase_rate: Optional["PpField"] = Field(None, description="本品复购率同比 (pp 差)")
-    yoy_old_customer_gsv_ratio_ppt: Optional["PpField"] = Field(None, description="老客占比同比 (pp 差)")
+    yoy_old_customer_gsv_ratio_ppt: Optional["PpField"] = Field(None, description="老客GSV占比同比 (pp 差)")
     yoy_old_customer_aus: Optional["PercentageField"] = Field(None, description="老客AUS同比 (percentage)")
     yoy_period_repurchase_users: Optional["PercentageField"] = Field(None, description="周期复购人数同比 (percentage)")
     yoy_old_gsv: Optional["PercentageField"] = Field(None, description="老客GSV同比 (percentage)")
@@ -304,7 +304,7 @@ class HealthTargetsResponse(BaseModel):
     all_store_repurchase_rate: float = Field(..., description="全店复购率目标")
     same_product_repurchase_rate: float = Field(..., description="本品复购率目标")
     # Sprint 18 #141: 真实 0-1 decimal ratio 目标值, 改 RatioField
-    old_customer_gsv_ratio: "RatioField" = Field(..., description="老客占比目标 0-1 decimal")
+    old_customer_gsv_ratio: "RatioField" = Field(..., description="老客GSV占比目标 0-1 decimal")
     old_customer_aus: float = Field(..., description="老客AUS目标")
     recent_7d_repurchase_users: int = Field(..., description="周均复购人数目标")
 
