@@ -1,10 +1,10 @@
 # AI 增长董事会
 
-> **当前 Git／施工边界以仓库根 [STATUS.md](../../STATUS.md) 为准，接续任务见 [TODOS 的 M1 核心交付](TODOS.md#m1-核心交付)**。VERSION 现为 0.8.0.1（#166 `b78beffa`），文档指针 #167 `04f16604`，非正式 release，产品 PARTIAL。G3 现场新板 v9。以下9月10日各轮的“当前／最新”、端口、SHA和授权是历史快照，不是现在的HEAD或新的操作授权；原失败证据保留。
+> **当前 Git／施工边界以仓库根 [STATUS.md](../../STATUS.md) 为准，接续任务见 [TODOS 的 M1 核心交付](TODOS.md#m1-核心交付)**。VERSION **0.9.0.0** 本机正式候选，loopback，不上公网，产品 PARTIAL。以下9月10日各轮的“当前／最新”、端口、SHA和授权是历史快照，不是现在的HEAD或新的操作授权；原失败证据保留。
 
 最新独立增量：[看板直达、多板切换与条件证据](PRODUCT-UAT-NAVIGATION-2026-09-10.md)已进入 4325，方法修正 `6202e89` CI SUCCESS，已进入 4325；真实等价问法数值与标识引用回归通过，完整产品仍 PARTIAL。
 
-本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。公网部署与网址提交仍是独立待办。
+本目录记录黑客松产品决策和本地演示基线，它不替代原有 CRM 分析文档。本机发布说明见 [LOCAL-RELEASE-2026-09-16](LOCAL-RELEASE-2026-09-16.md)。公网部署与网址提交仍是独立待办。
 
 2026-09-10 核验主线为 `788b5b1`（#114），VERSION `0.7.0.0`。competition 集成 #112 和 7 项修复 #114 已合入，PR 及 main CI 均通过；[独立浏览器 QA](./COMPETITION-REPAIR-QA-2026-09-10.md) 覆盖合成成板、重试、布局和草稿重开。当前执行 [产品验收与发布准备七阶段账本](./PRODUCT-READINESS-2026-09-10.md)。T13 已有真实 DeepSeek 有界实测，T15 待本人验收，T16 仅合成单用户基线，T17 PARTIAL；完整产品仍 PARTIAL。开发入口见 [DSH-BASE-COMPAT](./DSH-BASE-COMPAT.md) 和 [dsh-dev](../../scripts/dsh-dev/README.md)。
 

@@ -1,6 +1,6 @@
 # 交接说明（短表）
 
-> **最后更新**: 2026-09-16。VERSION 看根目录 `VERSION`（现 0.8.0.1，#166 `b78beffa`）；origin/main 文档指针 #167 `04f16604`。非正式 release。G3 现场新板 v9，见 TODOS。
+> **最后更新**: 2026-09-16。VERSION **0.9.0.0** 本机正式候选，loopback，不上公网。见 [LOCAL-RELEASE-2026-09-16](docs/hackathon/LOCAL-RELEASE-2026-09-16.md)。
 > 细节以代码与下列 SSOT 为准，**不要**在本文件堆 sprint 日记。
 
 ## 立刻要看
