@@ -109,6 +109,20 @@ export function destDisplayName(dest: string | null | undefined): string {
   return categoryDisplayName({ name: raw })
 }
 
+export function maskDestsInText(
+  text: string | null | undefined,
+  dests: Array<string | null | undefined>,
+): string {
+  let next = (text || '').trim()
+  if (!next) return '—'
+  for (const dest of dests) {
+    if (!dest) continue
+    const label = destDisplayName(dest)
+    if (label && next.includes(dest)) next = next.split(dest).join(label)
+  }
+  return next
+}
+
 export function selectableCategoryNames(names: Array<string | null | undefined>): string[] {
   return names.filter((name): name is string => {
     if (!name) return false
