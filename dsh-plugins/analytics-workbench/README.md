@@ -1,6 +1,6 @@
 # DSH Analytics Workbench · B0 only
 
-固定上游：`deepseek-ai/deepseek-harness@183f08e9c6dde7e36cd2318eaee70b0da08fb35e`（sdk `0.1.5-rc.1`，见 `toolchain.json`）。私有本地验证包，不发布 npm，不包含模型密钥或真实数据。2026-09-06 已接独立 FastAPI B0 任务内核、固定方法包与当前权限接缝；完整 B0 仍为 PARTIAL，见[当前收口报告](../../docs/hackathon/B0-LOCAL-CLOSEOUT-2026-09-06.md)。
+固定上游：`deepseek-ai/deepseek-harness@0a15e36e7f82b6ed45af6fa9759f29b40dcd965d`（sdk `0.1.6-alpha.1`，见 `toolchain.json`）。私有本地验证包，不发布 npm，不包含模型密钥或真实数据。2026-09-06 已接独立 FastAPI B0 任务内核、固定方法包与当前权限接缝；完整 B0 仍为 PARTIAL，见[当前收口报告](../../docs/hackathon/B0-LOCAL-CLOSEOUT-2026-09-06.md)。
 
 ## 本轮组件库合同与实现（2026-09-14）
 
@@ -108,7 +108,7 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 
 ### 原生画布／对话组合（A2，仍待完整验收）
 
-`cockpit-composition.mjs/tsx` 使用官方 `shell.overlay` 放置画布；原生 `main/conversation` 继续拥有唯一会话、消息和 composer，原生 rightbar 检查器保留。集中适配只识别固定 `183f08e9` 的 `main → main.conversation` 两层 `display:contents` 插槽包装，给原生根设置本插件拥有的属性/CSS 变量，不克隆、搬移或重建聊天。结构不符明确提示独立驾驶舱备选，不强行覆盖未知壳。
+`cockpit-composition.mjs/tsx` 使用官方 `shell.overlay` 放置画布；原生 `main/conversation` 继续拥有唯一会话、消息和 composer，原生 rightbar 检查器保留。集中适配只识别固定 `0a15e36e` 的 `main → main.conversation` 两层 `display:contents` 插槽包装，给原生根设置本插件拥有的属性/CSS 变量，不克隆、搬移或重建聊天。结构不符明确提示独立驾驶舱备选，不强行覆盖未知壳。
 
 中心区至少 968px 时并排（画布最小 560px、对话最小 400px、分隔条 8px）；窄区切换画布／对话，不改变保存布局。对话可折叠和连续调宽，键盘方向键 16px、Shift 64px、Home/End 到边界。关闭/卸载恢复原生属性并清理监听。底栏入口实测保持原输入 DOM；侧栏 main 入口经原生导航重挂载聊天，实测草稿保留，不能称两入口都保持 DOM 身份。
 

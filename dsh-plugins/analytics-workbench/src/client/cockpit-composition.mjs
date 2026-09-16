@@ -1,5 +1,5 @@
 /** UI composition only. The native session/composer/Agent remain owned by DSH. */
-export const COMPOSITION_PIN = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e';
+export const COMPOSITION_PIN = '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d';
 export const CHAT_MIN = 400;
 export const CANVAS_MIN = 560;
 export const SPLIT_GAP = 8;

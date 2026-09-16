@@ -5,8 +5,8 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.0** 本机正式候选。origin/main **`5a8329c3`**（#171）。loopback 6677／15173／18082。**不上公网**。产品仍 PARTIAL。 |
-| DSH 钉 | **main 固定 0.1.5-rc.1**（`183f08e9`）。本地 0.1.3 checkout 已删。后续再升架构走 `toolchain.json` + pipeline，见 AGENTS「二开基座与可升级性」 |
+| VERSION / main | VERSION **0.9.0.1**（DSH 0.1.6-alpha.1 钉）。origin/main **`f9ad3a06`**。loopback。**不上公网**。现役 6677 仍 0.1.5-rc.1 直至另授权切换。 |
+| DSH 钉 | 候选 **0.1.6-alpha.1**（`0a15e36e`）。现役 6677 仍 0.1.5-rc.1。升钉走 `toolchain.json` + pipeline，见 AGENTS |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界复测 + 比赛 HTTP 断网／token 轮换已取证；131GB 归档仍禁止打开。完整 T13 仍 PARTIAL |
 | T15 / T16 / T17 | T15 本人「通过」；T16 合成 c1/c5 基线已记、未确认 SLO；T17 2026-09-16 本候选 1440/1024/390／设置／等价表已取证，撤权／触控／读屏仍开放 |
