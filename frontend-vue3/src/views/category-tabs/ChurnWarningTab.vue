@@ -6,7 +6,7 @@ import { NTooltip } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useFilterStore } from '@/stores/filterStore'
 import { fetchCategoryChurn } from '@/api/category'
-import { categoryDisplayName, destColor } from '@/utils/maskCategoryName'
+import { categoryDisplayName, destColor, destDisplayName } from '@/utils/maskCategoryName'
 import EChartsWrapper from '@/components/EChartsWrapper.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -259,7 +259,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
       return h('span', {
         class: 'inline-flex items-center gap-1',
         style: { color },
-      }, dest)
+      }, destDisplayName(dest))
     },
   },
   {
@@ -279,7 +279,7 @@ const tableColumns = computed<DataTableColumns<any>>(() => [
       const dest = row.top_churn_dest2
       if (!dest) return '—'
       const color = destColor(dest)
-      return h('span', { style: { color } }, dest)
+      return h('span', { style: { color } }, destDisplayName(dest))
     },
   },
   {

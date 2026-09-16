@@ -103,6 +103,12 @@ export function destColor(dest: string): string {
   return '#64748b'
 }
 
+export function destDisplayName(dest: string | null | undefined): string {
+  const raw = (dest || '').trim()
+  if (!raw) return '—'
+  return categoryDisplayName({ name: raw })
+}
+
 export function selectableCategoryNames(names: Array<string | null | undefined>): string[] {
   return names.filter((name): name is string => {
     if (!name) return false
