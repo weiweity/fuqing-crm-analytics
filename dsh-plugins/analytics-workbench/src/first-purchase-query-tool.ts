@@ -1,7 +1,7 @@
 import { kernelUrl } from './runtime-endpoints.ts';
 import type { Context } from '@deepseek-ai/cordis';
 import { defineTool } from '@deepseek-ai/dsh-tools';
-import { requestForTool } from './native-evidence.mjs';
+import { nativeJournal, requestForToolIn } from './native-evidence.mjs';
 import { isRegisteredSession } from './runtime-family.mjs';
 import {
   FIRST_PURCHASE_RECEIPT_LIMIT, FIRST_PURCHASE_TOOL_NAME,
@@ -24,6 +24,7 @@ function cancelledError(): Error {
 }
 
 export function apply(ctx: Context): void {
+  nativeJournal(ctx);
   ctx.tools.register(defineTool({
     name: FIRST_PURCHASE_TOOL_NAME,
     description: 'Synthetic first-purchase path query only. Submit the registered request to the local run kernel; no owner, permission_scope, SQL, or client facts.',
@@ -77,7 +78,7 @@ export function apply(ctx: Context): void {
       if (!token || !agent || !isRegisteredSession(agent.id)) throw new Error('first-purchase tool has no bound execution context');
       const request = decodeFirstPurchaseRequest(args);
       if (!request) throw new Error('first-purchase tool rejected invalid parameters');
-      const requestId = requestForTool(agent.session.snapshotEvents(), exec.callId);
+      const requestId = requestForToolIn(nativeJournal(ctx).of(agent.session), exec.callId);
       if (!requestId) throw new Error('first-purchase tool has no journal-correlated native request');
       const response = await fetch(kernelUrl('/internal/native/first-purchase'), {
         method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },

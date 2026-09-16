@@ -4,6 +4,12 @@
 - 健康页 RFM overlay：把源年 `user_rfm_precompute` 最近 3650 快照（2023-07-09）映射到 2026-07-01 / 2026-07-06 的 SYN26 用户，不抄 2026 分。不另升版本。
 - 合成用户 overlay RFM：归档没有 2023 GMV/90 as-of 时，用源窗口订单按语义层阈值现算，不抄 2026 分。不另升版本。
 
+## [0.9.0.2] - 2026-09-16
+
+### Changed
+
+- 生产路径不再调用 `Session.snapshotEvents()`。B0/query 用 `session/event` 增量投影 native request 关联。测试仍可用事件列表折叠。合入不等于 reload 6677。
+
 ## [0.9.0.1] - 2026-09-16
 
 ### Changed

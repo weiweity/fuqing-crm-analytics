@@ -1,59 +1,164 @@
 /** Projection of the pinned native journal, NOT another run state machine. */
+
 export function requestIdOf(message) {
   return message?.source?.kind === 'user' ? message.source.rpcId : undefined;
 }
 
-/** First pre-step's inbox is not journaled yet; later steps use only this turn. */
-export function requestForStep(events, messages, turn) {
-  const ids = new Set();
-  let current;
-  for (const event of events) {
-    if (event.type === 'turn/start') current = event.data.turn;
-    if (current === turn && event.type === 'user/message' && requestIdOf(event.data)) ids.add(requestIdOf(event.data));
-  }
-  for (const message of messages) if (requestIdOf(message)) ids.add(requestIdOf(message));
-  return ids.size === 1 ? [...ids][0] : undefined;
+export function emptyJournal() {
+  return {
+    queues: { 'next-turn': [], 'next-step': [] },
+    turn: undefined,
+    currentRequestId: undefined,
+    requestByTurn: new Map(),
+    toolToRequest: new Map(),
+    byRequest: new Map(),
+  };
 }
 
-export function requestForTool(events, callId) {
-  let turn, requestId;
-  let result;
-  for (const event of events) {
-    if (event.type === 'turn/start') { turn = event.data.turn; requestId = undefined; }
-    if (event.type === 'user/message' && requestIdOf(event.data)) requestId = requestIdOf(event.data);
-    if (event.type === 'tool/call' && event.data.callId === callId && event.data.turn === turn) result = requestId;
+function requestSlot(state, requestId) {
+  let slot = state.byRequest.get(requestId);
+  if (!slot) {
+    slot = { received: false, discarded: false, targetTurn: undefined, reason: undefined, successful_call_ids: [], ambiguous: false };
+    state.byRequest.set(requestId, slot);
   }
-  return result;
+  return slot;
 }
 
-export function summarizeRequest(events, requestId) {
-  const queues = { 'next-turn': [], 'next-step': [] };
-  let turn, targetTurn, received = false, discarded = false, reason, currentRequestId;
-  let ambiguous = false;
-  const calls = [];
-  for (const event of events) {
-    const data = event.data;
-    if (event.type === 'agent/inbox/spliced') {
-      const queue = queues[data.target];
-      if (!queue) continue;
+/** Incremental fold. Does not retain the event list. */
+export function applyJournal(state, event) {
+  const next = {
+    queues: {
+      'next-turn': state.queues['next-turn'].slice(),
+      'next-step': state.queues['next-step'].slice(),
+    },
+    turn: state.turn,
+    currentRequestId: state.currentRequestId,
+    requestByTurn: new Map(state.requestByTurn),
+    toolToRequest: new Map(state.toolToRequest),
+    byRequest: new Map([...state.byRequest].map(([id, slot]) => [id, { ...slot, successful_call_ids: slot.successful_call_ids.slice() }])),
+  };
+  const data = event.data;
+  if (event.type === 'agent/inbox/spliced') {
+    const queue = next.queues[data.target];
+    if (queue) {
       const removed = queue.splice(data.start, data.removedCount ?? 0, ...data.inserted);
-      if (data.inserted.some(message => requestIdOf(message) === requestId)) received = true;
-      if (data.outcome === 'canceled' && removed.some(message => requestIdOf(message) === requestId)) discarded = true;
-    }
-    if (event.type === 'turn/start') { turn = data.turn; currentRequestId = undefined; }
-    if (event.type === 'user/message' && requestIdOf(data)) {
-      if (currentRequestId && currentRequestId !== requestIdOf(data)) ambiguous = true;
-      currentRequestId = requestIdOf(data);
-      if (currentRequestId === requestId) { targetTurn = turn; received = true; }
-    }
-    if (event.type === 'turn/end' && data.turn === targetTurn) reason = data.reason;
-    if (event.type === 'tool/result' && data.turn === targetTurn) {
-      for (const block of data.message.content) {
-        if (block.type === 'tool-result' && block.isError === false) calls.push(block.toolCallId);
+      for (const message of data.inserted) {
+        const id = requestIdOf(message);
+        if (id) requestSlot(next, id).received = true;
+      }
+      if (data.outcome === 'canceled') {
+        for (const message of removed) {
+          const id = requestIdOf(message);
+          if (id) requestSlot(next, id).discarded = true;
+        }
       }
     }
   }
-  return { received, discarded, targetTurn, currentRequestId, reason, ambiguous, successful_call_ids: calls };
+  if (event.type === 'turn/start') {
+    next.turn = data.turn;
+    next.currentRequestId = undefined;
+  }
+  if (event.type === 'user/message' && requestIdOf(data)) {
+    const id = requestIdOf(data);
+    if (next.currentRequestId && next.currentRequestId !== id) {
+      requestSlot(next, next.currentRequestId).ambiguous = true;
+      requestSlot(next, id).ambiguous = true;
+    }
+    next.currentRequestId = id;
+    next.requestByTurn.set(next.turn, id);
+    const slot = requestSlot(next, id);
+    slot.received = true;
+    slot.targetTurn = next.turn;
+  }
+  if (event.type === 'tool/call' && data.callId != null && data.turn === next.turn && next.currentRequestId) {
+    next.toolToRequest.set(data.callId, next.currentRequestId);
+  }
+  if (event.type === 'turn/end' && data.turn != null) {
+    for (const slot of next.byRequest.values()) {
+      if (slot.targetTurn === data.turn) slot.reason = data.reason;
+    }
+  }
+  if (event.type === 'tool/result' && data.turn != null) {
+    for (const slot of next.byRequest.values()) {
+      if (slot.targetTurn !== data.turn) continue;
+      for (const block of data.message.content) {
+        if (block.type === 'tool-result' && block.isError === false) slot.successful_call_ids.push(block.toolCallId);
+      }
+    }
+  }
+  return next;
+}
+
+export function journalFromEvents(events) {
+  let state = emptyJournal();
+  for (const event of events) state = applyJournal(state, event);
+  return state;
+}
+
+const journals = new WeakMap();
+
+export function nativeJournal(ctx) {
+  let api = journals.get(ctx);
+  if (api) return api;
+  if (typeof ctx?.on !== 'function') {
+    api = { of() { return emptyJournal(); } };
+    journals.set(ctx, api);
+    return api;
+  }
+  const bySession = new WeakMap();
+  ctx.on('session/created', (session) => { bySession.set(session, emptyJournal()); }, { global: true });
+  ctx.on('session/event', (session, event) => {
+    bySession.set(session, applyJournal(bySession.get(session) ?? emptyJournal(), event));
+  }, { global: true });
+  ctx.on('session/disposed', (session) => { bySession.delete(session); }, { global: true });
+  api = {
+    of(session) {
+      return bySession.get(session) ?? emptyJournal();
+    },
+  };
+  journals.set(ctx, api);
+  return api;
+}
+
+export function summarizeJournal(state, requestId) {
+  const slot = state.byRequest.get(requestId) ?? {
+    received: false, discarded: false, targetTurn: undefined, reason: undefined, successful_call_ids: [], ambiguous: false,
+  };
+  return {
+    received: slot.received,
+    discarded: slot.discarded,
+    targetTurn: slot.targetTurn,
+    currentRequestId: state.currentRequestId,
+    reason: slot.reason,
+    ambiguous: slot.ambiguous,
+    successful_call_ids: slot.successful_call_ids,
+  };
+}
+
+/** Test helper: fold a complete event list. Production uses nativeJournal(ctx). */
+export function summarizeRequest(events, requestId) {
+  return summarizeJournal(journalFromEvents(events), requestId);
+}
+
+export function requestForTool(events, callId) {
+  return journalFromEvents(events).toolToRequest.get(callId);
+}
+
+export function requestForToolIn(state, callId) {
+  return state.toolToRequest.get(callId);
+}
+
+/** First pre-step's inbox is not journaled yet; later steps use the projected turn. */
+export function requestForStep(events, messages, turn) {
+  return requestForStepIn(journalFromEvents(events), messages, turn);
+}
+
+export function requestForStepIn(state, messages, turn) {
+  const ids = new Set();
+  const fromTurn = state.requestByTurn.get(turn);
+  if (fromTurn) ids.add(fromTurn);
+  for (const message of messages) if (requestIdOf(message)) ids.add(requestIdOf(message));
+  return ids.size === 1 ? [...ids][0] : undefined;
 }
 
 export function evidenceFor(intent, summary, executionExited) {

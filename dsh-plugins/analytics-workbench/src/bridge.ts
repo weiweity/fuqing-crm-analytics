@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-api-session-controller';
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { summarizeRequest, evidenceFor, requestIdOf } from './native-evidence.mjs';
+import { nativeJournal, summarizeJournal, evidenceFor, requestIdOf } from './native-evidence.mjs';
 import { runtimePortBase } from './runtime-endpoints.ts';
 import { registeredSessionIds } from './runtime-family.mjs';
 
@@ -19,6 +19,7 @@ export function apply(ctx: Context): void {
   const token = process.env.B0_RUNTIME_TOKEN;
   const sessions = registeredSessionIds();
   if (!token || token.length < 32) throw new Error('B0 bridge requires explicit isolated capabilities');
+  nativeJournal(ctx);
   const expected = Buffer.from(`Bearer ${token}`);
   let admitting = false;
   const server = createServer((req, res) => {
@@ -45,7 +46,7 @@ export function apply(ctx: Context): void {
         agent = restored.agent;
       }
       if (!agent) return respond(200, evidenceFor(intent, { received: false, successful_call_ids: [] }, false));
-      let summary = summarizeRequest(agent.session.snapshotEvents(), intent.request_id);
+      let summary = summarizeJournal(nativeJournal(ctx).of(agent.session), intent.request_id);
       if (req.url === '/dispatch') {
         if (summary.received) return respond(200, { accepted: true });
         // Inbox.hasPending was removed in 0.1.5; pending input is the two ordered lists.
@@ -75,7 +76,7 @@ export function apply(ctx: Context): void {
       if (req.url !== '/observe') return respond(404, { error: 'not-found' });
       const idle = await Promise.race([agent.whenIdle().then(() => true), delay(80, false)]);
       const durable = idle && await ctx.sessions.flush(agent.session);
-      summary = summarizeRequest(agent.session.snapshotEvents(), intent.request_id);
+      summary = summarizeJournal(nativeJournal(ctx).of(agent.session), intent.request_id);
       const exited = idle && durable && ctx.agents.get(intent.session_id as never) === agent && agent.status === 'idle'
         && agent.inbox.nextTurn.length === 0 && agent.inbox.nextStep.length === 0;
       return respond(200, evidenceFor(intent, summary, exited));
