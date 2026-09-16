@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import duckdb
@@ -25,6 +26,12 @@ SRC_ORDER_START = "2023-07-06"
 SRC_ORDER_END_EXCL = "2023-09-16"
 SRC_VISITOR_START = "2025-07-06"
 SRC_VISITOR_END_EXCL = "2025-09-16"
+RFM_LOOKBACK_DAYS = 90
+# GMV/90 as-of = last day of the source order window (exclusive end - 1).
+RFM_ASOF = (date.fromisoformat(SRC_ORDER_END_EXCL) - timedelta(days=1)).isoformat()
+RFM_LOOKBACK_START = (
+    date.fromisoformat(RFM_ASOF) - timedelta(days=RFM_LOOKBACK_DAYS)
+).isoformat()
 
 
 def quote_duckdb_literal(value: str) -> str:
@@ -33,6 +40,121 @@ def quote_duckdb_literal(value: str) -> str:
 
 def quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
+
+
+def compute_gmv90_fill_user_rfm_sql() -> str:
+    """GMV/90 from src.orders for fill users. Scores match semantic.segments SSOT.
+
+    Used when archive user_rfm has no analysis_date <= source window end.
+    Do not copy 2026 RFM onto SYN26 users.
+    """
+    return f"""
+            CREATE TABLE fill_user_rfm AS
+            WITH fill_users AS (
+                SELECT DISTINCT CAST(user_id AS VARCHAR) AS user_id
+                FROM src.orders
+                WHERE pay_time >= TIMESTAMP '{SRC_ORDER_START}'
+                  AND pay_time < TIMESTAMP '{SRC_ORDER_END_EXCL}'
+            ),
+            stats AS (
+                SELECT
+                    CAST(o.user_id AS VARCHAR) AS user_id,
+                    DATEDIFF('day', MAX(o.pay_time)::DATE, DATE '{RFM_ASOF}') AS recency_days,
+                    COUNT(DISTINCT o.order_id)::INTEGER AS frequency,
+                    COALESCE(SUM(o.actual_amount), 0) AS monetary,
+                    MIN(o.pay_time)::DATE AS first_order_date,
+                    MAX(o.pay_time)::DATE AS last_order_date,
+                    BOOL_OR(o.is_member) AS is_member
+                FROM src.orders o
+                INNER JOIN fill_users f
+                  ON CAST(o.user_id AS VARCHAR) = f.user_id
+                WHERE o.pay_time >= TIMESTAMP '{RFM_LOOKBACK_START}'
+                  AND o.pay_time < TIMESTAMP '{SRC_ORDER_END_EXCL}'
+                  AND o.is_goujinjin = FALSE
+                  AND o.order_status != '交易关闭'
+                GROUP BY CAST(o.user_id AS VARCHAR)
+            ),
+            scored AS (
+                SELECT
+                    user_id,
+                    recency_days,
+                    frequency,
+                    monetary,
+                    CASE
+                        WHEN recency_days < 30 THEN 5
+                        WHEN recency_days < 90 THEN 4
+                        WHEN recency_days < 180 THEN 3
+                        WHEN recency_days < 365 THEN 2
+                        ELSE 1
+                    END AS r_score,
+                    CASE
+                        WHEN frequency >= 5 THEN 5
+                        WHEN frequency >= 4 THEN 4
+                        WHEN frequency = 3 THEN 3
+                        WHEN frequency = 2 THEN 2
+                        ELSE 1
+                    END AS f_score,
+                    CASE
+                        WHEN monetary >= 1000 THEN 5
+                        WHEN monetary >= 500 THEN 4
+                        WHEN monetary >= 300 THEN 3
+                        WHEN monetary >= 100 THEN 2
+                        ELSE 1
+                    END AS m_score,
+                    first_order_date,
+                    last_order_date,
+                    is_member
+                FROM stats
+            )
+            SELECT
+                ('{FILL_USER_PREFIX}' || user_id) AS user_id,
+                CAST(NULL AS VARCHAR) AS user_nickname,
+                DATE '{RFM_ASOF}' + INTERVAL 3 YEAR AS analysis_date,
+                'GMV' AS metric_type,
+                {RFM_LOOKBACK_DAYS} AS lookback_days,
+                '全店' AS channel,
+                recency_days,
+                frequency,
+                CAST(monetary AS DECIMAL(12,2)) AS monetary,
+                r_score,
+                f_score,
+                m_score,
+                CASE
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN '重要价值客户'
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN '重要保持客户'
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN '重要发展客户'
+                    WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN '重要挽留客户'
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN '一般价值客户'
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN '一般保持客户'
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN '一般发展客户'
+                    ELSE '一般挽留客户'
+                END AS rfm_tier,
+                CASE
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 'Champions'
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN 'Loyal Customers'
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN 'Potential Loyalists'
+                    WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN 'At Risk'
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN 'New Customers'
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN 'Promising'
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN 'Need Attention'
+                    ELSE 'About to Sleep'
+                END AS rfm_tier_en,
+                CASE
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 1
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score >= 4 THEN 2
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score >= 4 THEN 3
+                    WHEN r_score < 4 AND f_score < 4 AND m_score >= 4 THEN 4
+                    WHEN r_score >= 4 AND f_score >= 4 AND m_score < 4 THEN 5
+                    WHEN r_score < 4 AND f_score >= 4 AND m_score < 4 THEN 6
+                    WHEN r_score >= 4 AND f_score < 4 AND m_score < 4 THEN 7
+                    ELSE 8
+                END AS segment_id,
+                first_order_date + INTERVAL 3 YEAR AS first_order_date,
+                last_order_date + INTERVAL 3 YEAR AS last_order_date,
+                CURRENT_TIMESTAMP AS created_at,
+                is_member
+            FROM scored
+            """
 
 
 def required_path(env_name: str) -> Path:
@@ -182,7 +304,23 @@ def main() -> int:
             """
         )
         n_rfm = con.execute("SELECT count(*) FROM fill_user_rfm").fetchone()[0]
-        print(f"fill_user_rfm={n_rfm}")
+        n_gmv90 = con.execute(
+            """
+            SELECT count(*) FROM fill_user_rfm
+            WHERE metric_type = 'GMV' AND lookback_days = 90
+            """
+        ).fetchone()[0]
+        if n_gmv90 == 0:
+            print(
+                "src.user_rfm has no GMV/90 as-of source window; "
+                "computing from src.orders (not copying 2026 RFM) ..."
+            )
+            con.execute("DROP TABLE fill_user_rfm")
+            con.execute(compute_gmv90_fill_user_rfm_sql())
+            n_rfm = con.execute("SELECT count(*) FROM fill_user_rfm").fetchone()[0]
+            print(f"fill_user_rfm={n_rfm} (computed GMV/90 as-of {RFM_ASOF} +3y)")
+        else:
+            print(f"fill_user_rfm={n_rfm}")
     else:
         n_rfm = 0
         print("fill_user_rfm=0 (src.user_rfm missing)")

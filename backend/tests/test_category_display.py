@@ -425,6 +425,107 @@ def test_fill_script_builds_tiny_overlay(monkeypatch, tmp_path):
         wrap.close()
 
 
+def test_fill_script_computes_gmv90_when_copied_user_rfm_empty(monkeypatch, tmp_path):
+    fill = _load_fill_script()
+    archive = tmp_path / "archive.duckdb"
+    wrapper = tmp_path / "wrapper.duckdb"
+    src = duckdb.connect(str(archive))
+    src.execute(
+        """
+        CREATE TABLE orders (
+            order_id VARCHAR,
+            user_id VARCHAR,
+            order_time TIMESTAMP,
+            pay_time TIMESTAMP,
+            ship_time TIMESTAMP,
+            actual_amount DOUBLE,
+            is_member BOOLEAN,
+            is_goujinjin BOOLEAN,
+            order_status VARCHAR,
+            is_refund BOOLEAN,
+            spu_product_subclass VARCHAR
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO orders VALUES
+        ('o1', 'u1', TIMESTAMP '2023-08-01 10:00:00', TIMESTAMP '2023-08-01 10:00:00',
+         TIMESTAMP '2023-08-02 10:00:00', 100, TRUE, FALSE, '交易成功', FALSE, '凉茶次抛')
+        """
+    )
+    src.execute(
+        """
+        CREATE TABLE user_rfm (
+            user_id VARCHAR,
+            user_nickname VARCHAR,
+            analysis_date DATE,
+            metric_type VARCHAR,
+            lookback_days INTEGER,
+            channel VARCHAR,
+            recency_days INTEGER,
+            frequency INTEGER,
+            monetary DECIMAL(12,2),
+            r_score INTEGER,
+            f_score INTEGER,
+            m_score INTEGER,
+            rfm_tier VARCHAR,
+            rfm_tier_en VARCHAR,
+            segment_id INTEGER,
+            first_order_date DATE,
+            last_order_date DATE,
+            created_at TIMESTAMP,
+            is_member BOOLEAN
+        )
+        """
+    )
+    src.execute(
+        """
+        INSERT INTO user_rfm VALUES
+        ('u1', 'n', DATE '2026-06-02', 'GMV', 90, '全店', 10, 2, 100,
+         4, 3, 3, '重要价值客户', 'champions', 1,
+         DATE '2026-06-01', DATE '2026-06-02', TIMESTAMP '2026-06-02', TRUE)
+        """
+    )
+    src.close()
+    monkeypatch.setenv("FQ_ARCHIVE_DUCKDB", str(archive))
+    monkeypatch.setenv("FQ_DUCKDB_WRAPPER", str(wrapper))
+    assert fill.main() == 0
+
+    wrap = duckdb.connect(str(wrapper))
+    try:
+        wrap.execute(
+            f"ATTACH IF NOT EXISTS '{fill.quote_duckdb_literal(str(archive))}' AS src (READ_ONLY)"
+        )
+        rows = wrap.execute(
+            """
+            SELECT user_id, analysis_date, metric_type, lookback_days,
+                   recency_days, frequency, monetary, r_score, f_score, m_score,
+                   segment_id, rfm_tier
+            FROM fill_user_rfm
+            """
+        ).fetchall()
+        assert len(rows) == 1
+        user_id, analysis_date, metric, lookback, recency, freq, monetary, r, f, m, seg, tier = rows[0]
+        assert str(user_id) == "SYN26-U-u1"
+        as_of = analysis_date.date() if hasattr(analysis_date, "date") else analysis_date
+        assert as_of == date(2026, 9, 15)
+        assert metric == "GMV" and int(lookback) == 90
+        assert int(recency) == 45
+        assert int(freq) == 1
+        assert float(monetary) == 100
+        assert (int(r), int(f), int(m)) == (4, 1, 2)
+        assert int(seg) == 7
+        assert tier == "一般发展客户"
+        # Must not copy the 2026 archive snapshot onto SYN26 users.
+        copied = wrap.execute(
+            "SELECT count(*) FROM fill_user_rfm WHERE analysis_date = DATE '2029-06-02'"
+        ).fetchone()[0]
+        assert copied == 0
+    finally:
+        wrap.close()
+
+
 def test_category_payloads_include_display_name():
     dist_src = inspect.getsource(distribution_mod.get_category_distribution)
     over_src = inspect.getsource(overview_mod.get_category_overview)
