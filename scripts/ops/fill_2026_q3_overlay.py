@@ -26,6 +26,11 @@ SRC_ORDER_START = "2023-07-06"
 SRC_ORDER_END_EXCL = "2023-09-16"
 SRC_VISITOR_START = "2025-07-06"
 SRC_VISITOR_END_EXCL = "2025-09-16"
+# Archive user_rfm_precompute has no as_of <= 2023-07-06; nearest 3650 snapshot is 2023-07-09.
+SRC_PRECOMPUTE_ASOF = "2023-07-09"
+PRECOMPUTE_LOOKBACK_DAYS = 3650
+# Health RFM as_of = period start. Q3 2026 starts 2026-07-01; fill window starts 2026-07-06.
+HEALTH_PRECOMPUTE_ASOFS = ("2026-07-01", "2026-07-06")
 RFM_LOOKBACK_DAYS = 90
 # GMV/90 as-of = last day of the source order window (exclusive end - 1).
 RFM_ASOF = (date.fromisoformat(SRC_ORDER_END_EXCL) - timedelta(days=1)).isoformat()
@@ -325,7 +330,70 @@ def main() -> int:
         n_rfm = 0
         print("fill_user_rfm=0 (src.user_rfm missing)")
 
-    skip = {"orders", "daily_visitors", "user_first_purchase", "user_rfm"}
+    print(
+        "overlay user_rfm_precompute for health RFM "
+        f"(src as_of {SRC_PRECOMPUTE_ASOF} lookback {PRECOMPUTE_LOOKBACK_DAYS} "
+        f"→ {', '.join(HEALTH_PRECOMPUTE_ASOFS)}; not copying 2026 RFM) ..."
+    )
+    if "user_rfm_precompute" in src_tables:
+        asof_selects = " UNION ALL ".join(
+            f"""
+            SELECT
+                DATE '{asof}' AS as_of_date,
+                lookback_days,
+                ('{FILL_USER_PREFIX}' || user_id) AS user_id,
+                last_pay_time + INTERVAL 3 YEAR AS last_pay_time,
+                order_count,
+                gsv,
+                is_member,
+                r_score,
+                f_score,
+                m_score,
+                r_interval,
+                rfm_segment,
+                CURRENT_TIMESTAMP AS updated_at
+            FROM snap
+            """
+            for asof in HEALTH_PRECOMPUTE_ASOFS
+        )
+        con.execute(
+            f"""
+            CREATE TABLE fill_user_rfm_precompute AS
+            WITH fill_users AS (
+                SELECT DISTINCT CAST(user_id AS VARCHAR) AS user_id
+                FROM src.orders
+                WHERE pay_time >= TIMESTAMP '{SRC_ORDER_START}'
+                  AND pay_time < TIMESTAMP '{SRC_ORDER_END_EXCL}'
+            ),
+            snap AS (
+                SELECT
+                    CAST(u.user_id AS VARCHAR) AS user_id,
+                    u.lookback_days,
+                    u.last_pay_time,
+                    u.order_count,
+                    u.gsv,
+                    u.is_member,
+                    u.r_score,
+                    u.f_score,
+                    u.m_score,
+                    u.r_interval,
+                    u.rfm_segment
+                FROM src.user_rfm_precompute u
+                INNER JOIN fill_users f
+                  ON CAST(u.user_id AS VARCHAR) = f.user_id
+                WHERE u.as_of_date = DATE '{SRC_PRECOMPUTE_ASOF}'
+                  AND u.lookback_days = {PRECOMPUTE_LOOKBACK_DAYS}
+            )
+            {asof_selects}
+            """
+        )
+        n_pre = con.execute("SELECT count(*) FROM fill_user_rfm_precompute").fetchone()[0]
+        print(f"fill_user_rfm_precompute={n_pre}")
+    else:
+        n_pre = 0
+        print("fill_user_rfm_precompute=0 (src.user_rfm_precompute missing)")
+
+    skip = {"orders", "daily_visitors", "user_first_purchase", "user_rfm", "user_rfm_precompute"}
     for table in sorted(src_tables):
         if table in skip:
             continue
@@ -376,6 +444,15 @@ def main() -> int:
             SELECT * FROM src.user_rfm
             UNION ALL BY NAME
             SELECT * FROM fill_user_rfm
+            """
+        )
+    if "user_rfm_precompute" in src_tables:
+        con.execute(
+            """
+            CREATE OR REPLACE VIEW user_rfm_precompute AS
+            SELECT * FROM src.user_rfm_precompute
+            UNION ALL BY NAME
+            SELECT * FROM fill_user_rfm_precompute
             """
         )
     con.execute(
