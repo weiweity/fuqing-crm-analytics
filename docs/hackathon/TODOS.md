@@ -16,7 +16,7 @@
 - [x] S2-C1/#136：同会话 `saved_boards` 已合入 `b7dbc7b`。PR CI 通过；该 main CI 首次 `b0-contract-build` 失败后重跑通过，失败记录保留。有界合成措辞复验已做；本人 UAT 与合入后运行验收仍 NOT_RUN。不是 M1／S2 完成。
 - [x] R-1/#153：生成配置预检已合入 `698278e`。有界真实模型 3 次＋Chrome 预览取消通过；TABLE `show_values` NOT_OBSERVED。不是 M1／S2 完成。
 - [x] 侧栏比赛看板入口/#155：已合入 `27052fab`。[#157](https://github.com/weiweity/fuqing-crm-analytics/pull/157) 将默认前端口改为 `15173`（`fce2de83`）。Chrome 已见链接。不是 M1／S2 完成。
-- [x] 本地清理：空闲树/已合分支已删；15173/8000 迁到 `main-runtime` 后拆 docs-155。原仓 `HANDOVER-CODEX.md` 保留。S4/S5 文档已写。G1–G6／U1 见下方验收门槛（G3 仍开）。
+- [x] 本地清理：空闲树/已合分支已删；15173/8000 迁到 `main-runtime` 后拆 docs-155。原仓 `HANDOVER-CODEX.md` 保留。S4/S5 文档已写。G1–G6／U1 见下方验收门槛（G3 已现场）。
 - [x] 驾驶舱人群行动入口/#166：已合入 `b78beffa`。PR CI 与该 main CI 均成功。合入不等于 6677 reload 或正式 release。不是 M1 完成。
 
 S2-C1 代码已合。其余五类编辑、LINE 换数与当前模型板回退的**真实模型验收**已于 2026-09-14 在本机 6677 完成；9 月 15 日接续 S3 原型与正式壳验收，见 [首批记录](S3-ACCEPTANCE-2026-09-15.md) 与 [交叉补验](S3-CROSS-MATRIX-2026-09-15.md)。R-1 代码已合 #153；UAT 不在同一轮顺手扩修。
@@ -30,8 +30,8 @@ S2-C1 代码已合。其余五类编辑、LINE 换数与当前模型板回退的
 | S0/S1 基线与装配 | Git／工具链／构建与同实例看板协议；已授权窗口的真实重载与模型连通 | 不重跑同题，不要求重新配置模型；下一次运行切换另核维护窗口 |
 | S2 真实 AI 核心链 | 六类自由组板；METRIC 标题修改取消／确认 v2／刷新重开；生成快捷入口；S2-C1 已存板 catalog（#136）；2026-09-14 其余五类编辑、LINE 换数、当前模型板回退（预览→取消→重提→确认→重开）；R-1 重叠预检与 FUNNEL 保留（#153） | 不把本次运行写成 G1 勾选或 M1 DONE；TABLE `show_values` 现场未复现 |
 | S3 设计与实现对齐 | 指定 Figma 矩阵通过；B3 核心分支双视口、12 次忙态恢复按钮实点已完成。窄屏覆盖导航／错误提示修复随本批代码交付，B0 完整检查与干净重建通过；真实 Chrome 通过窄屏开关、中文错误、只读拦截预检及桌面取消定点复验，当前仍 v15，未新增保存版本 | 85 历史跳转未定因，本轮未复现；取消拒绝新文案为状态回归，未重复真实落盘故障；整体 PARTIAL。详情见 [界面修复](S3-UI-REPAIR-2026-09-15.md)；不重跑完整 B3 矩阵 |
-| S4 综合 QA | 候选钉死见 [S4](S4-QA-2026-09-15.md)。2026-09-16 本候选 G1–G6 现场／交接已补 | T16／触控另账。6677 未切到 main 构建 |
-| S5 交接入口 | 6677／15173／8000／18082 本轮探活；回退、合成范围、拒绝边界与三条 UAT 路径见 [S5](S5-UAT-HANDOVER-2026-09-15.md)。U1 本人 2026-09-16「通过」。G6 2026-09-16 交接确认。人群行动入口已合 #166 `b78beffa` | 4325 历史入口不作当前交付。正式 release 与 6677 reload 另账 |
+| S4 综合 QA | 候选钉死见 [S4](S4-QA-2026-09-15.md)。2026-09-16 本候选 G1–G6 现场／交接已补；G3 现场确认保存见下方门槛 | T16／触控另账。6677 仍加载 remainder 工作树插件，不要用会编原仓的官方 `reload` |
+| S5 交接入口 | 6677／15173／8000／18082 本轮探活；回退、合成范围、拒绝边界与三条 UAT 路径见 [S5](S5-UAT-HANDOVER-2026-09-15.md)。U1 本人 2026-09-16「通过」。G6 2026-09-16 交接确认。人群行动入口已合 #166 `b78beffa`，文档指针 #167 `04f16604` | 4325 历史入口不作当前交付。正式 release 另账 |
 
 9 月 13 日真实模型证据：S2-A 为 3 prompt／9 step／7 工具，GSV 仅问数一次；S2-R2受控批次为 5 prompt／11 step／6 工具，0新增问数。另一次人工中止、无完整回执的轮次不计通过。两次 remote 注入失败保留为历史，现已修复。9 月 14 日 S2-C1 有界复验 5／6 次调用，见 #136。同日在已加载原仓插件的 6677 上完成 V-A1–A5／V-B1／V-B2；本机账本 `.context/checks/va-a1-a2-20260914/RESULT.md`（不进 Git）。终态原板 v8（ROLLBACK），说明板 v2。不代签 UAT。
 
@@ -64,10 +64,10 @@ METRIC 标题路径仍以 S2-R2 为准，不重复计新成功。R-1 代码已�
 
 - [x] G1 真实 AI：2026-09-16 本候选 6677／DeepSeek-V41-Flash High。自然语言六类组板新板 `board_a9bdb747bd6948708d7c152db7b5b9ab`；METRIC 标题 + TEXT 正文 + EVIDENCE 摘要 + BAR `show_values=false` + LINE `show_legend=false` + TABLE `columns=["period"]` 均预览后确认到 v7。说明板仍 v15、原板仍 v9。LINE 换数／回退未重跑，不挡本条。证据 `.context/checks/g1-20260916/`（不进 Git）。
 - [x] G2 数据与范围：隔离链仍以 S4 为准。2026-09-16 现场 18082：同版两预览一胜一 409；无 token／假 token 401，现用身份仍可读；跨 session context 不列出本板，错误 session 提案 404。说明板 v15／原板 v9 未动，新板 v8。证据 `.context/checks/g2-20260916/`。未 revoke 现用 token。
-- [ ] G3 保存恢复：确认才写、取消不变、幂等／未知核对、409保护、重开／回退，模型不可用仍可读已存板。
-- [x] G4 原生体验：2026-09-16 6677 现场。分割条 ArrowLeft 调宽、收起／展开原生对话、折叠侧栏、布局方向键重叠拒绝后取消、换会话关闭驾驶舱；同一 runtime `--plugin off` 再 `on`（未 `--fresh`），伸美入口与已存板 v15/v7/v9 恢复。证据 `.context/checks/g4-20260916/`。不代替 G5。
-- [x] G5 设计可用性：指定 Figma 矩阵仍以 S3 为准（不重跑 B3）。2026-09-16 本候选：六类目录 node-id 与 Figma 母组件五态存在；390 画布 334px 覆盖导航；长文／31 点折线／表分页可滚；Tab `:focus-visible`；loopback 打开 148ms。证据 `.context/checks/g5-20260916/`。不代替 T16 容量或触控／读屏。
-- [x] G6 工程交接：2026-09-16 重核 PID 42237、工作树插件哈希、四入口、TABLE 无 show_values、401／409 拒绝、SQLite backup→restore-sandbox（未覆盖活库）。U1 已签。证据 `.context/checks/g6-20260916/`。不代替合入 main 或正式 release。
+- [x] G3 保存恢复：2026-09-16 6677 现场。新板 TABLE 布局预览取消后 HEAD 仍 v8；确认后 **v8→v9**。陈旧 `base_version=8` layout-preview HTTP **409 `VERSION_CONFLICT`**。回退预览到 v8 出现 v10 草稿后取消，HEAD 仍 v9。未知字段 422 `INVALID_REQUEST`；TABLE 非法属性 422 `INVALID_BOARD`。说明板 v15／原板 v9 只读重开，未点生成。layout-preview 的幂等 key 未合并成同一草稿，只证明预览不落盘。证据 `.context/checks/g3-20260916/`（不进 Git）。
+- [x] G4 原生体验：2026-09-16 6677 现场。分割条 ArrowLeft 调宽、收起／展开原生对话、折叠侧栏、布局方向键重叠拒绝后取消、换会话关闭驾驶舱；同一 runtime `--plugin off` 再 `on`（未 `--fresh`，不用官方 `reload`）。热插拔后现役 PID **14287**，已存板 v15／新板 v9／原板 v9。证据 `.context/checks/g4-20260916/`（含 `pid-84036/`）。不代替 G5。
+- [x] G5 设计可用性：指定 Figma 矩阵仍以 S3 为准（不重跑 B3）。2026-09-16 本候选：六类目录 node-id 与 Figma 母组件五态存在；390 覆盖导航；长文／31 点折线／表分页可滚；Tab `:focus-visible`。PID **14287**／新板 v9 复核：画布 1328>650、LINE「共 31 条」、只读重开 v15／原板 v9。空下拉本 PID NOT_OBSERVED。证据 `.context/checks/g5-20260916/`。不代替 T16 容量或触控／读屏；局部通过仍不能当正式视觉通过。
+- [x] G6 工程交接：2026-09-16 交接确认后，热插拔现役 PID **14287**、remainder `0d7df006`、origin/main `04f16604`、新板 **v9**。TABLE 无 show_values、401／409 拒绝、SQLite backup→restore-sandbox（未覆盖活库）仍有效。U1 已签。证据 `.context/checks/g6-20260916/`。不代替正式 release。
 - [x] U1 用户本人 UAT：2026-09-16 用户对 S5 三条路径明确「通过」（分析师读说明板 v15／原板 v9，运营 6677「人群行动」且自动发送禁用，老板无新模型只读合成）。Agent 不代签；本条据用户当轮口头确认记账。
 
 M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原全量Goal分别记账。已知越权、错误数字、数据丢失或M1公开操作的焦点问题不能后置。

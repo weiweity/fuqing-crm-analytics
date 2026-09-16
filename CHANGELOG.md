@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- 2026-09-16 G3 现场（文档，不升版本）：6677 新板 TABLE 布局预览取消仍 v8，确认 v8→v9；陈旧 layout-preview 409；未知属性 422；只读重开说明 v15／原板 v9。G4 热插拔后 PID 14287。本机账本 `.context/checks/g3-20260916/` 不进 Git。非正式 release。
 - QA 流失去向与建议文案走 display_name；短去向不再误伤长去向。STATUS.md 允许正好 80 行。不升版本、未发布。
 - ship 审核收口：品类 catalog 缓存按底层 DuckDB 连接；RFM as-of 只排窗口用户；overview 导出产品分类用 display_name；羊毛双轴 tooltip 不再二次 ×100。不升版本、未发布。
 - 品类脱敏碰撞后稳定加 A/B/C，界面只展示唯一 display_name。羊毛党改为用户级证据分（终身是否转正），流失预警改为回购周期 hazard + RFM 挽留象限。7 月后合成订单换合成用户并把首购 +3 年以恢复源年新客结构；访客按 2025 同期 +1 年回填。GSV 份额文案改为老客/新客GSV占比。品类日趋势新客占比改用全量分母。不升版本、未发布。
