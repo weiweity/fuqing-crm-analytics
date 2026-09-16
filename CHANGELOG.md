@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- 合成用户 overlay RFM：归档没有 2023 GMV/90 as-of 时，用源窗口订单按语义层阈值现算，不抄 2026 分。不升版本、未发布。
 - 品类羊毛/流失 Tab 补组件测试：流失去向与建议走 display_name，羊毛表读 high_risk_count/mean_score 而不是 type1_count；筛选 value 仍是原名。不升版本、未发布。
 - 2026-09-16 G3 现场（文档，不升版本）：6677 新板 TABLE 布局预览取消仍 v8，确认 v8→v9；陈旧 layout-preview 409；未知属性 422；只读重开说明 v15／原板 v9。G4 热插拔后 PID 14287。本机账本 `.context/checks/g3-20260916/` 不进 Git。非正式 release。
 - QA 流失去向与建议文案走 display_name；短去向不再误伤长去向。STATUS.md 允许正好 80 行。不升版本、未发布。
