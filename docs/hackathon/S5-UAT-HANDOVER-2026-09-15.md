@@ -19,7 +19,7 @@
 |---|---|---|---|
 | 说明板 | `board_6e9b59dfe3e845328ac0fcf0cd8d1acc` | v15 | TEXT + 两块 METRIC |
 | 原板 | `board_f8b8d7d3926e47309e83da7a7f047c47` | v9 | METRIC×2、EVIDENCE、BAR、LINE、TABLE |
-| G1 新板 | `board_a9bdb747bd6948708d7c152db7b5b9ab` | v8 | 六类；METRIC 副标题含 G2-409-winner |
+| G1 新板 | `board_a9bdb747bd6948708d7c152db7b5b9ab` | v9 | 六类；G2 后 G3 布局确认写入；METRIC 副标题仍含 G2-409-winner |
 
 说明板与原板绑同一 `result_diag_13a0010…`。UAT 默认只读这两块，不含 G1 新板。要练确认保存，请生成**新板**。
 
@@ -48,16 +48,16 @@ PROCESS／TIMELINE／WATERFALL／FUNNEL 有目录与隔离链，完整变体归 
 
 - VERSION 0.8.0.1，非正式 release，无公网。
 - 只绑 127.0.0.1。
-- 6677 PID **42237**，加载工作树 `m1-remainder` 已构建插件（`lib/client.js` sha256 `5ed332c7373a844a…`）。不要用未核对的原仓 `lib/` 验收或 `--fresh`。本机账本 `.context/checks/g6-20260916/` 不进 Git。
+- 6677 PID **14287**（G4 热插拔后），加载工作树 `m1-remainder` 已构建插件。不要用未核对的原仓 `lib/` 验收，不要 `--fresh`，不要用会编原仓插件的官方 `reload`。本机账本 `.context/checks/g6-20260916/` 不进 Git。
 - 完整 T13 仍 PARTIAL（DuckDB cohort／运行中撤权／网络中断未做）。本候选 2026-09-16 有界真模型复测见 `.context/checks/t13-20260916/`。T16 合成 c1/c5 基线见 `.context/checks/t16-20260916/`，非正式通过。T17 本候选 1440/1024/390／设置／等价表见 `.context/checks/t17-20260916/`；触控／读屏／业务撤权未过。本候选 G1 真模型已跑。
 - 85 历史跳转未定因。
-- 人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`）。合入不等于 6677 已 reload。
+- 人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`）；文档指针 [#167](https://github.com/weiweity/fuqing-crm-analytics/pull/167)（`04f16604`）。6677 已用 remainder `--plugin-path` 重启，不是官方 `reload`。
 
 ## 回退（不覆盖活库）
 
-1. 用 `scripts/dsh-dev/cli.mjs status` 确认 6677 仍是当前 PID（交接时 **42237**）。不要 `--fresh`。
+1. 用 `scripts/dsh-dev/cli.mjs status` 确认 6677 仍是当前 PID（现役 **14287**）。不要 `--fresh`。
 2. 板状态在 `.context/checks/s2-c1/synth-state/`（`board-documents/board_documents.sqlite3` 等）。需要备份时用 SQLite `Connection.backup()` 拷到**新目录**，不要覆盖活文件、不要抄 WAL。
-3. 回退代码：保留当前 runtime，把插件路径指回已验证构建，`reload`，不要新 runtime 名。
+3. 回退代码：保留当前 runtime，把 `--plugin-path` 指回已验证构建后 stop/start，不要官方 `reload`、不要新 runtime 名。
 4. 先核对未认证 401、已认证能打开、说明板仍 v15／原板仍 v9，再允许编辑。
 5. 停止服务只停本次拥有的 supervisor／18082／15173／8000；不要杀无关进程。
 
@@ -67,12 +67,12 @@ PROCESS／TIMELINE／WATERFALL／FUNNEL 有目录与隔离链，完整变体归 
 
 | 项 | 状态 |
 |---|---|
-| 当前候选检查 | 2026-09-16 重核：PID 42237、工作树插件、`lib/client.js` sha256 短 `5ed332c7373a844a`、状态目录 s2-c1/synth-state。完整账本 `.context/checks/g6-20260916/` |
+| 当前候选检查 | 热插拔后 PID **14287**、工作树插件 remainder、状态目录 s2-c1/synth-state。完整账本 `.context/checks/g6-20260916/` |
 | 公开属性与拒绝边界 | 目录 TABLE 无 `show_values`；G2 现场 409／401；隔离非法属性／重叠仍以 S4 为准 |
 | 可用入口 | 6677 401／已认证 200；15173 200；8000/docs 200；18082 板列表 401／200 |
 | 合成范围 | 合成诊断结果；非真实经营数据 |
 | 限制 | 上文（已按本候选改写） |
-| 回退 | `Connection.backup()` 到新目录再 restore-sandbox，heads/v15/v8/v9 与 32 条 revision 一致；未覆盖活库、未抄 WAL |
+| 回退 | `Connection.backup()` 到新目录再 restore-sandbox；G3 后 heads 为 v15／新板 v9／原板 v9；未覆盖活库、未抄 WAL |
 | UAT 清单 | 三条路径；2026-09-16 用户明确「通过」 |
 
 G6 齐套已按上表交接确认。完整 T13 仍 PARTIAL（见 `.context/checks/t13-20260916/`）。T16／T17、M2、合入 main、正式发布另账。

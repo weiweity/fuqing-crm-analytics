@@ -1,6 +1,6 @@
 # AI 增长董事会
 
-> **当前 Git／施工边界以仓库根 [STATUS.md](../../STATUS.md) 为准，接续任务见 [TODOS 的 M1 核心交付](TODOS.md#m1-核心交付)**。VERSION 现为 0.8.0.1（#166 `b78beffa`），非正式 release，产品 PARTIAL。以下9月10日各轮的“当前／最新”、端口、SHA和授权是历史快照，不是现在的HEAD或新的操作授权；原失败证据保留。
+> **当前 Git／施工边界以仓库根 [STATUS.md](../../STATUS.md) 为准，接续任务见 [TODOS 的 M1 核心交付](TODOS.md#m1-核心交付)**。VERSION 现为 0.8.0.1（#166 `b78beffa`），文档指针 #167 `04f16604`，非正式 release，产品 PARTIAL。G3 现场新板 v9。以下9月10日各轮的“当前／最新”、端口、SHA和授权是历史快照，不是现在的HEAD或新的操作授权；原失败证据保留。
 
 最新独立增量：[看板直达、多板切换与条件证据](PRODUCT-UAT-NAVIGATION-2026-09-10.md)已进入 4325，方法修正 `6202e89` CI SUCCESS，已进入 4325；真实等价问法数值与标识引用回归通过，完整产品仍 PARTIAL。
 
