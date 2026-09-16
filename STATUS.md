@@ -5,9 +5,9 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.2**。origin/main **`bd151d57`**（#188）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.2**。origin/main **`86eb248f`**（#189）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **57925** 已切（原仓 runtime + 原仓 0.9.0.2 journal 插件，未 `--fresh`）。15173 PID **85899**。 |
-| 产品 | 仍 PARTIAL。首次启动／M2 Figma 已关。原 App 全量 Goal 仍 PAUSED，本候选不恢复（不是 Goal 完成）。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
+| 产品 | 仍 PARTIAL。M2 其余缺口也算关（触控矩阵／下拉不是通过）。Goal 仍 PAUSED。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED（用户确认也算关）。131GB 仍禁止打开 |
 | T15 / T16 / T17 | T15 本人「通过」。T16 本候选收口：合成 c1/c5 基线已记（用户确认基线也算关），**不是 SLO 通过**。T17 缺口也算关 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；约 131GB。禁止打开、复制、改写或对其执行 SQL |
@@ -41,7 +41,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED；本候选不恢复旧 Vue 全量 CRM，**不是 Goal 完成**。
 - Git 合入不等于部署。6677 runtime 与插件都在原仓（PID **57925**）。比赛看板 15173 PID **85899**、8000 PID **85883**、18082 PID **83173** 也在原仓。现役未 `--fresh`。不要用会编原仓插件的官方 `reload`。工作树已收口，只留 `main`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：M2 其余（触控矩阵／下拉）、公网。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
+- `HANDOVER-CODEX.md` 不提交。下一产品：公网／正式 release（另授权）。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）
 
