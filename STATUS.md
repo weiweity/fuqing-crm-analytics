@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.2**。origin/main **`07cc2af1`**（#179）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.2**。origin/main **`96c6c6fa`**（#180）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **93759** 已切（原仓 runtime + 原仓 0.9.0.2 journal 插件，未 `--fresh`）。15173 PID **85899**。 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 有界复测 + 比赛 HTTP 断网／token 轮换已取证；131GB 归档仍禁止打开。完整 T13 仍 PARTIAL |
