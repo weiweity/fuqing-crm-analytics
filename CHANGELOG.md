@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- QA 流失去向与建议文案走 display_name；短去向不再误伤长去向。STATUS.md 允许正好 80 行。不升版本、未发布。
 - ship 审核收口：品类 catalog 缓存按底层 DuckDB 连接；RFM as-of 只排窗口用户；overview 导出产品分类用 display_name；羊毛双轴 tooltip 不再二次 ×100。不升版本、未发布。
 - 品类脱敏碰撞后稳定加 A/B/C，界面只展示唯一 display_name。羊毛党改为用户级证据分（终身是否转正），流失预警改为回购周期 hazard + RFM 挽留象限。7 月后合成订单换合成用户并把首购 +3 年以恢复源年新客结构；访客按 2025 同期 +1 年回填。GSV 份额文案改为老客/新客GSV占比。品类日趋势新客占比改用全量分母。不升版本、未发布。
 - 按 ship 前审核：脱敏 A/B 改全量 catalog 稳定映射；流失不再从 2000 扫全单，去向占比分母回到间流失；合成用户 overlay RFM 且 as-of `analysis_date <= end`；日趋势 cutoff 占位符改到 CASE 之前。不升版本、未发布。
