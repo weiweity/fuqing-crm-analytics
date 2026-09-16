@@ -176,6 +176,13 @@ class TestFilterBuilder:
         assert "2026-01-20 00:00:00" in params
         assert "2026-04-20 23:59:59.999999" in params
 
+    def test_builder_has_no_segment_id_hook(self):
+        fb = FilterBuilder()
+        assert not hasattr(fb, "with_segment_id")
+        assert not hasattr(fb, "_segment_id")
+        sql, _params = fb.build()
+        assert "segment_id" not in sql
+
 
 class TestAmountExprBuilder:
     """Test AmountExprBuilder SQL expression generators."""

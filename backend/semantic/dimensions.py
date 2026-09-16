@@ -1,13 +1,8 @@
 """
-Sample CRM - 维度注册表 (Dimensions Registry)
+维度目录（未接入查询）。
 
-统一管理所有分析维度，包括：
-- 维度字段名（数据库列名）
-- 维度中文名
-- 默认空值填充
-- 是否支持下钻
-
-维度列表必须与 strategy_config.yaml 和前端筛选器保持一致。
+品类层级分组用 category_service 内 SPU_LEVELS，不走本注册表。
+人群象限是 RFM 8 象限（segments.py），不是 11 象限。
 """
 
 from dataclasses import dataclass
@@ -107,7 +102,7 @@ DIMENSIONS: Dict[str, DimensionDefinition] = {
 
 
 class DimensionRegistry:
-    """维度注册表"""
+    """维度目录。未接入查询。"""
 
     def __init__(self):
         self._dims: Dict[str, DimensionDefinition] = {}

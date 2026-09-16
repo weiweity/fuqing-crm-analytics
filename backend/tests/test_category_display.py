@@ -1,7 +1,7 @@
 import importlib.util
 import inspect
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -72,6 +72,19 @@ def test_dashboard_windows_includes_q4():
     assert (date(2026, 10, 1), date(2026, 11, 2)) in windows
     assert (date(2026, 7, 1), date(2026, 9, 30)) in windows
     assert (date(2026, 1, 1), date(2026, 11, 2)) in windows
+
+
+def test_dashboard_windows_follow_period_builder_cutoff():
+    from backend.semantic.time import PeriodBuilder
+
+    cutoff = date(2026, 7, 5)
+    today = cutoff + timedelta(days=1)
+    windows = dashboard_windows(cutoff)
+    ytd = PeriodBuilder.ytd(today=today)["current"]
+    mtd = PeriodBuilder.mtd(today=today)["current"]
+    assert (date.fromisoformat(ytd.start), date.fromisoformat(ytd.end)) in windows
+    assert (date.fromisoformat(mtd.start), date.fromisoformat(mtd.end)) in windows
+    assert all(end <= cutoff for _start, end in windows)
 
 
 def test_quote_duckdb_literal_escapes_quotes():

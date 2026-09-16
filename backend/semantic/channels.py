@@ -1,7 +1,7 @@
 """
 Sample CRM - 渠道漏斗定义
 
-文档化 ETL 中的 8层渠道判定规则，供后端服务引用。
+文档化 ETL 渠道漏斗（与 CHANNEL_FUNNEL 列表一致），供后端服务引用。
 注意：实际的渠道判定发生在 ETL 阶段（run_etl.py match_channel），
 本模块仅做规则声明和元数据管理，供 API 文档、前端下拉选项、校验逻辑使用。
 """
@@ -19,8 +19,7 @@ class ChannelDefinition:
     color: str = "#999999"
 
 
-# 8层漏斗定义（与 run_etl.py match_channel 完全一致）
-# P4 达播/微博为同一层（由 keyword_rules / id_rules 决定具体渠道值）
+# 漏斗定义（与 run_etl.py match_channel 一致）。priority 1 最高；达播/微博同为 4。
 CHANNEL_FUNNEL: List[ChannelDefinition] = [
     ChannelDefinition(
         key="U先派样",

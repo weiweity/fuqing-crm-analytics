@@ -1,18 +1,11 @@
 """
-Sample CRM - 指标注册表 (Metrics Registry)
+指标目录（未接入查询）。
 
-所有业务指标必须在此注册，包含：
-- 指标唯一标识（snake_case）
-- 中文名称
-- 计算口径（SQL表达式或Python函数引用）
-- 依赖的过滤条件
-- 支持的分组维度
+GSV 谓词仍引用 calculations.GSV_PREDICATE，供对照。出数 SQL 以各
+service 为准。不要调用 get_sql() 当查询口径。
 
-新增指标流程：
-1. 在 METRICS 字典中新增定义
-2. 在 MetricRegistry 中注册（自动完成）
-3. 在 Service 中通过 MetricRegistry.get() 引用
-4. 在 contracts/schemas.py 中更新 Response 字段（如有新增）
+老客/新客 GSV：品类页见 category_service.overview
+（窗口内购买且首购日 ≤ 该窗口月初的前一天）。本文件不存放那条 SQL。
 """
 
 from dataclasses import dataclass, field
@@ -75,24 +68,6 @@ METRICS: Dict[str, MetricDefinition] = {
         dimensions=["date", "channel", "spu_tier", "province", "segment"],
         format="currency",
     ),
-    "old_gsv": MetricDefinition(
-        key="old_gsv",
-        name="老客GSV",
-        sql_expr="SUM(CASE WHEN is_old = 1 THEN amount ELSE 0 END)",
-        description="在窗口期内购买且首购日期 <= cutoff 的用户的GSV",
-        filters=["gsv", "new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="currency",
-    ),
-    "new_gsv": MetricDefinition(
-        key="new_gsv",
-        name="新客GSV",
-        sql_expr="SUM(CASE WHEN is_new = 1 THEN amount ELSE 0 END)",
-        description="在窗口期内首次购买（首购 > cutoff）的用户的GSV",
-        filters=["gsv", "new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="currency",
-    ),
 
     # 人数类
     "total_users": MetricDefinition(
@@ -137,42 +112,6 @@ METRICS: Dict[str, MetricDefinition] = {
         dimensions=["date", "channel", "spu_tier", "province", "segment"],
         format="int",
     ),
-    "new_users": MetricDefinition(
-        key="new_users",
-        name="新客人数",
-        sql_expr="COUNT(DISTINCT CASE WHEN is_new = 1 THEN user_id END)",
-        description="窗口期内首次购买的用户数",
-        filters=["new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="int",
-    ),
-    "old_users": MetricDefinition(
-        key="old_users",
-        name="老客人数",
-        sql_expr="COUNT(DISTINCT CASE WHEN is_old = 1 THEN user_id END)",
-        description="窗口期内有购买且历史有购买的用户数",
-        filters=["new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="int",
-    ),
-    "member_new_users": MetricDefinition(
-        key="member_new_users",
-        name="会员新客人数",
-        sql_expr="COUNT(DISTINCT CASE WHEN is_member = TRUE AND is_new = 1 THEN user_id END)",
-        description="窗口期内首次购买的会员用户数",
-        filters=["member", "new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="int",
-    ),
-    "member_old_users": MetricDefinition(
-        key="member_old_users",
-        name="会员老客人数",
-        sql_expr="COUNT(DISTINCT CASE WHEN is_member = TRUE AND is_old = 1 THEN user_id END)",
-        description="窗口期内有购买的会员老客用户数",
-        filters=["member", "new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
-        format="int",
-    ),
 
     # 均值类
     "avg_order_value": MetricDefinition(
@@ -201,30 +140,21 @@ METRICS: Dict[str, MetricDefinition] = {
         format="currency",
     ),
 
-    # 占比类（通常由前端或Python层计算，SQL层提供原始值）
+    # 占比类（通常由 Python 层计算；下列表达式不能单独执行）
     "member_gsv_ratio": MetricDefinition(
         key="member_gsv_ratio",
         name="会员GSV占比",
         sql_expr="member_gsv / gsv",
-        description="会员GSV / 总GSV",
+        description="会员GSV / 总GSV（未接入查询）",
         filters=["member", "gsv"],
         dimensions=["channel", "spu_tier", "province", "segment"],
-        format="pct",
-    ),
-    "old_gsv_ratio": MetricDefinition(
-        key="old_gsv_ratio",
-        name="老客GSV占比",
-        sql_expr="old_gsv / gsv",
-        description="老客GSV / 总GSV",
-        filters=["gsv", "new_old"],
-        dimensions=["channel", "spu_tier", "spu_product_class", "spu_product_subclass"],
         format="pct",
     ),
 }
 
 
 class MetricRegistry:
-    """指标注册表"""
+    """指标目录。未接入查询，get_sql 仅供对照。"""
 
     def __init__(self):
         self._metrics: Dict[str, MetricDefinition] = {}

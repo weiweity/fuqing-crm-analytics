@@ -7,6 +7,8 @@ import logging
 import os
 import threading
 
+from backend.semantic.time import DateRange, PeriodBuilder
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,36 +32,47 @@ def warehouse_cutoff_date() -> date | None:
         return _query()
 
 
+def _clip_current_window(current: DateRange, cutoff: date) -> tuple[date, date] | None:
+    if current.empty:
+        return None
+    start = date.fromisoformat(current.start)
+    end = date.fromisoformat(current.end)
+    if end > cutoff:
+        end = cutoff
+    if start > end:
+        return None
+    return start, end
+
+
 def dashboard_windows(cutoff: date) -> list[tuple[date, date]]:
-    """Same presets as the filter bar, with cutoff as the last data day."""
-    yesterday = cutoff
-    year = cutoff.year
-    month_start = cutoff.replace(day=1)
-    ytd_start = date(year, 1, 1)
-    weekday = cutoff.weekday()  # Mon=0
-    week_start = cutoff - timedelta(days=weekday)
-    windows = [
-        (yesterday, yesterday),
-        (week_start, yesterday),
-        (month_start, yesterday),
-        (ytd_start, yesterday),
-        (yesterday - timedelta(days=179), yesterday),
-        (yesterday - timedelta(days=364), yesterday),
-        (date(year, 1, 1), min(date(year, 3, 31), yesterday)),
-        (date(year, 4, 1), min(date(year, 6, 30), yesterday)),
-        (date(year, 7, 1), min(date(year, 9, 30), yesterday)),
-        (date(year, 10, 1), min(date(year, 12, 31), yesterday)),
-    ]
+    """Filter-bar presets with warehouse cutoff as the last data day.
+
+    PeriodBuilder treats ``today`` as exclusive (end = today - 1). Passing
+    ``cutoff + 1 day`` makes yesterday equal the warehouse last day.
+    Future quarter ranges are clipped or dropped so prewarm never asks
+    for dates after cutoff.
+    """
+    today = cutoff + timedelta(days=1)
+    builders = (
+        PeriodBuilder.yesterday,
+        PeriodBuilder.wtd,
+        PeriodBuilder.mtd,
+        PeriodBuilder.ytd,
+        PeriodBuilder.last180days,
+        PeriodBuilder.last365days,
+        PeriodBuilder.q1,
+        PeriodBuilder.q2,
+        PeriodBuilder.q3,
+        PeriodBuilder.q4,
+    )
     seen: set[tuple[date, date]] = set()
     out: list[tuple[date, date]] = []
-    for start, end in windows:
-        if start > end:
+    for builder in builders:
+        pair = _clip_current_window(builder(today=today)["current"], cutoff)
+        if pair is None or pair in seen:
             continue
-        key = (start, end)
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(key)
+        seen.add(pair)
+        out.append(pair)
     return out
 
 
