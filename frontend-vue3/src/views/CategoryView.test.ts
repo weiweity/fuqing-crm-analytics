@@ -66,7 +66,7 @@ vi.mock('./category-tabs/CategoryFlowTab.vue', () => ({
     name: 'CategoryFlowTab',
     props: ['categoryOptions', 'categoryLabels'],
     template: '<div data-testid="flow-tab" />',
-    created() {
+    created(this: { categoryOptions: string[]; categoryLabels: Record<string, string> }) {
       flowProps.categoryOptions = this.categoryOptions
       flowProps.categoryLabels = this.categoryLabels
     },
@@ -77,7 +77,7 @@ vi.mock('./category-tabs/CategoryRepurchaseTab.vue', () => ({
     name: 'CategoryRepurchaseTab',
     props: ['categoryOptions', 'categoryLabels'],
     template: '<div data-testid="repurchase-tab" />',
-    created() {
+    created(this: { categoryOptions: string[]; categoryLabels: Record<string, string> }) {
       repurchaseProps.categoryOptions = this.categoryOptions
       repurchaseProps.categoryLabels = this.categoryLabels
     },

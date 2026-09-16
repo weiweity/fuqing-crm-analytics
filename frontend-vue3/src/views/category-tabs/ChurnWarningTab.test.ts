@@ -45,9 +45,9 @@ vi.mock('@/components/DataTablePro.vue', () => ({
     name: 'DataTablePro',
     props: ['columns', 'data'],
     template: '<div data-testid="churn-table" />',
-    created() {
-      tableCapture.columns = this.columns
-      tableCapture.data = this.data
+    created(this: { columns: unknown; data: unknown }) {
+      tableCapture.columns = this.columns as typeof tableCapture.columns
+      tableCapture.data = this.data as typeof tableCapture.data
     },
   },
 }))
@@ -56,9 +56,9 @@ vi.mock('@/components/ExportToolbar.vue', () => ({
     name: 'ExportToolbar',
     props: ['columns', 'data'],
     template: '<div data-testid="churn-export" />',
-    created() {
-      exportCapture.columns = this.columns
-      exportCapture.data = this.data
+    created(this: { columns: unknown; data: unknown }) {
+      exportCapture.columns = this.columns as typeof exportCapture.columns
+      exportCapture.data = this.data as typeof exportCapture.data
     },
   },
 }))
