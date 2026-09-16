@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { destDisplayName, maskCategoryTokensInText, maskDestsInText } from './maskCategoryName'
+import {
+  destDisplayName,
+  maskCategoryTokensInText,
+  maskDestsInText,
+  uniqueDisplayNames,
+} from './maskCategoryName'
 
 // Regression: ISSUE-002 — 流失 TOP 去向把原名画在表格上
 // Found by /qa on 2026-09-16
@@ -23,5 +28,27 @@ describe('destDisplayName', () => {
   it('masks raw category tokens in ops suggestion copy', () => {
     expect(maskCategoryTokensInText('紧急:医用凝胶 流失加速')).toBe('紧急:爆款凝胶 流失加速')
     expect(maskCategoryTokensInText('触达推送 医用洁面')).toBe('触达推送 爆款洁面')
+  })
+
+  it('masks suffix-only dests and leaves already-masked dests', () => {
+    expect(destDisplayName('夜间凝胶')).toBe('爆款凝胶')
+    expect(maskDestsInText('触达推送 爆款洁面', ['爆款洁面'])).toBe('触达推送 爆款洁面')
+    expect(maskDestsInText('触达推送 爆款洁面', [null, ''])).toBe('触达推送 爆款洁面')
+    expect(maskCategoryTokensInText('')).toBe('')
+    expect(maskCategoryTokensInText('  ')).toBe('')
+  })
+
+  it('replaces longer dests before shorter overlapping dests', () => {
+    expect(
+      maskDestsInText('触达推送 黑膜+白膜', ['白膜', '黑膜+白膜']),
+    ).toBe('触达推送 爆款品类')
+  })
+
+  it('uniqueDisplayNames uses AA after Z for 27 collisions', () => {
+    const names = Array.from({ length: 27 }, (_, i) => `未知小品类-${String(i).padStart(2, '0')}`)
+    const map = uniqueDisplayNames(names)
+    expect(map.get('未知小品类-00')).toBe('爆款品类A')
+    expect(map.get('未知小品类-25')).toBe('爆款品类Z')
+    expect(map.get('未知小品类-26')).toBe('爆款品类AA')
   })
 })

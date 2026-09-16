@@ -115,8 +115,11 @@ export function maskDestsInText(
 ): string {
   let next = (text || '').trim()
   if (!next) return '—'
-  for (const dest of dests) {
-    if (!dest) continue
+  const ordered = dests
+    .filter((dest): dest is string => Boolean(dest))
+    .slice()
+    .sort((a, b) => b.length - a.length)
+  for (const dest of ordered) {
     const label = destDisplayName(dest)
     if (label && next.includes(dest)) next = next.split(dest).join(label)
   }
