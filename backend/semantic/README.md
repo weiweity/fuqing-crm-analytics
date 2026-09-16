@@ -52,7 +52,7 @@
 1. Service 不得自写 YOY 函数，必须调用 `calculations.py`
 2. 前端不得自己算 YOY；后端返回 raw，前端只做展示换算
 3. 占比 YOY 必须用减法
-4. 不要把 `metrics.MetricRegistry.get_sql()` 当查询口径；品类老客 GSV 在 `category_service.overview`（首购 ≤ 窗口月初前一天）
+4. 不要把 `metrics.MetricRegistry.get_sql()` 当查询口径；品类老客 GSV 在 `category_service.overview`（`first_pay_date <` 窗口月初前一天；cutoff 当天算新客）
 5. 品类看板 SQL 分组与筛选用原名；`display_name` 只用于界面/导出（catalog 撞名加 A/B）
 
 ---
