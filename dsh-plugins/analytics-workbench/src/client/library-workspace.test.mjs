@@ -584,3 +584,51 @@ for (const scenario of [
   await ui.click('[data-testid=layout-start]');
   assert.equal(ui.doc.querySelector('[data-testid=layout-status]').textContent, '', 'new editing session clears the cancelled gesture status');
 });
+
+function visible(el) {
+  assert.ok(el);
+  assert.equal(el.closest('[hidden]'), null);
+}
+
+test('native library cockpit opens 人群行动 without the old overlay', async t => {
+  const ui = await domFixture(t), snapshot = librarySnapshot(), pending = libraryPreview(snapshot);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok(listOf(snapshot));
+    if (operation === 'preview') return ok(pending);
+    return ok(snapshot);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openBoard(snapshot.spec.board_id));
+  const entry = ui.doc.querySelector('[data-testid="analytics-competition-actions"]');
+  assert.equal(entry?.textContent, '人群行动');
+  assert.equal(ui.doc.querySelector('[data-testid="sm-competition-actions"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-view"]').hidden, false);
+  entry.focus();
+  await ui.click('[data-testid="analytics-competition-actions"]');
+  assert.equal(entry.getAttribute('aria-pressed'), 'true');
+  assert.equal(ui.doc.activeElement, entry, 'switching tabs does not steal focus to the heading');
+  const actions = ui.doc.querySelector('[data-testid="sm-competition-actions"]');
+  assert.ok(actions);
+  assert.equal(actions.getAttribute('data-auto-send'), '0');
+  assert.match(ui.doc.querySelector('[data-testid="sm-no-auto-send"]').textContent, /不自动发送/);
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-view"]').hidden, true);
+  assert.equal(ui.doc.querySelector('[data-testid="analytics-b0-dialog"]'), null);
+  await ui.click('[data-testid="library-panel-board"]');
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-view"]').hidden, false);
+  assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions-view"]').hidden, true);
+  await ui.click('[data-testid=layout-start]');
+  visible(ui.doc.querySelector('[data-testid=library-layout-banner]'));
+  await ui.click('[data-testid="analytics-competition-actions"]');
+  visible(ui.doc.querySelector('[data-testid=library-layout-banner]'));
+  assert.equal(ui.doc.querySelector('[data-testid=library-layout-banner]').closest('[data-testid=library-board-view]'), null);
+  await ui.click('[data-testid="library-panel-board"]');
+  await ui.click('[data-testid=layout-cancel]');
+  await act(async () => client.openPreview(pending.preview_id));
+  visible(ui.doc.querySelector('[data-testid=library-preview-banner]'));
+  await ui.click('[data-testid="analytics-competition-actions"]');
+  visible(ui.doc.querySelector('[data-testid=library-preview-banner]'));
+  assert.ok(ui.doc.querySelector('[data-testid=library-confirm]'));
+  assert.equal(ui.doc.querySelector('[data-testid=library-preview-banner]').closest('[data-testid=library-board-view]'), null);
+});

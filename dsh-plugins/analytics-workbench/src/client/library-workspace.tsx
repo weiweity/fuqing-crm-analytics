@@ -4,15 +4,19 @@ import { LibraryLayoutCanvas } from './library-layout-canvas.tsx';
 import type { LibraryBoardClient, LibraryState } from './library-board-client.mjs';
 import { ThemeProvider } from './competition-shell/index.ts';
 import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
+import { ActionsWorkbench } from './competition-actions/index.ts';
+import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 
 const css = `
 .sm-library-workspace { min-width:0; display:flex; flex-direction:column; gap:16px; padding:20px; background:var(--sm-bg); color:var(--sm-ink); font-family:var(--sm-font-body); }
-.sm-library-toolbar,.sm-library-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.sm-library-toolbar,.sm-library-actions,.sm-library-nav { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .sm-library-toolbar h1 { margin:0 auto 0 0; font-size:20px; font-weight:500; }
-.sm-library-workspace p { margin:0; color:var(--sm-muted); }
-.sm-library-workspace button,.sm-library-workspace select { font:inherit; color:inherit; background:var(--sm-bg); border:1px solid var(--sm-line); border-radius:6px; padding:8px 12px; cursor:pointer; }
-.sm-library-workspace button:disabled { opacity:.5; cursor:not-allowed; }
-.sm-library-workspace button:focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible { outline:2px solid var(--sm-purple); outline-offset:3px; }
+.sm-library-nav button[aria-pressed="true"] { background:var(--sm-purple); color:var(--sm-bg); }
+.sm-library-workspace p { margin:0; }
+[data-testid="library-board-view"] p { color:var(--sm-muted); }
+.sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:var(--sm-bg); border:1px solid var(--sm-line); border-radius:6px; padding:8px 12px; cursor:pointer; }
+.sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
+.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible { outline:2px solid var(--sm-purple); outline-offset:3px; }
 .sm-library-workspace .sm-library-confirm { background:var(--sm-purple); color:var(--sm-bg); }
 .sm-library-banner { padding:12px; border:1px solid var(--sm-purple); border-radius:8px; display:flex; flex-direction:column; gap:12px; }
 .sm-library-diff { overflow:auto; max-height:260px; }
@@ -48,6 +52,8 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
   const recovery = useRef<HTMLButtonElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const wasBusy = useRef(state.busy);
+  const [panel, setPanel] = useState<'board' | 'actions'>('board');
+  const [visitedActions, setVisitedActions] = useState(false);
   useEffect(() => { void library.refresh(); }, [library]);
   useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id, Boolean(state.layoutDraft)]);
   useEffect(() => {
@@ -79,15 +85,15 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
       <div className="sm-library-toolbar">
-        <h1 tabIndex={-1} ref={heading}>{shown?.spec.title ?? '我的驾驶舱'}</h1>
+        <h1 tabIndex={-1} ref={heading}>{panel === 'actions' ? '人群行动' : shown?.spec.title ?? '我的驾驶舱'}</h1>
         <button type="button" onClick={goConversation}>返回原生对话</button>
-        <button type="button" disabled={state.busy} onClick={() => { void library.refresh(); }}>刷新已保存看板</button>
       </div>
-      <label>已保存看板　<select aria-label="打开已保存看板" disabled={state.busy} value={state.saved?.spec.board_id ?? ''}
-        onChange={event => { if (event.target.value) void library.openBoard(event.target.value); }}>
-        <option value="">请选择看板</option>
-        {state.boards.map(board => <option key={board.board_id} value={board.board_id}>{board.title} · v{board.version}</option>)}
-      </select></label>
+      <nav className="sm-library-nav" aria-label="驾驶舱页面">
+        <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
+          onClick={() => setPanel('board')}>我的驾驶舱</button>
+        <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
+          onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button>
+      </nav>
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
       {state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
         <p>{state.confirmationUncertain ? '保存结果待核对。切换前可尝试取消尚未应用的草稿；已保存内容需通过回退处理。' : '切换前，是否取消当前未确认草稿？'}</p>
@@ -124,6 +130,15 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
           <button type="button" disabled={state.busy} data-testid="layout-preview" onClick={() => { void library.previewLayout(); }}>检查布局</button>
         </div>
       </div> : null}
+      <section hidden={panel !== 'board'} data-testid="library-board-view">
+      <div className="sm-library-toolbar">
+        <button type="button" disabled={state.busy} onClick={() => { void library.refresh(); }}>刷新已保存看板</button>
+      </div>
+      <label>已保存看板　<select aria-label="打开已保存看板" disabled={state.busy} value={state.saved?.spec.board_id ?? ''}
+        onChange={event => { if (event.target.value) void library.openBoard(event.target.value); }}>
+        <option value="">请选择看板</option>
+        {state.boards.map(board => <option key={board.board_id} value={board.board_id}>{board.title} · v{board.version}</option>)}
+      </select></label>
       {shown ? <><p>v{shown.spec.version} · {state.preview ? state.confirmationUncertain ? '保存结果待核对' : '待确认草稿' : state.layoutDraft ? '本地布局草稿' : '服务端已保存快照'} · 数据为合成验证来源</p>
         <LibraryLayoutCanvas key={shown.spec.board_id} snapshot={shown} editing={Boolean(state.layoutDraft)} disabled={state.busy}
           updateLayout={library.updateLayout} selectedBlockId={state.editContext?.block_id}
@@ -135,6 +150,13 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
           disabled={state.busy || version.version >= state.saved!.spec.version}
           onClick={() => { void library.rollback(version.version); }}>预览回退到 v{version.version}</button>)}
       </div> : null}
+      </section>
+      {(panel === 'actions' || visitedActions) ? <section hidden={panel !== 'actions'} data-panel="competition-actions"
+        data-testid="analytics-competition-actions-view">
+        <OverlayErrorBoundary resetKey="library-actions">
+          <ActionsWorkbench modelAvailable={false} />
+        </OverlayErrorBoundary>
+      </section> : null}
     </main>
   </ThemeProvider>;
 }
