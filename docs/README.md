@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-15。VERSION 仍为 **v0.8.0.0**（基线 `a729ff6`，#129）。最新 Git HEAD、S3 接续与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-16。VERSION 现为 **v0.8.0.1**（[#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166) `b78beffa`），非正式 release；0.8.0.0 基线仍是 #129 `a729ff6`。最新 Git HEAD、S3 接续与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 

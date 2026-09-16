@@ -21,7 +21,7 @@
 | 原板 | `board_f8b8d7d3926e47309e83da7a7f047c47` | v9 | METRIC×2、EVIDENCE、BAR、LINE、TABLE |
 | G1 新板 | `board_a9bdb747bd6948708d7c152db7b5b9ab` | v8 | 六类；METRIC 副标题含 G2-409-winner |
 
-两板都绑同一 `result_diag_13a0010…`。UAT 默认只读这两块。要练确认保存，请生成**新板**。
+说明板与原板绑同一 `result_diag_13a0010…`。UAT 默认只读这两块，不含 G1 新板。要练确认保存，请生成**新板**。
 
 ## 本人 UAT（U1）— 请逐条回「通过」或卡住位置
 
@@ -51,7 +51,7 @@ PROCESS／TIMELINE／WATERFALL／FUNNEL 有目录与隔离链，完整变体归 
 - 6677 PID **42237**，加载工作树 `m1-remainder` 已构建插件（`lib/client.js` sha256 `5ed332c7373a844a…`）。不要用未核对的原仓 `lib/` 验收或 `--fresh`。本机账本 `.context/checks/g6-20260916/` 不进 Git。
 - 完整 T13 仍 PARTIAL（DuckDB cohort／运行中撤权／网络中断未做）。本候选 2026-09-16 有界真模型复测见 `.context/checks/t13-20260916/`。T16 合成 c1/c5 基线见 `.context/checks/t16-20260916/`，非正式通过。T17 本候选 1440/1024/390／设置／等价表见 `.context/checks/t17-20260916/`；触控／读屏／业务撤权未过。本候选 G1 真模型已跑。
 - 85 历史跳转未定因。
-- 人群行动入口随本 PR 合入 Library 驾驶舱页签；合入不等于 6677 已 reload。
+- 人群行动入口已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)（`b78beffa`）。合入不等于 6677 已 reload。
 
 ## 回退（不覆盖活库）
 
