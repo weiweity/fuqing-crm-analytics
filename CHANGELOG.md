@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.9.0.0] - 2026-09-16
+
+### Added
+
+- 本机正式候选：标明 loopback 环境（6677 驾驶舱、15173 比赛看板、18082 合成 HTTP、8000 API），沿用 G6 状态备份／回退演练，并记录 `--fresh` 空 runtime 后切回原目录的关键路径。不上公网。产品仍 PARTIAL（T13–T17／M2 未整项关闭）。
+
 - 品类羊毛/流失 Tab 补组件测试：流失去向与建议走 display_name，羊毛表读 high_risk_count/mean_score 而不是 type1_count；筛选 value 仍是原名。不升版本、未发布。
 - 2026-09-16 G3 现场（文档，不升版本）：6677 新板 TABLE 布局预览取消仍 v8，确认 v8→v9；陈旧 layout-preview 409；未知属性 422；只读重开说明 v15／原板 v9。G4 热插拔后 PID 14287。本机账本 `.context/checks/g3-20260916/` 不进 Git。非正式 release。
 - QA 流失去向与建议文案走 display_name；短去向不再误伤长去向。STATUS.md 允许正好 80 行。不升版本、未发布。
