@@ -1,14 +1,14 @@
 # 项目状态 (Project Status)
 > 当前短表；编年与旧运维事项见 [STATUS-HISTORY.md](docs/history/STATUS-HISTORY.md)。
 
-## 当前快照（2026-09-16）
+## 当前快照（2026-09-17）
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.2**。origin/main **`2a3f7f2e`**（#182）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.2**。origin/main **`38649fb5`**（#183）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **57925** 已切（原仓 runtime + 原仓 0.9.0.2 journal 插件，未 `--fresh`）。15173 PID **85899**。 |
 | 产品 | 仍 PARTIAL。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
-| T13 | 有界复测 + 比赛 HTTP 断网／token 轮换已取证；131GB 归档仍禁止打开。完整 T13 仍 PARTIAL |
+| T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED（用户确认也算关）。131GB 仍禁止打开 |
 | T15 / T16 / T17 | T15 本人「通过」；T16 合成 c1/c5 基线已记、未确认 SLO；T17 2026-09-16 本候选 1440/1024/390／设置／等价表已取证，撤权／触控／读屏仍开放 |
 | 归档数据 | `data/processed/fuqing_crm.duckdb` 不进 Git；约 131GB。禁止打开、复制、改写或对其执行 SQL |
 | 发布 | 本机正式候选 v0.9.0.0（loopback）。公网部署仍要独立授权 |
