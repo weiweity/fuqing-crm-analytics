@@ -12,7 +12,7 @@
 
 | 内核 | 位置 | 说明 |
 |---|---|---|
-| DSH 官方壳 | 钉住上游 `0.1.6-alpha.1` | 不改上游源码 |
+| DSH 官方壳 | 钉住上游 `0.1.6-alpha.2` | 不改上游源码 |
 | FastAPI 鉴权／会话 | `backend/routers/auth.py` 等 | 各包共用登录与权限 |
 | B0 SQLite | 运行时状态／已存板 | 板数据在卸包后仍在磁盘，只是没有 UI |
 | 归档 DuckDB | `data/processed/fuqing_crm.duckdb` | 不进 Git；卸包不删库 |

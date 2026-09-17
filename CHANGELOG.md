@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- DSH 钉升到 **0.1.6-alpha.2**（`ddefc45f`）。alpha.1 上游备份保留。合入不等于公网发布。不上公网。
 - 账本：STATUS origin/main 对齐 `#205` `33da77ce`。合入后指针会再差本 PR 一拍。不上公网。
 
 ## [0.9.0.8]

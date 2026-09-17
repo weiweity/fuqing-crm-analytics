@@ -13,22 +13,33 @@ export function configuredSession(snapshot) {
   return null;
 }
 
+export function mainViewSessionId(snapshot) {
+  for (const id of snapshot.ids) {
+    if ((snapshot.byId[id]?.retainedBy?.mainView ?? 0) > 0) return id;
+  }
+  return undefined;
+}
+
+export function retainMainView(sessions, id) {
+  return sessions.retain(id, { source: 'mainView' });
+}
+
 /** One attempt per plugin lifetime; later user navigation is never overridden. */
 export function bindInitialSession(sessions, onFailure) {
   let active = true;
   let consumed = false;
+  let held;
   const select = () => {
     if (!active || consumed) return;
     const snapshot = sessions.list.getSnapshot();
     const id = configuredSession(snapshot);
     if (id === null) return;
-    // Set before open(): selection can synchronously notify this same list.
     consumed = true;
-    if (snapshot.current === id) return;
-    try { sessions.open(id); }
-    catch { onFailure(); } // No create, alternate session, or automatic retry.
+    if (mainViewSessionId(snapshot) === id) return;
+    try { held = retainMainView(sessions, id); }
+    catch { onFailure(); }
   };
   const unsubscribe = sessions.list.subscribe(select);
   select();
-  return () => { active = false; unsubscribe(); };
+  return () => { active = false; unsubscribe(); held?.release(); };
 }

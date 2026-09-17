@@ -129,7 +129,7 @@ function Shell({ Overlay, actionsRef, QueryCard, themeSource }) {
       themeSource: themeSource ?? { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
       actions,
-      useSessions: selector => selector({ current: undefined }),
+      useSessions: selector => selector({ ids: [], byId: {} }),
       detachSelection() {},
       restoreSelection() {},
     }),
@@ -172,8 +172,8 @@ async function mountShell(fetchImpl, options = {}) {
   });
   const registrations = [];
   api.apply({ effect: () => {}, sessions: {
-    list: { getSnapshot: () => ({ current: undefined, ids: [] }), subscribe: () => () => {} },
-    open() {}, clear() {},
+    list: { getSnapshot: () => ({ ids: [], byId: {} }), subscribe: () => () => {} },
+    retain() { return { sessionId: '', release() {} }; },
   }, slots: { inject: (_, fn) => fn(), register: (options, component) => {
     registrations.push({ options, component }); return () => {};
   } } });
@@ -745,8 +745,8 @@ async function mountDualOverlays(fetchImpl) {
   });
   const registrations = [];
   api.apply({ effect: () => {}, sessions: {
-    list: { getSnapshot: () => ({ current: undefined, ids: [] }), subscribe: () => () => {} },
-    open() {}, clear() {},
+    list: { getSnapshot: () => ({ ids: [], byId: {} }), subscribe: () => () => {} },
+    retain() { return { sessionId: '', release() {} }; },
   }, slots: { inject: (_, fn) => fn(), register: (options, component) => {
     registrations.push({ options, component }); return () => {};
   } } });
@@ -770,7 +770,10 @@ async function mountDualOverlays(fetchImpl) {
           themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
           actions,
-          useSessions: selector => selector({ current: i === 0 ? 'session-a' : 'session-b' }),
+          useSessions: selector => selector({
+            ids: [i === 0 ? 'session-a' : 'session-b'],
+            byId: { [i === 0 ? 'session-a' : 'session-b']: { id: i === 0 ? 'session-a' : 'session-b', retainedBy: { mainView: 1 } } },
+          }),
           detachSelection() {},
           restoreSelection() {},
         })));

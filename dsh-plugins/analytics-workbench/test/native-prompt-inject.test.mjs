@@ -97,8 +97,7 @@ async function boot(t, {
   const snapshot = {
     phase: 'ready',
     ids: [SESSION_ID],
-    current: SESSION_ID,
-    byId: { [SESSION_ID]: { id: SESSION_ID } },
+    byId: { [SESSION_ID]: { id: SESSION_ID, retainedBy: { mainView: 1 } } },
   };
   const promptImpl = async (payload) => {
     prompts.push(payload);
@@ -120,8 +119,10 @@ async function boot(t, {
   });
   ctx.provide('sessions', {
     list: { getSnapshot: () => snapshot, subscribe: () => () => {} },
-    open(id) { snapshot.current = id; },
-    clear() {},
+    retain(id) {
+      snapshot.byId = { ...snapshot.byId, [id]: { id, retainedBy: { mainView: 1 } } };
+      return { sessionId: id, release() {} };
+    },
     create() { throw new Error('native prompt inject test must not create a session'); },
   });
   ctx.provide('theme', {

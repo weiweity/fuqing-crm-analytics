@@ -25,12 +25,24 @@ test('composition is pinned and sizes continuous split, collapsed and narrow vie
   }
 });
 
+function sessionRow(id, main = 0) {
+  return { id, retainedBy: main ? { mainView: main } : {} };
+}
 function sessionFixture() {
-  let snapshot = { ids: ['s1', 's2'], current: 's1' };
+  let snapshot = { ids: ['s1', 's2'], byId: { s1: sessionRow('s1', 1), s2: sessionRow('s2') } };
   const listeners = new Set(), opens = [], panels = [];
   const update = values => { snapshot = { ...snapshot, ...values }; for (const fn of [...listeners]) fn(); };
-  const sessions = { list: { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); } },
-    open(id) { opens.push(id); update({ current: id }); } };
+  const sessions = {
+    list: { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); } },
+    retain(id) {
+      opens.push(id);
+      const byId = {};
+      for (const key of snapshot.ids) byId[key] = sessionRow(key, key === id ? 1 : 0);
+      if (!byId[id]) byId[id] = sessionRow(id, 1);
+      update({ byId });
+      return { sessionId: id, release() {} };
+    },
+  };
   const composition = createCockpitComposition({ sessions, layout: { selectPanel: id => panels.push(id) } });
   return { composition, update, opens, panels, listeners };
 }
@@ -42,12 +54,12 @@ test('composition binds exact saved session, never creates a session, and extern
   c.open('s2'); assert.deepEqual(f.opens, ['s2']);
   c.setWidth(567); c.toggleChat(); assert.equal(c.getSnapshot().showChat, false);
   c.revealChat(); assert.equal(c.getSnapshot().narrowView, 'chat');
-  f.update({ current: 's1' }); assert.equal(c.getSnapshot().open, false);
+  f.update({ byId: { s1: sessionRow('s1', 1), s2: sessionRow('s2') } }); assert.equal(c.getSnapshot().open, false);
   c.open('s2'); assert.equal(c.getSnapshot().width, 567);
-  f.update({ ids: ['s1'], current: undefined });
+  f.update({ ids: ['s1'], byId: { s1: sessionRow('s1') } });
   assert.equal(c.getSnapshot().open, true); assert.equal(c.getSnapshot().sessionAvailable, false);
   c.bindSession('missing'); assert.deepEqual(f.opens, ['s2', 's2']);
-  f.update({ current: 's1' }); assert.equal(c.getSnapshot().open, false);
+  f.update({ ids: ['s1'], byId: { s1: sessionRow('s1', 1) } }); assert.equal(c.getSnapshot().open, false);
   c.fallback(); assert.equal(c.getSnapshot().fallback, true); assert.equal(f.panels.at(-1), 'cockpit');
   c.dispose(); assert.equal(f.listeners.size, 0);
   const before = [...f.opens]; c.bindSession('s1'); c.open('s1'); c.fallback(); assert.deepEqual(f.opens, before);

@@ -1,8 +1,8 @@
 {
   "schema_version": "dsh-b0-toolchain/v1",
   "upstream_url": "https://github.com/deepseek-ai/deepseek-harness.git",
-  "upstream_sha": "0a15e36e7f82b6ed45af6fa9759f29b40dcd965d",
-  "upstream_lock_sha256": "762874d3d5a751c2362b60aa515be707b7bda6e325bdc47cdd1ea31ace6f8608",
+  "upstream_sha": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+  "upstream_lock_sha256": "72523ca50bd34e3e21d07c82e1cedfdb91b17e1bcd83006c645e8dc6e0786fe0",
   "node_major": 24,
   "pnpm": "11.7.0",
   "typescript": "6.0.3",
@@ -10,7 +10,7 @@
   "react": "18.3.1",
   "react_types": "18.3.31",
   "node_types": "22.20.0",
-  "sdk_version": "0.1.6-alpha.1",
+  "sdk_version": "0.1.6-alpha.2",
   "sdk_bindings": {
     "@deepseek-ai/cordis": "vendor/cordis",
     "@deepseek-ai/dsh-agent": "packages/core/agent",

@@ -48,16 +48,23 @@ test('built browser factory requires only platform modules and registers shared-
   const entries = [];
   const effects = [], opened = [], selected = [];
   const primary = 'session-b0-synthetic-primary';
-  let snapshot = { phase: 'pending', ids: [primary], byId: { [primary]: { id: primary } } };
+  let snapshot = { phase: 'pending', ids: [primary], byId: { [primary]: { id: primary, retainedBy: {} } } };
   let notify;
+  let held;
   client.apply({
     effect: factory => { effects.push(factory()); },
     theme: { overrideTokens: () => () => {} },
     layout: { selectPanel: id => { selected.push(id); } },
     sessions: {
       list: { getSnapshot: () => snapshot, subscribe: listener => { notify = listener; return () => { notify = undefined; }; } },
-      open: id => { opened.push(id); snapshot = { ...snapshot, current: id }; },
-      clear: () => { snapshot = { ...snapshot, current: undefined }; },
+      retain(id) {
+        opened.push(id);
+        snapshot = { ...snapshot, byId: { ...snapshot.byId, [id]: { id, retainedBy: { mainView: 1 } } } };
+        held = { sessionId: id, release() {
+          snapshot = { ...snapshot, byId: { ...snapshot.byId, [id]: { id, retainedBy: {} } } };
+        } };
+        return held;
+      },
       create: () => assert.fail('compiled client attempted session/create'),
     },
     slots: {
@@ -82,9 +89,8 @@ test('built browser factory requires only platform modules and registers shared-
   assert.equal(entries[1].options.priority, -10);
   const selection = overlay.options.inject();
   selection.detachSelection();
-  assert.equal(snapshot.current, undefined);
   selection.restoreSelection();
-  assert.equal(snapshot.current, primary);
+  assert.equal(snapshot.byId[primary].retainedBy.mainView, 1);
   assert.ok(login.options.store);
   assert.equal(dock.options.store, undefined);
   assert.ok(dock.options.inject().board);

@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "engines": { "node": "24.x" },
-  "peerDependencies": { "@deepseek-ai/dsh-tools": "0.1.6-alpha.1" },
+  "peerDependencies": { "@deepseek-ai/dsh-tools": "0.1.6-alpha.2" },
   "type": "module",
   "description": "Shine Mage crowd-action entry for the native library cockpit. Uninstall independently of the workbench.",
   "exports": {

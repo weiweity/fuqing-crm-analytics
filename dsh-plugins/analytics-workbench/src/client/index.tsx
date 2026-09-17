@@ -17,7 +17,7 @@ import {
 } from '../model.mjs';
 import { css, markCss } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
-import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, retainMainView } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
@@ -242,7 +242,7 @@ function AssetOverlay(props: OverlayProps) {
   const editor = props.useStore(state => state.editor);
   const message = props.useStore(state => state.message);
   const confirmClose = props.useStore(state => state.confirmClose);
-  const selectedSession = props.useSessions(state => state.current);
+  const selectedSession = props.useSessions(state => mainViewSessionId(state));
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -360,7 +360,7 @@ export function apply(ctx: Context): void {
         const sessionId = ctx.sessions.list.getSnapshot().ids.find(id => id === context.session_id);
         if (!sessionId) throw new Error('此看板的原生会话当前不可用；已保存内容仍可查看，请恢复原会话后编辑。');
         if (composition) { composition.open(sessionId); composition.revealChat(); }
-        else { ctx.sessions.open(sessionId); ctx.layout?.selectPanel(null); }
+        else { retainMainView(ctx.sessions, sessionId); ctx.layout?.selectPanel(null); }
         const reply = await ctx.remote.session.prompt({
           sessionId, requestId: `board-edit-${crypto.randomUUID()}` as never,
           mode: 'queue', clientTimeZone: 'Asia/Shanghai',
@@ -441,13 +441,20 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store: chromeStore,
     inject: () => {
-      let prior: ReturnType<typeof ctx.sessions.list.getSnapshot>['current'];
+      let prior: ReturnType<typeof mainViewSessionId>;
+      let held: { release(): void } | undefined;
       return {
         themeSource,
-        detachSelection() { prior = ctx.sessions.list.getSnapshot().current; ctx.sessions.clear(); },
+        detachSelection() {
+          prior = mainViewSessionId(ctx.sessions.list.getSnapshot());
+          held?.release();
+          held = undefined;
+        },
         restoreSelection() {
           const list = ctx.sessions.list.getSnapshot();
-          if (prior !== undefined && list.current === undefined && list.ids.includes(prior)) ctx.sessions.open(prior);
+          if (prior !== undefined && mainViewSessionId(list) === undefined && list.ids.includes(prior)) {
+            held = retainMainView(ctx.sessions, prior);
+          }
           prior = undefined;
         },
       };
@@ -534,7 +541,7 @@ export function apply(ctx: Context): void {
         void (async () => {
           try {
             const created = await ctx.sessions.create();
-            ctx.sessions.open(created);
+            retainMainView(ctx.sessions, created);
             ctx.layout?.selectPanel(null);
           } catch {
             goConversation();

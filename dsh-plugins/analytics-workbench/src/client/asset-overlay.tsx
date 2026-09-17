@@ -13,6 +13,7 @@ import { createHttpBoardTransport } from './competition-board/transport.mjs';
 import { createHttpAudienceTransport } from './competition-actions/transport.mjs';
 import { competitionHttpOptions } from './competition-http.mjs';
 import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
+import { mainViewSessionId } from '../initial-session.mjs';
 
 type DashboardDoc = NonNullable<ReturnType<typeof decodeHttpDashboard>>;
 type AnalysisItem = { analysis_id: string; version: number; title: string; observation_days?: number; as_of?: string };
@@ -24,7 +25,7 @@ type OverlayProps = PropsRuntime<'shell.overlay'> & {
     keepEditing(): void;
     discardAndClose(): void;
   };
-  useSessions<T>(selector: (state: { current?: string }) => T): T;
+  useSessions<T>(selector: (state: { ids: readonly string[]; byId: Record<string, { id: string; retainedBy?: { mainView?: number } }> }) => T): T;
   detachSelection(): void;
   restoreSelection(): void;
 };
@@ -45,7 +46,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
   const openTick = props.useStore((state: { openTick?: number }) => state.openTick ?? 0);
   const intent = props.useStore((state: { intent?: 'view' | 'generate' }) => state.intent ?? 'view');
   const confirmClose = props.useStore((state: { confirmClose: boolean }) => state.confirmClose);
-  const selectedSession = props.useSessions(state => state.current);
+  const selectedSession = props.useSessions(state => mainViewSessionId(state));
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
   const competitionHttp = competitionHttpOptions();

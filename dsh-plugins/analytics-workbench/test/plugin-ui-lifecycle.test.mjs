@@ -88,8 +88,7 @@ function mount(client, extra = {}) {
     theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
-      open() { assert.fail('lifecycle test opened a session'); },
-      clear() {},
+      retain() { assert.fail('lifecycle test opened a session'); },
       create() { assert.fail('lifecycle test created a session'); },
     },
     slots: {
@@ -207,7 +206,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
     theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
-      open() {}, clear() {}, create() { assert.fail('lifecycle test created a session'); },
+      retain() { return { sessionId: '', release() {} }; }, create() { assert.fail('lifecycle test created a session'); },
     },
     slots: {
       inject: (_name, callback) => callback(),
