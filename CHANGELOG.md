@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [0.9.0.8]
+
+- 修复：shine-brand 不再 inject 非插件的 `dsh-client-ui-slots`；`apply` 在 slots 未就绪时不抛，避免 web boot 整段失败、标题和增长句一起消失。不上公网。
 - 账本：比赛看板继续独立 15173，不迁进 DSH。不上公网。
 - 账本：STATUS origin/main 对齐 `#202` `10ef4c10`。合入后指针会再差本 PR 一拍。不上公网。
 

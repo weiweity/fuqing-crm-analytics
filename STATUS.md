@@ -5,8 +5,8 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.7**。origin/main **`10ef4c10`**（#202）。loopback。**不上公网**。产品仍 PARTIAL。 |
-| DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **20644** 已切（原仓 runtime + workbench + brand + waterfall + crowd-action + query + board + funnel，未 `--fresh`，非官方 reload）。15173 PID **85899**。 |
+| VERSION / main | VERSION **0.9.0.8**（本候选）。origin/main **`7ff3d832`**（#204）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **56787** remainder start（shine-brand boot 修复，未 `--fresh`，非官方 reload）。15173 PID **85899**。 |
 | 产品 | 仍 PARTIAL。M2 其余缺口也算关（触控矩阵／下拉不是通过）。Goal 仍 PAUSED。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED。131GB 已只读打开元数据，禁止复制／改写／全表扫描 |
 | T15 / T16 / T17 | T15 本人「通过」。T16 本候选收口：合成 c1/c5 基线已记（用户确认基线也算关），**不是 SLO 通过**。T17 缺口也算关 |
@@ -40,7 +40,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S4** 6677 现加载工作树插件。G2 现场：同 head 双预览一胜一 409；未授权 401；跨 session 不串板。G3 现场：新板布局取消仍 v8、确认 **v8→v9**、陈旧 layout-preview 409、未知属性 422、只读重开 v15／原板 v9。说明板仍 v15、原板仍 v9。G4 热插拔后 PID **14287**。G5 390／长内容已复核。G6 已交接确认。本机账本 `.context/checks/g{1–6}-20260916/` 不进 Git。
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED；本候选不恢复旧 Vue 全量 CRM，**不是 Goal 完成**。
-- Git 合入不等于部署。6677 原仓 runtime PID **20644** 已 `plugin add` brand + waterfall + crowd-action + query + board + funnel + workbench。15173 PID **85899**、8000 PID **85883**、18082 PID **83173** 未动。现役未 `--fresh`。不要用会编原仓插件的官方 `reload`。工作树已收口，只留 `main`。
+- Git 合入不等于部署。6677 原仓 runtime PID **56787** 已 remainder start（shine-brand 不再因 slots 未就绪失败）。15173 PID **85899**、8000 PID **85883**、18082 PID **83173** 未动。现役未 `--fresh`。不要用会编原仓插件的官方 `reload`。工作树已收口，只留 `main`。
 - `HANDOVER-CODEX.md` 不提交。下一产品：公网另授权。比赛看板保持 15173 独立，不进 DSH。FUNNEL 已合 #202。问数／组板已合 #200。人群行动已合 #198。WATERFALL 已合 #196。品牌已合 #194。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）

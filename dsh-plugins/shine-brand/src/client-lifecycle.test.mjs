@@ -57,3 +57,14 @@ test('apply registers sidebar.brand.name; dispose removes it', () => {
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
   assert.equal(entries.length, 0);
 });
+
+test('apply without slots still starts the brand surface and does not throw', () => {
+  const client = loadClient();
+  const effects = [];
+  client.apply({
+    effect: factory => { effects.push(factory()); },
+  });
+  assert.equal(effects.length, 1);
+  assert.equal(typeof effects[0], 'function');
+  effects[0]();
+});
