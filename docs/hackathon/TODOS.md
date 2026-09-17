@@ -110,7 +110,8 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 - [x] 原 App 全量 Goal：仍 PAUSED。2026-09-17 本候选明确不恢复旧 Vue 全量 CRM。**不是 Goal 完成**；恢复须另开 Goal。
 - [x] 功能包清单：[FEATURE-PACKAGES](FEATURE-PACKAGES.md)。卸一个功能应带走 UI＋合同＋对应 FastAPI，而不是只卸大插件壳。
 - [x] 品牌覆盖拆到 `dsh-plugins/shine-brand`（`@shine-mage/dsh-shine-brand`）。默认随 `--plugin on` 安装仓库内品牌包；`--shine-brand off` 可单独卸。`--plugin off` 两个都关。驾驶舱 h2／logo mark 仍在 workbench。
-- [ ] 按功能包迁代码：WATERFALL（含 422）→ 人群行动 → 问数／组板。另授权。不改 DSH 上游。不把 131GB 收进插件。
+- [x] WATERFALL 拆到 `dsh-plugins/shine-waterfall`。默认随 `--plugin on` 安装；`--waterfall off` 可单独卸。422 测试随包。几何仍随 workbench bundle。
+- [ ] 按功能包迁代码：人群行动 → 问数／组板。另授权。不改 DSH 上游。不把 131GB 收进插件。
 
 历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17、M2（含其余）、首次启动已按缺口／基线／未复现收口。原 App Goal 仍 PAUSED。产品仍 PARTIAL（公网／正式 release）。功能包拆分清单已写，迁代码另授权。
 

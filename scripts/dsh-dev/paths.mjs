@@ -32,6 +32,10 @@ export function defaultShineBrandPath() {
   return join(repoRoot, 'dsh-plugins/shine-brand');
 }
 
+export function defaultShineWaterfallPath() {
+  return join(repoRoot, 'dsh-plugins/shine-waterfall');
+}
+
 export function contextRoot() {
   return join(repoRoot, '.context/dsh-dev');
 }

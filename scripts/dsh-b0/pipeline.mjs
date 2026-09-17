@@ -13,6 +13,7 @@ import { packageManagerEnv } from './package-manager-env.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const plugin = join(root, 'dsh-plugins/analytics-workbench');
 const shineBrand = join(root, 'dsh-plugins/shine-brand');
+const shineWaterfall = join(root, 'dsh-plugins/shine-waterfall');
 const b0 = join(root, '.context/dsh-b0');
 const buildTools = join(plugin, 'build-tools');
 const [mode, pythonFlag, python, ...extra] = process.argv.slice(2);
@@ -131,9 +132,13 @@ print('B0 exact Python closure verified')
     'scripts/dsh-b0/asset-routes.test.mjs']);
   run(process.execPath, [join(plugin, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineBrand, 'build.mjs'), upstream]);
+  run(process.execPath, [join(shineWaterfall, 'build.mjs'), upstream]);
   run(process.execPath, ['--test',
     join(shineBrand, 'src/brand-surface.test.mjs'),
     join(shineBrand, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
+  run(process.execPath, ['--test',
+    join(shineWaterfall, 'src/waterfall.test.mjs'),
+    join(shineWaterfall, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
   const competitionTests = [];

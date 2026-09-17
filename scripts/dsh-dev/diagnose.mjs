@@ -8,7 +8,7 @@ import {
   BRAND_DIGESTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, FOREIGN_PORTS, HOST,
   NODE_MAJOR, PINNED_SHA, PORT_RANGE, PORTS, USER_DEMO_PORTS,
 } from './constants.mjs';
-import { defaultPluginPath, defaultShineBrandPath, repoRoot } from './paths.mjs';
+import { defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, repoRoot } from './paths.mjs';
 import { redactLaunchLog } from './launch-url.mjs';
 import { readCurrent } from './serve.mjs';
 
@@ -281,6 +281,7 @@ export async function diagnose(options = {}, readState = readCurrent) {
   const upstream = await inspectUpstream(options.upstream);
   const plugin = await inspectPlugin();
   const shineBrand = await inspectBuiltPlugin(defaultShineBrandPath());
+  const shineWaterfall = await inspectBuiltPlugin(defaultShineWaterfallPath());
   const brand = {
     logo: await inspectFile(join(repoRoot, 'frontend-vue3/src/assets/brand/shine-mage.png'), BRAND_DIGESTS.logoPng),
     mark: await inspectFile(join(repoRoot, 'frontend-vue3/public/shine-mage-mark.svg'), BRAND_DIGESTS.markSvg),
@@ -316,6 +317,9 @@ export async function diagnose(options = {}, readState = readCurrent) {
   if (shineBrand.status !== 'present') {
     recommendations.push('shine-brand lib/ is missing or stale. --plugin on --shine-brand on needs dsh-plugins/shine-brand/lib/index.js.');
   }
+  if (shineWaterfall.status !== 'present') {
+    recommendations.push('shine-waterfall lib/ is missing or stale. --plugin on --waterfall on needs dsh-plugins/shine-waterfall/lib/index.js.');
+  }
   if (upstream.status !== 'ready') {
     recommendations.push('Pinned upstream is missing or stale relative to toolchain.json; pass --upstream /absolute/pinned/dsh. Do not copy node_modules.');
   }
@@ -342,6 +346,7 @@ export async function diagnose(options = {}, readState = readCurrent) {
     upstream,
     plugin,
     shineBrand,
+    shineWaterfall,
     brand,
     auth,
     ports,
@@ -361,6 +366,7 @@ export function printDiagnose(report) {
   console.log(`DSH_DEV_UPSTREAM ${report.upstream.status} ${report.upstream.path ?? '(none)'}`);
   console.log(`DSH_DEV_PLUGIN ${report.plugin.status}`);
   console.log(`DSH_DEV_SHINE_BRAND ${report.shineBrand.status}`);
+  console.log(`DSH_DEV_WATERFALL ${report.shineWaterfall.status}`);
   console.log(`DSH_DEV_BRAND logo=${report.brand.logo.status} mark=${report.brand.mark.status} outfit=${report.brand.outfit.status}`);
   console.log(`DSH_DEV_AUTH live=${report.auth.live.status}`);
   for (const row of report.ports) {

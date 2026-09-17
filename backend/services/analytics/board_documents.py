@@ -25,6 +25,7 @@ from backend.contracts.board_spec import (
 from backend.contracts.analytics_query import canonical_json
 from backend.contracts.competition_computed import DATA_SCOPE
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
+from backend.services.analytics.waterfall_pack import waterfall_pack_enabled
 from backend.services.analytics.first_purchase.asset_state import (
     connect, initialize_sqlite, now_ms, opaque, transaction, validate_key,
 )
@@ -287,6 +288,8 @@ class BoardDocumentStore:
                 except (ValidationError, ValueError, TypeError) as error:
                     raise AnalyticsError(422, "COMPONENT_DATA", "当前结果没有同一人群的嵌套计数，不能生成漏斗；请获取对应结果。") from error
             if block.kind == "WATERFALL":
+                if not waterfall_pack_enabled():
+                    raise AnalyticsError(422, "COMPONENT_UNSUPPORTED", "瀑布包未安装，不能生成或保存 WATERFALL 块。")
                 try:
                     WaterfallFacts.model_validate(data.get("waterfall"))
                 except (ValidationError, ValueError, TypeError) as error:

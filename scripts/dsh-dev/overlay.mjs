@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID } from './constants.mjs';
+import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID } from './constants.mjs';
 
 export function pluginEnabled(value) {
   if (value === true || value === 'on') return true;
@@ -47,6 +47,7 @@ export function buildPluginDisable() {
   const patch = [
     { id: PLUGIN_UI_ID, disabled: true },
     { id: SHINE_BRAND_UI_ID, disabled: true },
+    { id: SHINE_WATERFALL_UI_ID, disabled: true },
   ];
   assertNoB0Disables(patch);
   return patch;
@@ -55,6 +56,13 @@ export function buildPluginDisable() {
 /** Keep workbench, turn off a leftover shine-brand profile row. */
 export function buildShineBrandDisable() {
   const patch = [{ id: SHINE_BRAND_UI_ID, disabled: true }];
+  assertNoB0Disables(patch);
+  return patch;
+}
+
+/** Keep workbench, turn off a leftover shine-waterfall profile row. */
+export function buildShineWaterfallDisable() {
+  const patch = [{ id: SHINE_WATERFALL_UI_ID, disabled: true }];
   assertNoB0Disables(patch);
   return patch;
 }
@@ -89,4 +97,4 @@ export function assertNoB0Disables(patch) {
   }
 }
 
-export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID };
+export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID };

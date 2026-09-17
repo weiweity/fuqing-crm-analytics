@@ -1,0 +1,4 @@
+# WATERFALL catalog/render offer. Omit this bundle to drop the kind from GENERATE.
+- insert:
+    - id: shine-waterfall-ui
+      name: '@shine-mage/dsh-shine-waterfall'
