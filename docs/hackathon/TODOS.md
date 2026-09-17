@@ -108,8 +108,10 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 - [x] T17：2026-09-16 视口／设置／等价表；随后 Stop／compact 实跑、a11y 树／390 触控尺寸。2026-09-17 用户确认缺口也算关：真机读屏／触控 NOT_RUN、4328+18084 native Stop 未在本候选重跑（不抢 6677 锁）、DSH 壳无批准 Figma。证据 `.context/checks/t17-20260916/`、`t17-compact-stop-20260916/`、`t17-remainder-20260917/`、`t17-complete-gaps-20260917/`（不进 Git）。不是正式视觉通过。
 - [x] 本机正式候选 **v0.9.0.0**：环境 127.0.0.1:6677／15173／18082／8000；G6 sqlite backup 演练已有；`--fresh` 后切回原 runtime 关键路径已核。**不上公网**。产品仍 PARTIAL。见 [LOCAL-RELEASE-2026-09-16](LOCAL-RELEASE-2026-09-16.md)。
 - [x] 原 App 全量 Goal：仍 PAUSED。2026-09-17 本候选明确不恢复旧 Vue 全量 CRM。**不是 Goal 完成**；恢复须另开 Goal。
+- [x] 功能包清单：[FEATURE-PACKAGES](FEATURE-PACKAGES.md)。卸一个功能应带走 UI＋合同＋对应 FastAPI，而不是只卸大插件壳。
+- [ ] 按功能包迁代码：品牌 → WATERFALL（含 422）→ 人群行动 → 问数／组板。另授权。不改 DSH 上游。不把 131GB 收进插件。
 
-历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17、M2（含其余）、首次启动已按缺口／基线／未复现收口。原 App Goal 仍 PAUSED。产品仍 PARTIAL（公网／正式 release）。
+历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17、M2（含其余）、首次启动已按缺口／基线／未复现收口。原 App Goal 仍 PAUSED。产品仍 PARTIAL（公网／正式 release）。功能包拆分清单已写，迁代码另授权。
 
 ## 已在 main 的证据（不要当成未完成任务）
 
