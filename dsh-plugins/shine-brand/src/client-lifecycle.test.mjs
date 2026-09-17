@@ -3,21 +3,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { resolve, join } from 'node:path';
+import { join } from 'node:path';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const repo = resolve(root, '../..');
-const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(repo, '.context/dsh-b0/upstream'));
-const webRequire = createRequire(join(upstream, 'apps/web/package.json'));
 const source = await readFile(join(root, 'lib/client.js'), 'utf8');
 
 function loadClient() {
-  const seed = new Map([
-    ['react', webRequire('react')],
-    ['react/jsx-runtime', webRequire('react/jsx-runtime')],
-  ]);
   let factoryRow;
   vm.runInNewContext(source, {
     window: {
@@ -25,8 +17,7 @@ function loadClient() {
     },
   }, { timeout: 1000 });
   return factoryRow.factory(spec => {
-    assert.ok(seed.has(spec), `unexpected browser require: ${spec}`);
-    return seed.get(spec);
+    throw new Error(`unexpected browser require: ${spec}`);
   });
 }
 
@@ -56,4 +47,13 @@ test('apply registers sidebar.brand.name; dispose removes it', () => {
   assert.equal(entries[0].options.priority, -10);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
   assert.equal(entries.length, 0);
+});
+
+test('client exports inject slots so Cordis does not throw on ctx.slots', () => {
+  const client = loadClient();
+  assert.equal(JSON.stringify(client.inject), '["slots"]');
+});
+
+test('built client factory does not require react', () => {
+  assert.equal(source.includes('require('), false);
 });
