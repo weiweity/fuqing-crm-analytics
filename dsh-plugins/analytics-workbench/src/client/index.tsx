@@ -28,7 +28,7 @@ import { probeAssetHttp } from '../asset-http.mjs';
 import { competitionHttpOptions } from './competition-http.mjs';
 import { ThemeProvider } from './competition-shell/index.ts';
 import { nativeBrandTokens, type CompetitionColorScheme } from './competition-shell/tokens.ts';
-import { PRODUCT_NAME, watchCompetitionBrandSurface } from './brand-surface.mjs';
+const PRODUCT_NAME = '伸美 AI 增长董事会';
 import { COCKPIT_PANEL_ID, CockpitMainPanel, CockpitPanelIcon } from './cockpit-main-panel.tsx';
 import { STAFF_PANEL_ID, StaffMainPanel, StaffPanelIcon } from './staff-main-panel.tsx';
 import { applyGenerate, generateBoard, specFromGsvFacts, specWithLink } from '../board-spec/generate.mjs';
@@ -413,9 +413,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => library?.dispose(), 'analytics-board: client lifetime');
   ctx.effect(() => () => composition?.dispose(), 'analytics-board: native composition lifetime');
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
-  ctx.effect(() => watchCompetitionBrandSurface(), 'competition-brand-surface');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
-  ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({ name: 'sidebar.brand.name', priority: -10 }, () => <>{PRODUCT_NAME}</>));
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
     name: 'conversation.hero.brand.mark', priority: -10,
   }, BrandMark));

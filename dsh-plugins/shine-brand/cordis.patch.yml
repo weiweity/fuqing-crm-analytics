@@ -1,0 +1,4 @@
+# Brand overlay only. Omit this bundle to keep official DSH chrome.
+- insert:
+    - id: shine-brand-ui
+      name: '@shine-mage/dsh-shine-brand'

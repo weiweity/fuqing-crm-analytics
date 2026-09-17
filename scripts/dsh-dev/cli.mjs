@@ -6,9 +6,9 @@ import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR } from './constants.mjs';
-import { pluginRowState } from './overlay.mjs';
-import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultRuntimeRoot } from './paths.mjs';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID } from './constants.mjs';
+import { pluginEnabled, pluginRowState } from './overlay.mjs';
+import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultRuntimeRoot } from './paths.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { randomBytes } from 'node:crypto';
 import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
@@ -17,7 +17,9 @@ import { diagnose, printDiagnose } from './diagnose.mjs';
 const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop|status|diagnose|reload>
   --upstream /absolute/pinned/dsh
   --plugin on|off
-  --plugin-path /absolute/plugin
+  --plugin-path /absolute/workbench
+  --shine-brand on|off
+  --shine-brand-path /absolute/shine-brand
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
@@ -25,7 +27,8 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --detach          start only
   --fresh           NEW empty runtime (wipes API keys and extra plugins). Daily plugin rebuilds must use reload, not --fresh.
 
-reload  builds the workbench, restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
+--plugin on installs workbench; shine-brand is a separate package from dsh-plugins/shine-brand (not a sibling of --plugin-path). --shine-brand off keeps workbench and disables leftover shine-brand-ui. --plugin off disables both.
+reload  builds workbench and shine-brand (unless --shine-brand off), restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
 
 Node 24 required for check/start/reload. diagnose is read-only: it never binds ports or signals PIDs.
 User demo 127.0.0.1:4327 / 8000 / 5173 must not be stopped or reused.
@@ -72,12 +75,22 @@ async function runCheck(options) {
   const dump = await dumpConfig(prepared);
   await writeFile(join(prepared.runtime, 'dump-config.txt'), dump, { mode: 0o600 });
   assertDumpContainsNative(dump);
-  const row = pluginRowState(dump);
+  const workbench = pluginRowState(dump, PLUGIN_UI_ID);
+  const brand = pluginRowState(dump, SHINE_BRAND_UI_ID);
   if (prepared.enabled) {
-    assert.equal(row.present, true, 'plugin overlay was not composed into dump-config');
-    assert.equal(row.disabled, false, 'plugin row is disabled while --plugin on');
+    assert.equal(workbench.present, true, 'plugin overlay was not composed into dump-config');
+    assert.equal(workbench.disabled, false, 'plugin row is disabled while --plugin on');
+    if (prepared.shineBrandPath) {
+      assert.equal(brand.present, true, 'shine-brand overlay was not composed into dump-config');
+      assert.equal(brand.disabled, false, 'shine-brand row is disabled while --shine-brand on');
+    } else if (brand.present) {
+      assert.equal(brand.disabled, true, 'shine-brand row is still active while --shine-brand off');
+    }
   } else {
-    assert.equal(row.disabled, true, 'plugin row is still active in a plugin-off dump');
+    assert.equal(workbench.disabled, true, 'plugin row is still active in a plugin-off dump');
+    if (brand.present) {
+      assert.equal(brand.disabled, true, 'shine-brand row is still active in a plugin-off dump');
+    }
   }
   console.log(`DSH_DEV_CHECK pinned=${prepared.verified.upstream_sha} plugin=${prepared.enabled ? 'on' : 'off'}`);
   console.log(`DSH_DEV_DUMP ${join(prepared.runtime, 'dump-config.txt')}`);
@@ -119,22 +132,36 @@ async function openLaunchUrl(runtime) {
   console.log(`DSH_DEV_OPEN ${priv.launchOrigin}/ (launch token not printed)`);
 }
 
-async function runReload(options) {
-  assert.equal(Number(process.versions.node.split('.')[0]), NODE_MAJOR, `Use Node ${NODE_MAJOR}`);
-  const runtime = await ensurePersistentRuntime({ dest: options.runtime ?? defaultRuntimeRoot() });
-  const plugin = defaultPluginPath();
-  const built = spawnSync(process.execPath, [join(plugin, 'build.mjs')], {
-    cwd: plugin, stdio: 'inherit', env: process.env, timeout: 180000,
+function buildLocalPlugin(dir) {
+  const built = spawnSync(process.execPath, [join(dir, 'build.mjs')], {
+    cwd: dir, stdio: 'inherit', env: process.env, timeout: 180000,
   });
-  assert.equal(built.status, 0, 'plugin build.mjs failed');
-  await stopOwned();
-  const startId = randomBytes(16).toString('hex');
-  const child = spawn(process.execPath, [
+  assert.equal(built.status, 0, `plugin build.mjs failed (${dir})`);
+}
+
+function reloadStartArgs(options, runtime) {
+  const args = [
     join(repoRoot, 'scripts/dsh-dev/cli.mjs'), 'start',
     '--plugin', options.plugin || 'on',
     '--web-port', String(options.webPort || DEV_WEB_PORT),
     '--runtime', runtime,
-  ], {
+  ];
+  if (options.pluginPath) args.push('--plugin-path', options.pluginPath);
+  if (options.shineBrand) args.push('--shine-brand', options.shineBrand);
+  if (options.shineBrandPath) args.push('--shine-brand-path', options.shineBrandPath);
+  return args;
+}
+
+async function runReload(options) {
+  assert.equal(Number(process.versions.node.split('.')[0]), NODE_MAJOR, `Use Node ${NODE_MAJOR}`);
+  const runtime = await ensurePersistentRuntime({ dest: options.runtime ?? defaultRuntimeRoot() });
+  buildLocalPlugin(options.pluginPath ?? defaultPluginPath());
+  if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineBrand ?? 'on')) {
+    buildLocalPlugin(options.shineBrandPath ?? defaultShineBrandPath());
+  }
+  await stopOwned();
+  const startId = randomBytes(16).toString('hex');
+  const child = spawn(process.execPath, reloadStartArgs(options, runtime), {
     cwd: repoRoot,
     env: { ...process.env, DSH_DEV_START_ID: startId },
     detached: true,
@@ -170,6 +197,7 @@ async function runStatus() {
   console.log(`DSH_DEV_STATUS ${alive ? 'running' : 'stale'} pid=${current.childPid ?? 'none'} web=${current.host}:${current.webPort}`);
   console.log(`DSH_DEV_RUNTIME ${current.runtime}`);
   console.log(`DSH_DEV_PLUGIN ${current.pluginEnabled ? current.plugin : 'off'}`);
+  console.log(`DSH_DEV_SHINE_BRAND ${current.shineBrand ?? 'off'}`);
 }
 
 function isCliEntry() {

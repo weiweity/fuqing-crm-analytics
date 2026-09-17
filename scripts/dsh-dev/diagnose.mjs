@@ -8,7 +8,7 @@ import {
   BRAND_DIGESTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, FOREIGN_PORTS, HOST,
   NODE_MAJOR, PINNED_SHA, PORT_RANGE, PORTS, USER_DEMO_PORTS,
 } from './constants.mjs';
-import { defaultPluginPath, repoRoot } from './paths.mjs';
+import { defaultPluginPath, defaultShineBrandPath, repoRoot } from './paths.mjs';
 import { redactLaunchLog } from './launch-url.mjs';
 import { readCurrent } from './serve.mjs';
 
@@ -211,11 +211,10 @@ async function inspectUpstream(explicit) {
   };
 }
 
-async function inspectPlugin() {
-  const plugin = defaultPluginPath();
+async function inspectBuiltPlugin(plugin, srcRel = 'src/index.ts') {
   const lib = join(plugin, 'lib/index.js');
   const client = join(plugin, 'lib/client.js');
-  const src = join(plugin, 'src/index.ts');
+  const src = join(plugin, srcRel);
   const srcMtime = await newestMtime(src);
   const libMtime = await newestMtime(lib);
   const reasons = [];
@@ -229,6 +228,10 @@ async function inspectPlugin() {
     status: reasons.length ? 'stale_or_missing' : 'present',
     reasons,
   };
+}
+
+async function inspectPlugin() {
+  return inspectBuiltPlugin(defaultPluginPath());
 }
 
 async function inspectAuth(current) {
@@ -277,6 +280,7 @@ export async function diagnose(options = {}, readState = readCurrent) {
   const runningMajor = Number(process.versions.node.split('.')[0]);
   const upstream = await inspectUpstream(options.upstream);
   const plugin = await inspectPlugin();
+  const shineBrand = await inspectBuiltPlugin(defaultShineBrandPath());
   const brand = {
     logo: await inspectFile(join(repoRoot, 'frontend-vue3/src/assets/brand/shine-mage.png'), BRAND_DIGESTS.logoPng),
     mark: await inspectFile(join(repoRoot, 'frontend-vue3/public/shine-mage-mark.svg'), BRAND_DIGESTS.markSvg),
@@ -309,6 +313,9 @@ export async function diagnose(options = {}, readState = readCurrent) {
   if (plugin.status !== 'present') {
     recommendations.push('Plugin lib/ is missing or stale in this worktree. --plugin on needs a built lib/index.js; do not pnpm install here.');
   }
+  if (shineBrand.status !== 'present') {
+    recommendations.push('shine-brand lib/ is missing or stale. --plugin on --shine-brand on needs dsh-plugins/shine-brand/lib/index.js.');
+  }
   if (upstream.status !== 'ready') {
     recommendations.push('Pinned upstream is missing or stale relative to toolchain.json; pass --upstream /absolute/pinned/dsh. Do not copy node_modules.');
   }
@@ -334,6 +341,7 @@ export async function diagnose(options = {}, readState = readCurrent) {
     pin: { upstream_sha: PINNED_SHA },
     upstream,
     plugin,
+    shineBrand,
     brand,
     auth,
     ports,
@@ -352,6 +360,7 @@ export function printDiagnose(report) {
   console.log(`DSH_DEV_DIAGNOSE node=${report.node.running} start_ready=${report.node.start_ready}`);
   console.log(`DSH_DEV_UPSTREAM ${report.upstream.status} ${report.upstream.path ?? '(none)'}`);
   console.log(`DSH_DEV_PLUGIN ${report.plugin.status}`);
+  console.log(`DSH_DEV_SHINE_BRAND ${report.shineBrand.status}`);
   console.log(`DSH_DEV_BRAND logo=${report.brand.logo.status} mark=${report.brand.mark.status} outfit=${report.brand.outfit.status}`);
   console.log(`DSH_DEV_AUTH live=${report.auth.live.status}`);
   for (const row of report.ports) {

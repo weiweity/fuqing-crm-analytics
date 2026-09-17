@@ -1,7 +1,11 @@
 ## [Unreleased]
 
 - 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
+- 账本：功能包清单见 [FEATURE-PACKAGES](docs/hackathon/FEATURE-PACKAGES.md)。品牌包已拆；其余未迁。不上公网。
 
+## [0.9.0.3]
+
+- 功能包：品牌覆盖拆到 `@shine-mage/dsh-shine-brand`。`--plugin on` 默认安装仓库内 shine-brand（不跟 `--plugin-path` 绑兄弟目录）再装 workbench；`--shine-brand off` 只留 workbench。`--plugin off` 两个都禁用。驾驶舱内标题／logo mark 仍在 workbench。不改 DSH 上游。不上公网。
 - 账本：131GB DuckDB 只读打开元数据（19 表，mtime 未变）。未知金额 WATERFALL 仍 422，未编假贡献。禁止复制／改写／全表扫描。不上公网。
 - 账本：STATUS origin/main 对齐 `#190` `ac500ceb`。合入后指针会再差本 PR 一拍。不上公网。
 - 账本：完整 M2 其余收口。触控矩阵／容量／唯一板下拉保持缺口（用户确认也算关）。**不是触控／性能通过。** 产品仍 PARTIAL（公网／正式 release）。

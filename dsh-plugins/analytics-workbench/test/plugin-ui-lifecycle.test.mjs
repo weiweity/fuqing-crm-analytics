@@ -108,7 +108,7 @@ test('apply registers business slots; dispose removes them without touching nati
   const client = loadClient();
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
-    'sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay',
+    'sidebar.brand.mark', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay',
     'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
     'conversation.input.dock', 'conversation.input.dock',
     'sidebar.panellist', 'main',
