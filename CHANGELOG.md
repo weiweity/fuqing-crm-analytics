@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- 账本：STATUS origin/main 对齐 `#200` `540bdf89`。合入后指针会再差本 PR 一拍。不上公网。
+
 ## [0.9.0.6]
 
 - 功能包：问数与组板拆成 `@shine-mage/dsh-shine-query` 与 `@shine-mage/dsh-shine-board`。`--query off` 不注册问数／诊断工具；`--board off` 不注册组板工具、不出现「生成驾驶舱」。实现仍随 workbench bundle。FastAPI 路由默认仍在。不改 DSH 上游。不上公网。
