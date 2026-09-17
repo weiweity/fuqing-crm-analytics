@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- 账本：STATUS origin/main 对齐 `#198` `021ffe0b`。合入后指针会再差本 PR 一拍。不上公网。
+
 ## [0.9.0.5]
 
 - 功能包：人群行动入口拆到 `@shine-mage/dsh-shine-crowd-action`。`--plugin on` 默认安装仓库内人群行动包；`--crowd-action off` 6677 驾驶舱不再出现「人群行动」页签。ActionsWorkbench 仍随 workbench bundle。不改 DSH 上游。不上公网。
