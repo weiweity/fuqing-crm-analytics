@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- 账本：STATUS origin/main 对齐 `#196` `8bf8e68b`。合入后指针会再差本 PR 一拍。不上公网。
+
 ## [0.9.0.4]
 
 - 功能包：WATERFALL 拆到 `@shine-mage/dsh-shine-waterfall`。`--plugin on` 默认安装仓库内瀑布包；`--waterfall off` 目录／GENERATE 不再提供 WATERFALL，未知单位不再作为瀑布供给。`channel_bridge` 仍在 GSV v5 事实里。几何仍随 workbench bundle。不改 DSH 上游。不上公网。
