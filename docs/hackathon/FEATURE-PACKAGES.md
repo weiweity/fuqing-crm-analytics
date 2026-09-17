@@ -36,7 +36,7 @@
 
 ## 卸载机制（目标 vs 现在）
 
-现在：`dsh plugin add` 先装 `@shine-mage/dsh-shine-brand` 再装 workbench。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 同时禁用 `shine-brand-ui` 与 `analytics-workbench-ui`。另有 `DSH_ANALYTICS_UI_ONLY`、`COMPETITION_HTTP_*`。
+现在：`--plugin on` 默认 `dsh plugin add` 仓库内 `@shine-mage/dsh-shine-brand`（`dsh-plugins/shine-brand`，不跟 `--plugin-path` 兄弟目录）再装 workbench。`--shine-brand off` 只装 workbench，并 disable 残留 `shine-brand-ui`。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 同时禁用两个 UI id。另有 `DSH_ANALYTICS_UI_ONLY`、`COMPETITION_HTTP_*`。
 
 目标：`scripts/dsh-dev/overlay`（或 profile bundles）里 **每包一行**。不写那一行 = 未安装。对应 FastAPI 路由随包注册，不进总 `main.py` 默认全集。
 
@@ -52,7 +52,7 @@
 ## 迁移顺序
 
 1. 本清单（本文）。
-2. 品牌覆盖 `@shine-mage/dsh-shine-brand`（已拆；`--plugin off` 同时禁用）。
+2. 品牌覆盖 `@shine-mage/dsh-shine-brand`（已拆；默认随 `--plugin on` 安装，`--shine-brand off` 可单独卸）。
 3. WATERFALL 包（带着 422 合同和测试一起走）。
 4. 人群行动。
 5. 问数 vs 组板拆开。

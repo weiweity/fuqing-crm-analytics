@@ -40,7 +40,7 @@ export function buildPluginOverlay(pluginRoot) {
 }
 
 /**
- * `--plugin off` layer: switch the installed bundle row off by id.
+ * `--plugin off` layer: switch the installed bundle rows off by id.
  * The bundle is a persistent profile layer; dropping the brand overlay is not enough.
  */
 export function buildPluginDisable() {
@@ -52,10 +52,17 @@ export function buildPluginDisable() {
   return patch;
 }
 
+/** Keep workbench, turn off a leftover shine-brand profile row. */
+export function buildShineBrandDisable() {
+  const patch = [{ id: SHINE_BRAND_UI_ID, disabled: true }];
+  assertNoB0Disables(patch);
+  return patch;
+}
+
 /** Presence alone cannot tell off from on: off keeps the row and sets disabled. */
-export function pluginRowState(dump) {
+export function pluginRowState(dump, id = PLUGIN_UI_ID) {
   const lines = String(dump).split('\n');
-  const start = lines.findIndex(line => line.trim() === `- id: ${PLUGIN_UI_ID}`);
+  const start = lines.findIndex(line => line.trim() === `- id: ${id}`);
   if (start === -1) return { present: false, disabled: false };
   let disabled = false;
   for (const line of lines.slice(start + 1)) {

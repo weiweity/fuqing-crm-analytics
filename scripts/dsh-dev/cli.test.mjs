@@ -6,9 +6,10 @@ import {
   PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID,
 } from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, pluginEnabled, pluginRowState } from './overlay.mjs';
+import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, pluginEnabled, pluginRowState } from './overlay.mjs';
+import { defaultShineBrandPath } from './paths.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
-import { isolatedEnv, parseServeArgs, profilePluginAddArgs } from './serve.mjs';
+import { isolatedEnv, parseServeArgs, profileInstallPaths, profilePluginAddArgs, resolveShineBrandPath } from './serve.mjs';
 
 test('isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass', () => {
   const additions = {
@@ -60,6 +61,28 @@ test('plugin-on install is dsh plugin add of the absolute workbench path', () =>
   assert.throws(() => profilePluginAddArgs(cli, 'dsh-plugin'), /absolute/);
 });
 
+test('shine-brand path is the repo package, not a sibling of --plugin-path', () => {
+  const isolatedWorkbench = '/tmp/clean-build-workbench';
+  assert.equal(
+    resolveShineBrandPath({ plugin: 'on', shineBrand: 'on', pluginPath: isolatedWorkbench }),
+    defaultShineBrandPath(),
+  );
+  assert.equal(resolveShineBrandPath({ plugin: 'on', shineBrand: 'off', pluginPath: isolatedWorkbench }), null);
+  assert.equal(resolveShineBrandPath({ plugin: 'off', shineBrand: 'on' }), null);
+  const explicit = '/abs/dsh-plugins/shine-brand';
+  assert.equal(
+    resolveShineBrandPath({ plugin: 'on', shineBrand: 'on', shineBrandPath: explicit }),
+    explicit,
+  );
+});
+
+test('plugin-on install order is shine-brand then workbench; shine-brand off omits brand', () => {
+  const workbench = '/abs/dsh-plugins/analytics-workbench';
+  const brand = defaultShineBrandPath();
+  assert.deepEqual(profileInstallPaths({ pluginPath: workbench, shineBrandPath: brand }), [brand, workbench]);
+  assert.deepEqual(profileInstallPaths({ pluginPath: workbench, shineBrandPath: null }), [workbench]);
+});
+
 test('plugin-off layer disables the installed bundle and never touches native rows', () => {
   const patch = buildPluginDisable();
   assert.deepEqual(patch, [
@@ -69,11 +92,21 @@ test('plugin-off layer disables the installed bundle and never touches native ro
   assertNoB0Disables(patch);
 });
 
+test('shine-brand-off overlay disables leftover brand without touching workbench', () => {
+  const patch = buildShineBrandDisable();
+  assert.deepEqual(patch, [{ id: SHINE_BRAND_UI_ID, disabled: true }]);
+  assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
+  assertNoB0Disables(patch);
+});
+
 test('plugin row state tells a disabled plugin-off row from an active plugin-on row', () => {
   const header = `# == @shine-mage/dsh-analytics-workbench-b0\n- id: ${PLUGIN_UI_ID}\n  name: '@shine-mage/dsh-analytics-workbench-b0'\n`;
   assert.deepEqual(pluginRowState(`${header}  disabled: true\n`), { present: true, disabled: true });
   assert.deepEqual(pluginRowState(`${header}- id: next-row\n`), { present: true, disabled: false });
   assert.deepEqual(pluginRowState('- id: other-row\n  disabled: true\n'), { present: false, disabled: false });
+  const brand = `# == @shine-mage/dsh-shine-brand\n- id: ${SHINE_BRAND_UI_ID}\n  name: '@shine-mage/dsh-shine-brand'\n`;
+  assert.deepEqual(pluginRowState(`${brand}  disabled: true\n`, SHINE_BRAND_UI_ID), { present: true, disabled: true });
+  assert.deepEqual(pluginRowState(header, SHINE_BRAND_UI_ID), { present: false, disabled: false });
 });
 
 test('plugin flag only accepts on or off', () => {
@@ -106,6 +139,13 @@ test('serve args pin loopback and refuse foreign ports', () => {
   assert.equal(options.host, '127.0.0.1');
   assert.equal(parseServeArgs(['--plugin', 'off', '--web-port', '14327']).webPort, COMPETITION_WEB_PORT);
   assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).webPort, DEV_WEB_PORT);
+  assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineBrand, 'on');
+  assert.equal(parseServeArgs(['--plugin', 'on', '--shine-brand', 'off', '--web-port', '6677']).shineBrand, 'off');
+  assert.equal(
+    parseServeArgs(['--plugin', 'on', '--shine-brand-path', '/abs/shine-brand', '--web-port', '6677']).shineBrandPath,
+    '/abs/shine-brand',
+  );
+  assert.throws(() => parseServeArgs(['--plugin', 'on', '--shine-brand', 'off', '--shine-brand-path', '/abs/shine-brand']));
   assert.throws(() => parseServeArgs(['--web-port', '4317']));
   assert.throws(() => parseServeArgs(['--web-port', '15173']));
   assert.throws(() => parseServeArgs(['--host', '0.0.0.0']));
@@ -128,7 +168,7 @@ test('pinned SHA matches toolchain contract constant', () => {
 
 
 test('value-taking flags cannot silently fall back after a missing argument', () => {
-  for (const flag of ['--upstream', '--plugin-path', '--runtime', '--extra-patch', '--web-port']) {
+  for (const flag of ['--upstream', '--plugin-path', '--shine-brand', '--shine-brand-path', '--runtime', '--extra-patch', '--web-port']) {
     assert.throws(() => parseServeArgs([flag]), /missing value/);
     assert.throws(() => parseServeArgs([flag, '--fresh']), /missing value/);
   }

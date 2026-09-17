@@ -28,6 +28,10 @@ export function defaultPluginPath() {
   return join(repoRoot, 'dsh-plugins/analytics-workbench');
 }
 
+export function defaultShineBrandPath() {
+  return join(repoRoot, 'dsh-plugins/shine-brand');
+}
+
 export function contextRoot() {
   return join(repoRoot, '.context/dsh-dev');
 }

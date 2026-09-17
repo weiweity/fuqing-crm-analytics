@@ -27,6 +27,6 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test src/brand-surface.test.mjs"
+    "test": "node --test src/brand-surface.test.mjs src/client-lifecycle.test.mjs"
   }
 }

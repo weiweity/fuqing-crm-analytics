@@ -9,10 +9,10 @@ import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { API_KEY_ENV, FOREIGN_PORTS, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, pluginEnabled } from './overlay.mjs';
+import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, pluginEnabled } from './overlay.mjs';
 import { readToolchain, verifyUpstream } from './pin.mjs';
 import { assertOwnedHost, assertOwnedPort, assertFree } from './ports.mjs';
-import { assertCli, contextRoot, currentPath, defaultPluginPath, defaultRuntimeRoot, ensureDir, repoRoot, resolveUpstream } from './paths.mjs';
+import { assertCli, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultRuntimeRoot, ensureDir, repoRoot, resolveUpstream } from './paths.mjs';
 
 function writeJson(path, value) {
   return writeFile(path, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
@@ -21,6 +21,7 @@ function writeJson(path, value) {
 export function parseServeArgs(argv) {
   const options = {
     plugin: 'off',
+    shineBrand: 'on',
     host: HOST,
     webPort: PORTS.web,
     detach: false,
@@ -30,11 +31,16 @@ export function parseServeArgs(argv) {
   const args = [...argv];
   while (args.length) {
     const flag = args.shift();
-    const valueFlags = ['--upstream', '--plugin', '--plugin-path', '--extra-patch', '--runtime', '--web-port', '--host'];
+    const valueFlags = [
+      '--upstream', '--plugin', '--plugin-path', '--shine-brand', '--shine-brand-path',
+      '--extra-patch', '--runtime', '--web-port', '--host',
+    ];
     if (valueFlags.includes(flag)) assert.ok(args[0] && !args[0].startsWith('--'), `missing value for ${flag}`);
     if (flag === '--upstream') options.upstream = args.shift();
     else if (flag === '--plugin') options.plugin = args.shift();
     else if (flag === '--plugin-path') options.pluginPath = args.shift();
+    else if (flag === '--shine-brand') options.shineBrand = args.shift();
+    else if (flag === '--shine-brand-path') options.shineBrandPath = args.shift();
     else if (flag === '--extra-patch') options.extraPatch.push(args.shift());
     else if (flag === '--runtime') options.runtime = args.shift();
     else if (flag === '--web-port') options.webPort = Number(args.shift());
@@ -44,12 +50,32 @@ export function parseServeArgs(argv) {
     else throw new Error(`unknown flag ${flag}`);
   }
   assert.ok(options.plugin === 'on' || options.plugin === 'off', 'Usage: --plugin on|off');
+  pluginEnabled(options.shineBrand);
+  if (options.pluginPath) assert.ok(options.pluginPath.startsWith('/'), '--plugin-path must be an absolute path');
+  if (options.shineBrandPath) {
+    assert.ok(options.shineBrandPath.startsWith('/'), '--shine-brand-path must be an absolute path');
+    assert.equal(pluginEnabled(options.shineBrand), true, '--shine-brand-path requires --shine-brand on');
+  }
   assertOwnedHost(options.host);
   assertOwnedPort(options.webPort);
   for (const patch of options.extraPatch) {
     assert.ok(patch && patch.startsWith('/'), '--extra-patch must be an absolute path');
   }
   return options;
+}
+
+/** Repo shine-brand path, or null when `--shine-brand off`. Never dirname(--plugin-path). */
+export function resolveShineBrandPath(options) {
+  if (!pluginEnabled(options.plugin)) return null;
+  if (!pluginEnabled(options.shineBrand ?? 'on')) return null;
+  return options.shineBrandPath ?? defaultShineBrandPath();
+}
+
+export function profileInstallPaths(prepared) {
+  const paths = [];
+  if (prepared.shineBrandPath) paths.push(prepared.shineBrandPath);
+  if (prepared.pluginPath) paths.push(prepared.pluginPath);
+  return paths;
 }
 
 export function isolatedEnv(runtime, home) {
@@ -106,10 +132,14 @@ export async function prepareRuntime(options) {
     await mkdir(path, { recursive: true, mode: 0o700 });
   }
   const patches = [];
+  let shineBrandPath = null;
   if (enabled) {
     pluginPath = await assertPluginRoot(options.pluginPath ?? defaultPluginPath());
-    await assertPluginRoot(join(dirname(pluginPath), 'shine-brand'));
-    const overlay = buildPluginOverlay(pluginPath);
+    const brandCandidate = resolveShineBrandPath({ ...options, plugin: 'on' });
+    if (brandCandidate) shineBrandPath = await assertPluginRoot(brandCandidate);
+    const overlay = shineBrandPath
+      ? buildPluginOverlay(pluginPath)
+      : [...buildPluginOverlay(pluginPath), ...buildShineBrandDisable()];
     overlayPath = join(runtime, 'plugin.patch.yml');
     await writeJson(overlayPath, overlay);
     patches.push(overlayPath);
@@ -130,7 +160,7 @@ export async function prepareRuntime(options) {
     assertNoB0Disables(composed);
   }
   return {
-    pin, upstream, verified, cli, enabled, pluginPath, overlayPath, patches,
+    pin, upstream, verified, cli, enabled, pluginPath, shineBrandPath, overlayPath, patches,
     runtime, home, workspace, host: options.host, webPort: options.webPort,
   };
 }
@@ -149,13 +179,13 @@ function pluginInstallEnv(runtime, home) {
 }
 
 /**
- * Install the local workbench into this runtime's web profile.
- * `--plugin off` must not call this; off only disables the already-installed row.
+ * Install local packages into this runtime's web profile.
+ * `--plugin off` must not call this; off only disables already-installed rows.
+ * shine-brand is omitted when `--shine-brand off`.
  */
 export function installProfilePlugin(prepared) {
   assert.equal(prepared.enabled, true, 'installProfilePlugin is plugin-on only');
-  const brandPath = join(dirname(prepared.pluginPath), 'shine-brand');
-  for (const pluginPath of [brandPath, prepared.pluginPath]) {
+  for (const pluginPath of profileInstallPaths(prepared)) {
     const args = profilePluginAddArgs(prepared.cli, pluginPath).slice(1);
     const result = spawnSync(process.execPath, [prepared.cli, ...args], {
       cwd: prepared.workspace,
@@ -255,6 +285,7 @@ export async function writeCurrent(state, path = currentPath()) {
     pinned: PINNED_SHA,
     pluginEnabled: state.enabled,
     plugin: state.pluginPath,
+    shineBrand: state.shineBrandPath ?? null,
     upstream: state.upstream,
     startId: state.startId ?? null,
     ownedPorts: [PORTS.kernel, PORTS.bridge, PORTS.web, PORTS.gateway, PORTS.mock],
