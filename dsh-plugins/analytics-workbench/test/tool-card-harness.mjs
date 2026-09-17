@@ -111,14 +111,13 @@ export async function loadCardHarness() {
   const firstPurchaseCard = cards.find(row => row.options.key === FIRST_PURCHASE_TOOL_NAME);
   assert.ok(b0Card); assert.ok(queryCard);
   assert.ok(firstPurchaseCard, 'compiled client is missing the first-purchase renderer');
-  const footer = registrations.find(r => r.options.id === 'shine-mage.analytics-b0.footer');
-  assert.ok(footer, 'compiled client is missing the footer that owns plugin CSS');
-  const footerHtml = renderToStaticMarkup(React.createElement(footer.component, {
-    wide: true,
-    actions: { close() {}, open() {} },
-    openCockpit() { return false; },
+  const dock = registrations.find(r => r.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+  assert.ok(dock, 'compiled client is missing the generate dock that owns plugin CSS');
+  const dockHtml = renderToStaticMarkup(React.createElement(dock.component, {
+    session: { sessionId: 'session-b0-synthetic-primary' },
+    board: { getSnapshot: () => ({ boardSpec: null, boardFacts: null }), actions: {} },
   }));
-  const css = footerHtml.match(/<style>([\s\S]*?)<\/style>/)?.[1];
+  const css = dockHtml.match(/<style>([\s\S]*?)<\/style>/)?.[1];
   assert.ok(css?.includes('.analytics-b0-card'));
   function renderCard(component, toolName, block) {
     const wire = JSON.stringify(block);

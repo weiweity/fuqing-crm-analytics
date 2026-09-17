@@ -1,9 +1,11 @@
 /** Consumer-path brand overlay. Does not edit pinned DSH source. */
 
 export const PRODUCT_NAME = '伸美 AI 增长董事会';
-export const PRODUCT_HEADLINE = '探索增长之谜，即刻启程';
-export const PRODUCT_GREETING = '先问一个可核验的经营问题';
-const UPSTREAM_HEADLINES = new Set(['Into the Unknown', '探索未至之境', '把增长问清楚', PRODUCT_NAME]);
+export const PRODUCT_HEADLINE = 'Shine mage Work';
+export const PRODUCT_GREETING = '问一个可核验的经营问题';
+const UPSTREAM_HEADLINES = new Set([
+  'Into the Unknown', '探索未至之境', '把增长问清楚', '探索增长之谜，即刻启程', PRODUCT_NAME,
+]);
 
 function replaceHeadline(root) {
   const nodes = root.querySelectorAll('h1, h2, [class*="headline"] span, [class*="titleGroup"] span');

@@ -163,6 +163,13 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
   </ThemeProvider>;
 }
 
+export function GenerateChipIcon() {
+  return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <rect x="1.75" y="2.625" width="10.5" height="8.75" rx="1.75" stroke="currentColor" strokeWidth="1.225" />
+    <path d="M1.75 5.25h10.5" stroke="currentColor" strokeWidth="1.225" />
+  </svg>;
+}
+
 export function LibraryGenerateDock({ sessionId, generate }: { sessionId: string; generate(sessionId: string): Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -172,7 +179,7 @@ export function LibraryGenerateDock({ sessionId, generate }: { sessionId: string
     return () => { generation.current++; };
   }, [sessionId]);
   return <div className="analytics-b0-artifacts" data-testid="library-generate-dock">
-    <button type="button" disabled={busy} onClick={() => {
+    <button type="button" className="analytics-b0-generate-dock" disabled={busy} aria-label="生成驾驶舱" onClick={() => {
       setBusy(true); setMessage('');
       const requestGeneration = ++generation.current;
       void generate(sessionId).then(() => {
@@ -180,7 +187,7 @@ export function LibraryGenerateDock({ sessionId, generate }: { sessionId: string
       }).catch(() => {
         if (generation.current === requestGeneration) setMessage('未能提交生成请求；请在当前原生对话输入“生成驾驶舱”。');
       }).finally(() => { if (generation.current === requestGeneration) setBusy(false); });
-    }}>生成驾驶舱</button>
+    }}><GenerateChipIcon />生成驾驶舱</button>
     <span role="status">{message}</span>
   </div>;
 }

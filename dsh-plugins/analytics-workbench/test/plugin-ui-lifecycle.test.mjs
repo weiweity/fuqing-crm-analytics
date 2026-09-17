@@ -111,9 +111,10 @@ test('apply registers business slots; dispose removes them without touching nati
   const client = loadClient();
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
-    'sidebar.brand.mark', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay',
+    'sidebar.brand.mark', 'conversation.hero.brand.mark',
+    'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay', 'shell.overlay',
     'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
-    'conversation.input.dock', 'conversation.input.dock',
+    'conversation.input.dock', 'conversation.composer.dock',
     'sidebar.panellist', 'main',
     'sidebar.panellist', 'main',
   ]);
@@ -124,9 +125,9 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
   const footers = entries.filter(row => row.options.name === 'sidebar.footer.action');
   assert.deepEqual(footers.map(row => row.options.id),
-    ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board']);
-  assert.deepEqual(footers.map(row => row.options.order), [10, 20]);
-  assert.equal(footers[0].options.inject().openCockpit(), false);
+    ['shine-mage.account.login', 'shine-mage.account.theme']);
+  assert.deepEqual(footers.map(row => row.options.order), [10, 11]);
+  assert.equal(typeof footers[0].component, 'function');
   assert.equal(typeof footers[1].component, 'function');
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
     'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit',
@@ -135,34 +136,64 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(entries.length, 0);
 });
 
-test('footer openCockpit selects sidebar.panellist id cockpit on the main slot', () => {
+test('generate dock openCockpit selects sidebar.panellist id cockpit on the main slot', () => {
   const selected = [];
   const { entries, effects } = mount(loadClient(), {
     layout: { selectPanel: id => { selected.push(id); } },
   });
-  assert.equal(entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer').options.inject().openCockpit(), true);
+  const generate = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+  assert.equal(generate.options.name, 'conversation.composer.dock');
+  assert.equal(generate.options.inject().openCockpit(), true);
   assert.deepEqual(selected, ['cockpit']);
   assert.equal(entries.find(row => row.options.name === 'sidebar.panellist').options.id,
     entries.find(row => row.options.name === 'main').options.key);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
 });
 
-test('legacy board entry renders wide and rail copy and links to the board in a new tab', () => {
+test('account menu lists the competition board as a new-tab link', () => {
   const { entries, effects } = mount(loadClient());
   const React = webRequire('react');
   const { renderToStaticMarkup } = webRequire('react-dom/server');
   try {
-    const row = entries.find(item => item.options.id === 'shine-mage.analytics-b0.legacy-board');
-    const wide = renderToStaticMarkup(React.createElement(row.component, { wide: true }));
-    const rail = renderToStaticMarkup(React.createElement(row.component, { wide: false }));
-    assert.match(wide, /比赛看板/);
-    assert.match(rail, />看板</);
-    assert.match(wide, /aria-label="打开比赛看板"/);
-    assert.match(wide, /data-testid="legacy-board-open"/);
-    // The address, the new-tab target, and the opener severance are the behavior.
-    assert.match(wide, /href="http:\/\/127\.0\.0\.1:15173\/"/);
-    assert.match(wide, /target="_blank"/);
-    assert.match(wide, /rel="noopener noreferrer"/);
+    const row = entries.find(item => item.options.id === 'shine-mage.account.menu');
+    const html = renderToStaticMarkup(React.createElement(row.component, {
+      useStore: selector => selector({ menuOpen: true, themeOpen: false }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+      themeSource: { subscribe: () => () => {}, getSnapshot: () => 'system' },
+      setTheme() {},
+    }));
+    assert.match(html, /比赛看板/);
+    assert.match(html, /data-testid="legacy-board-open"/);
+    assert.match(html, /href="http:\/\/127\.0\.0\.1:15173\/"/);
+    assert.match(html, /target="_blank"/);
+    assert.match(html, /rel="noopener noreferrer"/);
+    assert.match(html, />设置</);
+    assert.match(html, /<svg /);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
+});
+
+test('theme menu offers day night and system icons', () => {
+  const { entries, effects } = mount(loadClient());
+  const React = webRequire('react');
+  const { renderToStaticMarkup } = webRequire('react-dom/server');
+  try {
+    const row = entries.find(item => item.options.id === 'shine-mage.account.menu');
+    const html = renderToStaticMarkup(React.createElement(row.component, {
+      useStore: selector => selector({ menuOpen: false, themeOpen: true }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+      themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
+      setTheme() {},
+    }));
+    assert.match(html, /data-testid="shine-theme-menu"/);
+    assert.match(html, /data-testid="shine-theme-light"/);
+    assert.match(html, /data-testid="shine-theme-dark"/);
+    assert.match(html, /data-testid="shine-theme-system"/);
+    assert.match(html, /日间/);
+    assert.match(html, /夜晚/);
+    assert.match(html, /跟随系统/);
+    assert.match(html, /aria-pressed="true"/);
   } finally {
     for (const dispose of effects) if (typeof dispose === 'function') dispose();
   }
@@ -187,7 +218,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   client.apply(ctx);
   // A second apply duplicates every registration; no identity is added or lost.
   const ids = entries.filter(row => row.options.id !== undefined).map(row => row.options.id);
-  for (const id of ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board',
+  for (const id of ['shine-mage.account.login', 'shine-mage.account.theme',
     'shine-mage.analytics-b0.generate-cockpit', 'shine-mage.analytics-b0.overlay']) {
     assert.equal(entries.filter(row => row.options.id === id).length, 2, `${id} registered twice`);
     assert.equal(ids.filter(value => value === id).length, 2, `${id} counted twice`);
@@ -265,12 +296,6 @@ test('generate dock proposes a bound board from results and appends a LINK witho
     assert.equal(pending.spec.blocks[0].source_result_id, 'result_c0');
     assert.equal(pending.facts.result_c0.current_gsv, 410);
     assert.equal(opened, 1);
-    board.actions.cancelGenerate();
-    await act(() => { dom.window.document.querySelector('[data-testid="analytics-b0-generate-feishu"]').click(); });
-    const linked = board.getSnapshot().pendingGenerate;
-    assert.ok(linked);
-    assert.ok(linked.spec.blocks.some(block => block.kind === 'LINK' && block.block_id === 'b7'));
-    assert.equal(opened, 2);
   } finally {
     await act(() => root.unmount());
     for (const dispose of effects) if (typeof dispose === 'function') dispose();

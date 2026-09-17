@@ -208,9 +208,9 @@ function generateNative(entries) {
 }
 
 function libraryOf(entries) {
-  const footer = entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer');
-  assert.ok(footer, 'footer was not registered');
-  return footer.options.inject().library;
+  const dock = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+  assert.ok(dock, 'generate dock was not registered');
+  return dock.options.inject().library;
 }
 
 function clientInjectWithout(inject, names) {

@@ -73,8 +73,8 @@ test('built browser factory requires only platform modules and registers shared-
   assert.ok(names.includes('conversation.hero.brand.mark'));
   assert.ok(names.includes('sidebar.panellist'));
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
-  const footer = entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer');
-  const overlay = entries.find(row => row.options.name === 'shell.overlay');
+  const login = entries.find(row => row.options.id === 'shine-mage.account.login');
+  const overlay = entries.find(row => row.options.id === 'shine-mage.analytics-b0.overlay');
   const dock = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
   const panel = entries.find(row => row.options.name === 'sidebar.panellist');
   const main = entries.find(row => row.options.name === 'main');
@@ -85,7 +85,7 @@ test('built browser factory requires only platform modules and registers shared-
   assert.equal(snapshot.current, undefined);
   selection.restoreSelection();
   assert.equal(snapshot.current, primary);
-  assert.equal(footer.options.store, overlay.options.store);
+  assert.ok(login.options.store);
   assert.equal(dock.options.store, undefined);
   assert.ok(dock.options.inject().board);
   const seeded = dock.options.inject().board.getSnapshot();
@@ -94,9 +94,9 @@ test('built browser factory requires only platform modules and registers shared-
   assert.equal(seeded.boardError, '');
   assert.equal(panel.options.id, 'cockpit');
   assert.equal(main.options.key, 'cockpit');
-  assert.equal(footer.options.inject().openCockpit(), true);
+  assert.equal(dock.options.inject().openCockpit(), true);
   assert.deepEqual(selected, ['cockpit']);
-  const state = footer.options.store.create();
+  const state = overlay.options.store.create();
   assert.equal(state.getSnapshot().open, false);
   state.actions.open();
   assert.equal(state.getSnapshot().open, true);

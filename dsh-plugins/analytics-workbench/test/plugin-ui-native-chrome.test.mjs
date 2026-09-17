@@ -9,6 +9,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const stylesSource = await readFile(join(root, 'src/client/styles.ts'), 'utf8');
 const css = stylesSource.slice(stylesSource.indexOf('export const css'), stylesSource.lastIndexOf('`;'));
 const indexSource = await readFile(join(root, 'src/client/index.tsx'), 'utf8');
+const chromeSource = await readFile(join(root, 'src/client/account-chrome.tsx'), 'utf8');
 
 test('plugin chrome uses native DSH tokens and does not paint Vue 44px rectangles', () => {
   assert.match(css, /--dsw-font-s-14/);
@@ -33,13 +34,29 @@ test('plugin registers additive business keys and does not occupy native tool na
   assert.match(indexSource, /key: FIRST_PURCHASE_TOOL_NAME/);
   assert.doesNotMatch(indexSource, /key: 'bash'/);
   assert.doesNotMatch(indexSource, /key: 'skill'/);
+  assert.match(indexSource, /id: 'shine-mage.account.login'/);
+  assert.match(indexSource, /id: 'shine-mage.account.theme'/);
   assert.match(indexSource, /name: 'sidebar.footer.action'/);
   assert.match(indexSource, /name: 'shell.overlay'/);
   assert.match(indexSource, /id: 'shine-mage.analytics-b0.generate-cockpit'/);
+  assert.match(indexSource, /name: 'conversation.composer.dock', id: 'shine-mage.analytics-b0.generate-cockpit'/);
   assert.match(indexSource, /name: 'sidebar.panellist'/);
   assert.match(indexSource, /name: 'main'/);
   assert.match(indexSource, /name: 'conversation.hero.brand.mark'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
-  assert.doesNotMatch(indexSource, /name: 'sidebar'/);
-  assert.doesNotMatch(indexSource, /name: 'conversation'/);
+  assert.doesNotMatch(indexSource, /name: 'sidebar'(?![\w.])/);
+  assert.doesNotMatch(indexSource, /name: 'conversation'(?![\w.])/);
+});
+
+test('account chrome does not paint the conversation white or hijack the hero row', () => {
+  assert.doesNotMatch(chromeSource, /\[class\*="centerCol"\]/);
+  assert.doesNotMatch(chromeSource, /:has\(> \[class\*="sidebarCol"\]\)/);
+  assert.doesNotMatch(chromeSource, /isolation: isolate/);
+  assert.doesNotMatch(chromeSource, /\[class\*="sidebarCol"\]::before/);
+  assert.match(chromeSource, /rgba\(255, 255, 255, 0\.15\)/);
+  assert.match(chromeSource, /停止生成/);
+  assert.match(chromeSource, /Stop generating/);
+  assert.match(chromeSource, /requestAnimationFrame/);
+  assert.doesNotMatch(css, /composerHero/);
+  assert.doesNotMatch(css, /heroWorkspaceRow/);
 });
