@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import {
   B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, FOREIGN_PORTS,
-  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS,
+  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID,
 } from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
 import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, pluginEnabled, pluginRowState } from './overlay.mjs';
@@ -64,7 +64,7 @@ test('plugin-off layer disables the installed bundle and never touches native ro
   const patch = buildPluginDisable();
   assert.deepEqual(patch, [
     { id: PLUGIN_UI_ID, disabled: true },
-    { id: 'shine-brand-ui', disabled: true },
+    { id: SHINE_BRAND_UI_ID, disabled: true },
   ]);
   assertNoB0Disables(patch);
 });
