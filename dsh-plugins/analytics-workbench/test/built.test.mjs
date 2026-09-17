@@ -39,7 +39,7 @@ test('built browser factory requires only platform modules and registers shared-
     __ModuleLoader__: { load: row => { factoryRow = row; } },
   };
   const code = await readFile(join(root, 'lib/client.js'), 'utf8');
-  vm.runInNewContext(code, { window: browser }, { filename: 'analytics-b0-client.js', timeout: 1000 });
+  vm.runInNewContext(code, { window: browser, __SHINE_QUERY__: true, __SHINE_BOARD__: true }, { filename: 'analytics-b0-client.js', timeout: 1000 });
   assert.equal(factoryRow.id, '@shine-mage/dsh-analytics-workbench-b0');
   const client = factoryRow.factory(spec => {
     assert.ok(seed.has(spec), `unexpected browser require: ${spec}`);

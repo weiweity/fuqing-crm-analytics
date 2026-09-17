@@ -93,7 +93,11 @@ export async function loadCardHarness() {
   const seed = new Map([['react', React], ['react-dom', req('react-dom')], ['react/jsx-runtime', req('react/jsx-runtime')], ['@deepseek-ai/dsh-client-store', stores]]);
   let factory;
   const code = await readFile(join(root, 'lib/client.js'), 'utf8');
-  vm.runInNewContext(code, { window: { __ModuleLoader__: { load: row => { factory = row; } } } }, { timeout: 1000 });
+  vm.runInNewContext(code, {
+    window: { __ModuleLoader__: { load: row => { factory = row; } } },
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
+  }, { timeout: 1000 });
   assert.equal(factory.id, '@shine-mage/dsh-analytics-workbench-b0');
   const client = factory.factory(name => { assert.ok(seed.has(name), `Unexpected dependency ${name}`); return seed.get(name); });
   const registrations = [];
