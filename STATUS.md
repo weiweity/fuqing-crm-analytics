@@ -41,7 +41,7 @@ S2-C1 代码已合 #136，[S3 界面修复](docs/hackathon/S3-UI-REPAIR-2026-09-
 - **S5/G6** [交接](docs/hackathon/S5-UAT-HANDOVER-2026-09-15.md)：2026-09-16 齐套确认（候选／入口／拒绝边界／backup 演练／U1）。现役快照 PID 14287／新板 v9。证据 `.context/checks/g6-20260916/`。
 - 开发协作沿用户人工转发 Grok Build 任务、主 Agent 复核的方式；不同 Agent 的共享入口与 Figma 母组件保持单写入者。原 App 全量 Goal 仍 PAUSED；本候选不恢复旧 Vue 全量 CRM，**不是 Goal 完成**。
 - Git 合入不等于部署。6677 原仓 runtime PID **20644** 已 `plugin add` brand + waterfall + crowd-action + query + board + funnel + workbench。15173 PID **85899**、8000 PID **85883**、18082 PID **83173** 未动。现役未 `--fresh`。不要用会编原仓插件的官方 `reload`。工作树已收口，只留 `main`。
-- `HANDOVER-CODEX.md` 不提交。下一产品：比赛看板另授权、公网另授权。FUNNEL 已合 #202。问数／组板已合 #200。人群行动已合 #198。WATERFALL 已合 #196。品牌已合 #194。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
+- `HANDOVER-CODEX.md` 不提交。下一产品：公网另授权。比赛看板保持 15173 独立，不进 DSH。FUNNEL 已合 #202。问数／组板已合 #200。人群行动已合 #198。WATERFALL 已合 #196。品牌已合 #194。#171 `5a8329c3`。Q3 overlay 已灌；`fill_user_rfm=0`。
 
 ## 已合施工记录（#116–#129）
 
