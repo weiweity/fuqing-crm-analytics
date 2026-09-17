@@ -42,6 +42,8 @@ async function mountCard(fetchImpl) {
     window: Object.assign(globalThis.window, { __ModuleLoader__: { load: row => { factory = row; } } }),
     document: globalThis.document,
     fetch: fetchImpl,
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {

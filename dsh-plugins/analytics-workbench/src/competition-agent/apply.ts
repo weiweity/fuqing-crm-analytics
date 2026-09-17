@@ -10,17 +10,22 @@ import {
 import { createCompetitionToolBoundary } from './boundary.mjs';
 import { liveDiagnosisCall } from './tools.mjs';
 import { BOARD_TOOL_PARAMETERS, executeBoardTool } from './board-tools.mjs';
+import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 
 export const name = 'analytics-workbench-competition-growth';
 export const inject = ['skills', 'tools'];
 
 export function apply(ctx: Context, packInput: { manifest: object; contents: Record<string, string> }): void {
   const pack = freezeCompetitionSkillPackage(packInput);
+  const queryOn = queryPackEnabled();
+  const boardOn = boardPackEnabled();
+  if (!queryOn && !boardOn) return;
   const boundary = createCompetitionToolBoundary();
   ctx.tools.guard(boundary.guard);
   ctx.on('tools/result', boundary.mark);
   ctx.on('agent/turn-stopping', ({ agent }) => { boundary.clear(agent); });
   ctx.on('agent/disposed', ({ agent }) => { boundary.clear(agent); });
+  if (queryOn) {
   ctx.skills.register(pack.definition as never);
   ctx.tools.register(defineTool({
     name: RESOURCE_TOOL_NAME,
@@ -78,6 +83,8 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
       }, exec.signal) as never,
     }));
   }
+  }
+  if (!boardOn) return;
   for (const toolName of [BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) {
     ctx.tools.register(defineTool({
       name: toolName,

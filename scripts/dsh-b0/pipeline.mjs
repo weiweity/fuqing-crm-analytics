@@ -15,6 +15,8 @@ const plugin = join(root, 'dsh-plugins/analytics-workbench');
 const shineBrand = join(root, 'dsh-plugins/shine-brand');
 const shineWaterfall = join(root, 'dsh-plugins/shine-waterfall');
 const shineCrowdAction = join(root, 'dsh-plugins/shine-crowd-action');
+const shineQuery = join(root, 'dsh-plugins/shine-query');
+const shineBoard = join(root, 'dsh-plugins/shine-board');
 const b0 = join(root, '.context/dsh-b0');
 const buildTools = join(plugin, 'build-tools');
 const [mode, pythonFlag, python, ...extra] = process.argv.slice(2);
@@ -135,6 +137,8 @@ print('B0 exact Python closure verified')
   run(process.execPath, [join(shineBrand, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineWaterfall, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineCrowdAction, 'build.mjs'), upstream]);
+  run(process.execPath, [join(shineQuery, 'build.mjs'), upstream]);
+  run(process.execPath, [join(shineBoard, 'build.mjs'), upstream]);
   run(process.execPath, ['--test',
     join(shineBrand, 'src/brand-surface.test.mjs'),
     join(shineBrand, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
@@ -143,6 +147,10 @@ print('B0 exact Python closure verified')
     join(shineWaterfall, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test',
     join(shineCrowdAction, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
+  run(process.execPath, ['--test',
+    join(shineQuery, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
+  run(process.execPath, ['--test',
+    join(shineBoard, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
   const competitionTests = [];

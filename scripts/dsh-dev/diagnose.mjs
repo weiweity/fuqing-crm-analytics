@@ -8,7 +8,7 @@ import {
   BRAND_DIGESTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, FOREIGN_PORTS, HOST,
   NODE_MAJOR, PINNED_SHA, PORT_RANGE, PORTS, USER_DEMO_PORTS,
 } from './constants.mjs';
-import { defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, repoRoot } from './paths.mjs';
+import { defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath, repoRoot } from './paths.mjs';
 import { redactLaunchLog } from './launch-url.mjs';
 import { readCurrent } from './serve.mjs';
 
@@ -283,6 +283,8 @@ export async function diagnose(options = {}, readState = readCurrent) {
   const shineBrand = await inspectBuiltPlugin(defaultShineBrandPath());
   const shineWaterfall = await inspectBuiltPlugin(defaultShineWaterfallPath());
   const shineCrowdAction = await inspectBuiltPlugin(defaultShineCrowdActionPath());
+  const shineQuery = await inspectBuiltPlugin(defaultShineQueryPath());
+  const shineBoard = await inspectBuiltPlugin(defaultShineBoardPath());
   const brand = {
     logo: await inspectFile(join(repoRoot, 'frontend-vue3/src/assets/brand/shine-mage.png'), BRAND_DIGESTS.logoPng),
     mark: await inspectFile(join(repoRoot, 'frontend-vue3/public/shine-mage-mark.svg'), BRAND_DIGESTS.markSvg),
@@ -324,6 +326,12 @@ export async function diagnose(options = {}, readState = readCurrent) {
   if (shineCrowdAction.status !== 'present') {
     recommendations.push('shine-crowd-action lib/ is missing or stale. --plugin on --crowd-action on needs dsh-plugins/shine-crowd-action/lib/index.js.');
   }
+  if (shineQuery.status !== 'present') {
+    recommendations.push('shine-query lib/ is missing or stale. --plugin on --query on needs dsh-plugins/shine-query/lib/index.js.');
+  }
+  if (shineBoard.status !== 'present') {
+    recommendations.push('shine-board lib/ is missing or stale. --plugin on --board on needs dsh-plugins/shine-board/lib/index.js.');
+  }
   if (upstream.status !== 'ready') {
     recommendations.push('Pinned upstream is missing or stale relative to toolchain.json; pass --upstream /absolute/pinned/dsh. Do not copy node_modules.');
   }
@@ -352,6 +360,8 @@ export async function diagnose(options = {}, readState = readCurrent) {
     shineBrand,
     shineWaterfall,
     shineCrowdAction,
+    shineQuery,
+    shineBoard,
     brand,
     auth,
     ports,
@@ -373,6 +383,8 @@ export function printDiagnose(report) {
   console.log(`DSH_DEV_SHINE_BRAND ${report.shineBrand.status}`);
   console.log(`DSH_DEV_WATERFALL ${report.shineWaterfall.status}`);
   console.log(`DSH_DEV_CROWD_ACTION ${report.shineCrowdAction.status}`);
+  console.log(`DSH_DEV_QUERY ${report.shineQuery.status}`);
+  console.log(`DSH_DEV_BOARD ${report.shineBoard.status}`);
   console.log(`DSH_DEV_BRAND logo=${report.brand.logo.status} mark=${report.brand.mark.status} outfit=${report.brand.outfit.status}`);
   console.log(`DSH_DEV_AUTH live=${report.auth.live.status}`);
   for (const row of report.ports) {

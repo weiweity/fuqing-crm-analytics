@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import {
   B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, FOREIGN_PORTS,
-  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID,
+  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID,
 } from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, buildShineCrowdActionDisable, pluginEnabled, pluginRowState } from './overlay.mjs';
-import { defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath } from './paths.mjs';
+import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, buildShineCrowdActionDisable, buildShineQueryDisable, buildShineBoardDisable, pluginEnabled, pluginRowState } from './overlay.mjs';
+import { defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath } from './paths.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
-import { isolatedEnv, parseServeArgs, profileInstallPaths, profilePluginAddArgs, resolveShineBrandPath, resolveShineWaterfallPath, resolveShineCrowdActionPath } from './serve.mjs';
+import { isolatedEnv, parseServeArgs, profileInstallPaths, profilePluginAddArgs, resolveShineBrandPath, resolveShineWaterfallPath, resolveShineCrowdActionPath, resolveShineQueryPath, resolveShineBoardPath } from './serve.mjs';
 
 test('isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass', () => {
   const additions = {
@@ -76,16 +76,20 @@ test('shine-brand path is the repo package, not a sibling of --plugin-path', () 
   );
 });
 
-test('plugin-on install order is shine-brand then waterfall then crowd-action then workbench', () => {
+test('plugin-on install order is brand, waterfall, crowd-action, query, board, then workbench', () => {
   const workbench = '/abs/dsh-plugins/analytics-workbench';
   const brand = defaultShineBrandPath();
   const waterfall = defaultShineWaterfallPath();
   const crowd = defaultShineCrowdActionPath();
+  const query = defaultShineQueryPath();
+  const board = defaultShineBoardPath();
   assert.deepEqual(profileInstallPaths({
-    pluginPath: workbench, shineBrandPath: brand, shineWaterfallPath: waterfall, shineCrowdActionPath: crowd,
-  }), [brand, waterfall, crowd, workbench]);
+    pluginPath: workbench, shineBrandPath: brand, shineWaterfallPath: waterfall,
+    shineCrowdActionPath: crowd, shineQueryPath: query, shineBoardPath: board,
+  }), [brand, waterfall, crowd, query, board, workbench]);
   assert.deepEqual(profileInstallPaths({
     pluginPath: workbench, shineBrandPath: null, shineWaterfallPath: null, shineCrowdActionPath: null,
+    shineQueryPath: null, shineBoardPath: null,
   }), [workbench]);
 });
 
@@ -116,6 +120,8 @@ test('plugin-off layer disables the installed bundle and never touches native ro
     { id: SHINE_BRAND_UI_ID, disabled: true },
     { id: SHINE_WATERFALL_UI_ID, disabled: true },
     { id: SHINE_CROWD_ACTION_UI_ID, disabled: true },
+    { id: SHINE_QUERY_UI_ID, disabled: true },
+    { id: SHINE_BOARD_UI_ID, disabled: true },
   ]);
   assertNoB0Disables(patch);
 });
@@ -139,6 +145,15 @@ test('crowd-action-off overlay disables leftover crowd-action without touching w
   assert.deepEqual(patch, [{ id: SHINE_CROWD_ACTION_UI_ID, disabled: true }]);
   assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
   assertNoB0Disables(patch);
+});
+
+test('query and board paths are repo packages; off omits them', () => {
+  assert.equal(resolveShineQueryPath({ plugin: 'on', shineQuery: 'on' }), defaultShineQueryPath());
+  assert.equal(resolveShineQueryPath({ plugin: 'on', shineQuery: 'off' }), null);
+  assert.equal(resolveShineBoardPath({ plugin: 'on', shineBoard: 'on' }), defaultShineBoardPath());
+  assert.equal(resolveShineBoardPath({ plugin: 'on', shineBoard: 'off' }), null);
+  assert.deepEqual(buildShineQueryDisable(), [{ id: SHINE_QUERY_UI_ID, disabled: true }]);
+  assert.deepEqual(buildShineBoardDisable(), [{ id: SHINE_BOARD_UI_ID, disabled: true }]);
 });
 
 test('plugin row state tells a disabled plugin-off row from an active plugin-on row', () => {
@@ -194,6 +209,12 @@ test('serve args pin loopback and refuse foreign ports', () => {
   assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineCrowdAction, 'on');
   assert.equal(parseServeArgs(['--plugin', 'on', '--crowd-action', 'off', '--web-port', '6677']).shineCrowdAction, 'off');
   assert.throws(() => parseServeArgs(['--plugin', 'on', '--crowd-action', 'off', '--crowd-action-path', '/abs/shine-crowd-action']));
+  assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineQuery, 'on');
+  assert.equal(parseServeArgs(['--plugin', 'on', '--query', 'off', '--web-port', '6677']).shineQuery, 'off');
+  assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineBoard, 'on');
+  assert.equal(parseServeArgs(['--plugin', 'on', '--board', 'off', '--web-port', '6677']).shineBoard, 'off');
+  assert.throws(() => parseServeArgs(['--plugin', 'on', '--query', 'off', '--query-path', '/abs/shine-query']));
+  assert.throws(() => parseServeArgs(['--plugin', 'on', '--board', 'off', '--board-path', '/abs/shine-board']));
   assert.throws(() => parseServeArgs(['--web-port', '4317']));
   assert.throws(() => parseServeArgs(['--web-port', '15173']));
   assert.throws(() => parseServeArgs(['--host', '0.0.0.0']));
@@ -216,7 +237,7 @@ test('pinned SHA matches toolchain contract constant', () => {
 
 
 test('value-taking flags cannot silently fall back after a missing argument', () => {
-  for (const flag of ['--upstream', '--plugin-path', '--shine-brand', '--shine-brand-path', '--waterfall', '--waterfall-path', '--crowd-action', '--crowd-action-path', '--runtime', '--extra-patch', '--web-port']) {
+  for (const flag of ['--upstream', '--plugin-path', '--shine-brand', '--shine-brand-path', '--waterfall', '--waterfall-path', '--crowd-action', '--crowd-action-path', '--query', '--query-path', '--board', '--board-path', '--runtime', '--extra-patch', '--web-port']) {
     assert.throws(() => parseServeArgs([flag]), /missing value/);
     assert.throws(() => parseServeArgs([flag, '--fresh']), /missing value/);
   }

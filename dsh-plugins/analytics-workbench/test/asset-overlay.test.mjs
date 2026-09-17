@@ -155,6 +155,8 @@ async function mountShell(fetchImpl, options = {}) {
       COMPETITION_HTTP_BASE: 'http://127.0.0.1:18084',
       COMPETITION_HTTP_TOKEN: 'test-only-synthetic-token',
     } : {}),
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {
@@ -731,6 +733,8 @@ async function mountDualOverlays(fetchImpl) {
     CustomEvent: globalThis.window.CustomEvent,
     requestAnimationFrame: globalThis.window.requestAnimationFrame,
     cancelAnimationFrame: globalThis.window.cancelAnimationFrame,
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {

@@ -1,0 +1,32 @@
+{
+  "name": "@shine-mage/dsh-shine-query",
+  "version": "0.0.0-b0",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "engines": { "node": "24.x" },
+  "peerDependencies": { "@deepseek-ai/dsh-tools": "0.1.6-alpha.1" },
+  "type": "module",
+  "description": "Shine Mage query/diagnosis tools. Uninstall independently of the board pack.",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["lib/index.js", "lib/client.js", "cordis.patch.yml"],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    },
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test src/client-lifecycle.test.mjs"
+  }
+}

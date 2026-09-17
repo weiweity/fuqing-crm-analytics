@@ -43,6 +43,7 @@ import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-a
 import { createCockpitComposition } from './cockpit-composition.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
+import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 
 /** Competition board address: `start-stack.sh` default `FQ_FRONTEND_PORT` (dsh-dev COMPETITION_VITE_PORT 15173). Not generic Vite 5173. */
 const LEGACY_BOARD_URL = 'http://127.0.0.1:15173/';
@@ -448,11 +449,11 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
-  if (composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+  if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
     inject: () => ({ composition, library, themeSource }),
   }, CockpitCompositionOverlay));
-  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+  if (boardPackEnabled()) ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store: chromeStore,
     inject: () => ({ openCockpit: openCockpitPanel, library }),
   }, Footer));
@@ -476,23 +477,25 @@ export function apply(ctx: Context): void {
       };
     },
   }, RoutedOverlay));
-  ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
-    name: 'tool.call.toolview', key: TOOL_NAME,
-  }, AnalyticsToolCard));
-  ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
-    name: 'tool.call.toolview', key: QUERY_TOOL_NAME,
-  }, QueryToolCard));
-  ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
-    name: 'tool.call.toolview', key: FIRST_PURCHASE_TOOL_NAME,
-  }, FirstPurchaseQueryCard));
-  for (const toolName of [BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+  if (queryPackEnabled()) {
+    ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+      name: 'tool.call.toolview', key: TOOL_NAME,
+    }, AnalyticsToolCard));
+    ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+      name: 'tool.call.toolview', key: QUERY_TOOL_NAME,
+    }, QueryToolCard));
+    ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+      name: 'tool.call.toolview', key: FIRST_PURCHASE_TOOL_NAME,
+    }, FirstPurchaseQueryCard));
+  }
+  if (boardPackEnabled()) for (const toolName of [BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
     name: 'tool.call.toolview', key: toolName,
     inject: () => ({ library, openCockpit: openCockpitPanel }),
   }, LibraryPreviewToolCard));
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));
-  ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+  if (boardPackEnabled()) ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20,
     inject: () => ({
       openCockpit: openCockpitPanel,

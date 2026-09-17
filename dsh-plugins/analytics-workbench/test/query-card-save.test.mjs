@@ -61,6 +61,8 @@ async function mountCard(fetchImpl) {
     fetch: fetchImpl,
     Event: globalThis.window.Event,
     CustomEvent: globalThis.window.CustomEvent,
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
   };
   vm.runInNewContext(source, context, { timeout: 2000 });
   const api = factory.factory(name => {

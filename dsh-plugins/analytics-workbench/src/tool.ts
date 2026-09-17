@@ -6,12 +6,14 @@ import { nativeJournal, requestForToolIn } from './native-evidence.mjs';
 import { COMPETITION_FAMILY, FIRST_PURCHASE_FAMILY, QUERY_FAMILY, runtimeFamily } from './runtime-family.mjs';
 import { apply as applyQueryTool } from './query-tool.ts';
 import { apply as applyFirstPurchaseQueryTool } from './first-purchase-query-tool.ts';
+import { queryPackEnabled } from './feature-pack-gate.mjs';
 
 export const name = 'analytics-workbench-b0-tool';
 export const inject = ['tools'];
 
 /** The only Host capability contributed by this package. */
 export function apply(ctx: Context): void {
+  if (!queryPackEnabled()) return;
   if (runtimeFamily() === QUERY_FAMILY) {
     applyQueryTool(ctx);
     return;
