@@ -6,9 +6,9 @@ import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID } from './constants.mjs';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID, SHINE_FUNNEL_UI_ID } from './constants.mjs';
 import { pluginEnabled, pluginRowState } from './overlay.mjs';
-import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath, defaultRuntimeRoot } from './paths.mjs';
+import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath, defaultShineFunnelPath, defaultRuntimeRoot } from './paths.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { randomBytes } from 'node:crypto';
 import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
@@ -28,6 +28,8 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --query-path /absolute/shine-query
   --board on|off
   --board-path /absolute/shine-board
+  --funnel on|off
+  --funnel-path /absolute/shine-funnel
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
@@ -89,6 +91,7 @@ async function runCheck(options) {
   const crowd = pluginRowState(dump, SHINE_CROWD_ACTION_UI_ID);
   const query = pluginRowState(dump, SHINE_QUERY_UI_ID);
   const board = pluginRowState(dump, SHINE_BOARD_UI_ID);
+  const funnel = pluginRowState(dump, SHINE_FUNNEL_UI_ID);
   if (prepared.enabled) {
     assert.equal(workbench.present, true, 'plugin overlay was not composed into dump-config');
     assert.equal(workbench.disabled, false, 'plugin row is disabled while --plugin on');
@@ -122,6 +125,12 @@ async function runCheck(options) {
     } else if (board.present) {
       assert.equal(board.disabled, true, 'shine-board row is still active while --board off');
     }
+    if (prepared.shineFunnelPath) {
+      assert.equal(funnel.present, true, 'shine-funnel overlay was not composed into dump-config');
+      assert.equal(funnel.disabled, false, 'shine-funnel row is disabled while --funnel on');
+    } else if (funnel.present) {
+      assert.equal(funnel.disabled, true, 'shine-funnel row is still active while --funnel off');
+    }
   } else {
     assert.equal(workbench.disabled, true, 'plugin row is still active in a plugin-off dump');
     if (brand.present) {
@@ -138,6 +147,9 @@ async function runCheck(options) {
     }
     if (board.present) {
       assert.equal(board.disabled, true, 'shine-board row is still active in a plugin-off dump');
+    }
+    if (funnel.present) {
+      assert.equal(funnel.disabled, true, 'shine-funnel row is still active in a plugin-off dump');
     }
   }
   console.log(`DSH_DEV_CHECK pinned=${prepared.verified.upstream_sha} plugin=${prepared.enabled ? 'on' : 'off'}`);
@@ -205,6 +217,8 @@ function reloadStartArgs(options, runtime) {
   if (options.shineQueryPath) args.push('--query-path', options.shineQueryPath);
   if (options.shineBoard) args.push('--board', options.shineBoard);
   if (options.shineBoardPath) args.push('--board-path', options.shineBoardPath);
+  if (options.shineFunnel) args.push('--funnel', options.shineFunnel);
+  if (options.shineFunnelPath) args.push('--funnel-path', options.shineFunnelPath);
   return args;
 }
 
@@ -226,6 +240,9 @@ async function runReload(options) {
   }
   if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineBoard ?? 'on')) {
     buildLocalPlugin(options.shineBoardPath ?? defaultShineBoardPath());
+  }
+  if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineFunnel ?? 'on')) {
+    buildLocalPlugin(options.shineFunnelPath ?? defaultShineFunnelPath());
   }
   await stopOwned();
   const startId = randomBytes(16).toString('hex');
@@ -270,6 +287,7 @@ async function runStatus() {
   console.log(`DSH_DEV_CROWD_ACTION ${current.shineCrowdAction ?? 'off'}`);
   console.log(`DSH_DEV_QUERY ${current.shineQuery ?? 'off'}`);
   console.log(`DSH_DEV_BOARD ${current.shineBoard ?? 'off'}`);
+  console.log(`DSH_DEV_FUNNEL ${current.shineFunnel ?? 'off'}`);
 }
 
 function isCliEntry() {

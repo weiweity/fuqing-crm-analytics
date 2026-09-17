@@ -189,7 +189,7 @@ def test_legacy_result_cannot_generate_funnel_from_money(tmp_path):
 
 
 def test_shared_nested_count_contract():
-    path = Path(__file__).resolve().parents[2] / "dsh-plugins/analytics-workbench/tests/funnel-cases.json"
+    path = Path(__file__).resolve().parents[2] / "dsh-plugins/shine-funnel/tests/funnel-cases.json"
     for case in json.loads(path.read_text()):
         payload = {"unit": "人", "cohort_label": "合成人群", "counting_rule": "同一人群的嵌套计数",
                    "stages": [{"label": f"阶段{index}", "count": count} for index, count in enumerate(case["counts"])]}

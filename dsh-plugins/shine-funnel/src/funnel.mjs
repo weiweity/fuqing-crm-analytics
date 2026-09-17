@@ -1,5 +1,9 @@
 /** Nested customer counts only. Geometry encodes count by width, never by area. */
-import { isPlainObject } from './component-catalog.mjs';
+function isPlainObject(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
 const exact = (value, keys) => isPlainObject(value) && Object.keys(value).length === keys.length
   && keys.every(key => Object.hasOwn(value, key));

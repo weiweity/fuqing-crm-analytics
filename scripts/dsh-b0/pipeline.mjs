@@ -17,6 +17,7 @@ const shineWaterfall = join(root, 'dsh-plugins/shine-waterfall');
 const shineCrowdAction = join(root, 'dsh-plugins/shine-crowd-action');
 const shineQuery = join(root, 'dsh-plugins/shine-query');
 const shineBoard = join(root, 'dsh-plugins/shine-board');
+const shineFunnel = join(root, 'dsh-plugins/shine-funnel');
 const b0 = join(root, '.context/dsh-b0');
 const buildTools = join(plugin, 'build-tools');
 const [mode, pythonFlag, python, ...extra] = process.argv.slice(2);
@@ -139,6 +140,7 @@ print('B0 exact Python closure verified')
   run(process.execPath, [join(shineCrowdAction, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineQuery, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineBoard, 'build.mjs'), upstream]);
+  run(process.execPath, [join(shineFunnel, 'build.mjs'), upstream]);
   run(process.execPath, ['--test',
     join(shineBrand, 'src/brand-surface.test.mjs'),
     join(shineBrand, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
@@ -151,6 +153,9 @@ print('B0 exact Python closure verified')
     join(shineQuery, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test',
     join(shineBoard, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
+  run(process.execPath, ['--test',
+    join(shineFunnel, 'src/funnel.test.mjs'),
+    join(shineFunnel, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
   const competitionTests = [];
@@ -170,6 +175,7 @@ print('B0 exact Python closure verified')
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
   await cp(join(shineWaterfall, 'src'), join(cleanRoot, 'shine-waterfall', 'src'), { recursive: true, errorOnExist: true, force: false, dereference: true });
+  await cp(join(shineFunnel, 'src'), join(cleanRoot, 'shine-funnel', 'src'), { recursive: true, errorOnExist: true, force: false, dereference: true });
   await mkdir(join(clean, 'build-tools'));
   for (const item of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches']) {
     await cp(join(buildTools, item), join(clean, 'build-tools', item), { recursive: true });

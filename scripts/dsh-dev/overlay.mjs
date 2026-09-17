@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID } from './constants.mjs';
+import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID, SHINE_FUNNEL_UI_ID } from './constants.mjs';
 
 export function pluginEnabled(value) {
   if (value === true || value === 'on') return true;
@@ -51,6 +51,7 @@ export function buildPluginDisable() {
     { id: SHINE_CROWD_ACTION_UI_ID, disabled: true },
     { id: SHINE_QUERY_UI_ID, disabled: true },
     { id: SHINE_BOARD_UI_ID, disabled: true },
+    { id: SHINE_FUNNEL_UI_ID, disabled: true },
   ];
   assertNoB0Disables(patch);
   return patch;
@@ -89,6 +90,12 @@ export function buildShineBoardDisable() {
   return patch;
 }
 
+export function buildShineFunnelDisable() {
+  const patch = [{ id: SHINE_FUNNEL_UI_ID, disabled: true }];
+  assertNoB0Disables(patch);
+  return patch;
+}
+
 /** Presence alone cannot tell off from on: off keeps the row and sets disabled. */
 export function pluginRowState(dump, id = PLUGIN_UI_ID) {
   const lines = String(dump).split('\n');
@@ -119,4 +126,4 @@ export function assertNoB0Disables(patch) {
   }
 }
 
-export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID };
+export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID, SHINE_FUNNEL_UI_ID };

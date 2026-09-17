@@ -48,6 +48,10 @@ export function defaultShineBoardPath() {
   return join(repoRoot, 'dsh-plugins/shine-board');
 }
 
+export function defaultShineFunnelPath() {
+  return join(repoRoot, 'dsh-plugins/shine-funnel');
+}
+
 export function contextRoot() {
   return join(repoRoot, '.context/dsh-dev');
 }

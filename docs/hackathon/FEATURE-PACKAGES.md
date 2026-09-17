@@ -4,7 +4,7 @@
 
 当前不是这样。`dsh-plugins/analytics-workbench` 是一个大包；存板／422／问数在 `backend/`；比赛看板在 `frontend-vue3`。卸伸美包只回到官方 DSH web 壳。
 
-本文件定边界。品牌、WATERFALL、人群行动、问数、组板已拆成独立 Cordis 包。FUNNEL 与比赛看板未迁。
+本文件定边界。品牌、WATERFALL、FUNNEL、人群行动、问数、组板已拆成独立 Cordis 包。比赛看板未迁。
 
 ## 卸不掉的内核（不是功能包）
 
@@ -26,7 +26,7 @@
 |---|---|---|---|
 | **品牌覆盖** | `@shine-mage/dsh-shine-brand`：标题／欢迎语／favicon／侧栏名。静态资源仍是 overlay `analytics-dev-brand-assets`。驾驶舱内 h2／logo mark 仍在 workbench | 卸 `shine-brand-ui` 后文档标题与侧栏名回官方；资源行仍可单独在 overlay | 1 已拆包 |
 | **WATERFALL** | `@shine-mage/dsh-shine-waterfall`：几何、目录供给、`SHINE_WATERFALL` 门控。`channel_bridge` 计算仍在 FastAPI GSV v5。画布几何仍随 workbench bundle | 卸 `shine-waterfall-ui` 后 GENERATE／目录不再提供 WATERFALL；`--waterfall off` 时未知单位不再作为瀑布供给。已存块仍能解析 | 2 已拆包 |
-| **FUNNEL** | `board-spec/funnel.*`、catalog FUNNEL、首购相关供给 | 漏斗块与对应问数形状 | 3 |
+| **FUNNEL** | `@shine-mage/dsh-shine-funnel`：几何、目录供给、`SHINE_FUNNEL` 门控。购买频次仍在 FastAPI GSV v5。几何仍随 workbench bundle | 卸 `shine-funnel-ui` 后 GENERATE／目录不再提供 FUNNEL | 3 已拆包 |
 | **人群行动** | `@shine-mage/dsh-shine-crowd-action`：6677 页签入口。`ActionsWorkbench` 仍随 workbench bundle | 卸 `shine-crowd-action-ui` 后驾驶舱不再出现「人群行动」页签 | 4 已拆包 |
 | **问数／诊断** | `@shine-mage/dsh-shine-query`：工具注册门控。实现仍随 workbench；FastAPI 诊断路由默认仍在 | 卸 `shine-query-ui` 后会话不再注册问数／诊断工具 | 5 已拆包 |
 | **驾驶舱组板** | `@shine-mage/dsh-shine-board`：组板工具与「生成驾驶舱」门控。画布仍随 workbench bundle | 卸 `shine-board-ui` 后不再注册组板工具、不出现生成驾驶舱 | 6 已拆包 |
@@ -36,7 +36,7 @@
 
 ## 卸载机制（目标 vs 现在）
 
-现在：`--plugin on` 默认再装 shine-query、shine-board。`--query off`／`--board off` 可单独卸。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 禁用全部 shine UI id。另有 `SHINE_QUERY`、`SHINE_BOARD`。
+现在：`--plugin on` 默认再装 shine-funnel。`--funnel off` 可单独卸。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 禁用全部 shine UI id。另有 `SHINE_FUNNEL`。
 
 目标：`scripts/dsh-dev/overlay`（或 profile bundles）里 **每包一行**。不写那一行 = 未安装。对应 FastAPI 路由随包注册，不进总 `main.py` 默认全集。
 
@@ -56,4 +56,4 @@
 3. WATERFALL 包 `@shine-mage/dsh-shine-waterfall`（已拆；默认随 `--plugin on` 安装，`--waterfall off` 可单独卸）。
 4. 人群行动 `@shine-mage/dsh-shine-crowd-action`（已拆；默认随 `--plugin on` 安装，`--crowd-action off` 可单独卸）。
 5. 问数 `@shine-mage/dsh-shine-query` 与组板 `@shine-mage/dsh-shine-board`（已拆；`--query off`／`--board off` 可单独卸）。
-6. 比赛看板是否进 DSH 组合，另议。 FUNNEL 另授权。
+6. 比赛看板是否进 DSH 组合，另议。 FUNNEL `@shine-mage/dsh-shine-funnel` 已拆。

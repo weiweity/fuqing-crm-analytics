@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/index.ts"],
+  "sourcesContent": ["export const name = 'shine-funnel-ui';\nexport const inject = [];\n\nexport function apply(): void {}\n"],
+  "mappings": "AAAO,IAAM,KAAO,kBACb,IAAM,OAAS,CAAC,EAEhB,SAAS,OAAc,CAAC",
+  "names": []
+}
