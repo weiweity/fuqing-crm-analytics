@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- 账本：STATUS origin/main 对齐 `#202` `10ef4c10`。合入后指针会再差本 PR 一拍。不上公网。
+
 ## [0.9.0.7]
 
 - 功能包：FUNNEL 拆到 `@shine-mage/dsh-shine-funnel`。`--plugin on` 默认安装仓库内漏斗包；`--funnel off` 目录／GENERATE 不再提供 FUNNEL。几何仍随 workbench bundle。购买频次事实仍在 GSV v5。不改 DSH 上游。不上公网。
