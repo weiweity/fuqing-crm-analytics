@@ -112,7 +112,8 @@ M1 DONE 要求 S0–S5、G1–G6具备对应证据；U1、Git交付、M2和原�
 - [x] 品牌覆盖拆到 `dsh-plugins/shine-brand`（`@shine-mage/dsh-shine-brand`）。默认随 `--plugin on` 安装仓库内品牌包；`--shine-brand off` 可单独卸。`--plugin off` 两个都关。驾驶舱 h2／logo mark 仍在 workbench。
 - [x] WATERFALL 拆到 `dsh-plugins/shine-waterfall`。默认随 `--plugin on` 安装；`--waterfall off` 可单独卸。422 测试随包。几何仍随 workbench bundle。
 - [x] 人群行动入口拆到 `dsh-plugins/shine-crowd-action`。默认随 `--plugin on` 安装；`--crowd-action off` 可单独卸。ActionsWorkbench 仍随 workbench bundle。
-- [ ] 按功能包迁代码：问数／组板。另授权。不改 DSH 上游。不把 131GB 收进插件。
+- [x] 问数／组板拆到 `dsh-plugins/shine-query` 与 `dsh-plugins/shine-board`。`--query off`／`--board off` 可单独卸。实现仍随 workbench bundle。
+- [ ] FUNNEL、比赛看板进 DSH。另授权。不改 DSH 上游。不把 131GB 收进插件。
 
 历史局部通过项见 [维修 QA](./COMPETITION-REPAIR-QA-2026-09-10.md)。完整 T13／T16／T17、M2（含其余）、首次启动已按缺口／基线／未复现收口。原 App Goal 仍 PAUSED。产品仍 PARTIAL（公网／正式 release）。功能包拆分清单已写，迁代码另授权。
 

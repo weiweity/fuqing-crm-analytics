@@ -1,0 +1,4 @@
+# Query/diagnosis tools. Omit this bundle to drop session query tools.
+- insert:
+    - id: shine-query-ui
+      name: '@shine-mage/dsh-shine-query'

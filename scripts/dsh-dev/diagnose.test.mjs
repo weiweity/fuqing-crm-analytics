@@ -71,6 +71,10 @@ test('diagnose classifies foreign and user-demo ports without probing them over 
   assert.equal(typeof report.shineWaterfall.path, 'string');
   assert.equal(typeof report.shineCrowdAction.status, 'string');
   assert.equal(typeof report.shineCrowdAction.path, 'string');
+  assert.equal(typeof report.shineQuery.status, 'string');
+  assert.equal(typeof report.shineQuery.path, 'string');
+  assert.equal(typeof report.shineBoard.status, 'string');
+  assert.equal(typeof report.shineBoard.path, 'string');
   assert.equal(report.auth.mechanism.never_print_token, true);
   assert.equal(report.auth.mechanism.never_disable_auth, true);
   assert.doesNotMatch(JSON.stringify(report), /[?&](?:token|b0)=(?!\[REDACTED\])[A-Za-z0-9_-]+/);

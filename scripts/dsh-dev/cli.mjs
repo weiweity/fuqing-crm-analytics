@@ -6,9 +6,9 @@ import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID } from './constants.mjs';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID } from './constants.mjs';
 import { pluginEnabled, pluginRowState } from './overlay.mjs';
-import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultRuntimeRoot } from './paths.mjs';
+import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath, defaultRuntimeRoot } from './paths.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { randomBytes } from 'node:crypto';
 import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
@@ -24,6 +24,10 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --waterfall-path /absolute/shine-waterfall
   --crowd-action on|off
   --crowd-action-path /absolute/shine-crowd-action
+  --query on|off
+  --query-path /absolute/shine-query
+  --board on|off
+  --board-path /absolute/shine-board
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
@@ -31,7 +35,7 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --detach          start only
   --fresh           NEW empty runtime (wipes API keys and extra plugins). Daily plugin rebuilds must use reload, not --fresh.
 
---plugin on installs workbench, shine-brand, shine-waterfall, and shine-crowd-action from repo paths (not siblings of --plugin-path). --shine-brand off / --waterfall off / --crowd-action off keep workbench and disable leftover rows. --plugin off disables all four.
+--plugin on installs workbench and the feature packs from repo paths (not siblings of --plugin-path). --query off / --board off drop session query tools or cockpit generate independently. --plugin off disables every shine UI id.
 reload  builds workbench and the enabled feature packs, restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
 
 Node 24 required for check/start/reload. diagnose is read-only: it never binds ports or signals PIDs.
@@ -83,6 +87,8 @@ async function runCheck(options) {
   const brand = pluginRowState(dump, SHINE_BRAND_UI_ID);
   const waterfall = pluginRowState(dump, SHINE_WATERFALL_UI_ID);
   const crowd = pluginRowState(dump, SHINE_CROWD_ACTION_UI_ID);
+  const query = pluginRowState(dump, SHINE_QUERY_UI_ID);
+  const board = pluginRowState(dump, SHINE_BOARD_UI_ID);
   if (prepared.enabled) {
     assert.equal(workbench.present, true, 'plugin overlay was not composed into dump-config');
     assert.equal(workbench.disabled, false, 'plugin row is disabled while --plugin on');
@@ -104,6 +110,18 @@ async function runCheck(options) {
     } else if (crowd.present) {
       assert.equal(crowd.disabled, true, 'shine-crowd-action row is still active while --crowd-action off');
     }
+    if (prepared.shineQueryPath) {
+      assert.equal(query.present, true, 'shine-query overlay was not composed into dump-config');
+      assert.equal(query.disabled, false, 'shine-query row is disabled while --query on');
+    } else if (query.present) {
+      assert.equal(query.disabled, true, 'shine-query row is still active while --query off');
+    }
+    if (prepared.shineBoardPath) {
+      assert.equal(board.present, true, 'shine-board overlay was not composed into dump-config');
+      assert.equal(board.disabled, false, 'shine-board row is disabled while --board on');
+    } else if (board.present) {
+      assert.equal(board.disabled, true, 'shine-board row is still active while --board off');
+    }
   } else {
     assert.equal(workbench.disabled, true, 'plugin row is still active in a plugin-off dump');
     if (brand.present) {
@@ -114,6 +132,12 @@ async function runCheck(options) {
     }
     if (crowd.present) {
       assert.equal(crowd.disabled, true, 'shine-crowd-action row is still active in a plugin-off dump');
+    }
+    if (query.present) {
+      assert.equal(query.disabled, true, 'shine-query row is still active in a plugin-off dump');
+    }
+    if (board.present) {
+      assert.equal(board.disabled, true, 'shine-board row is still active in a plugin-off dump');
     }
   }
   console.log(`DSH_DEV_CHECK pinned=${prepared.verified.upstream_sha} plugin=${prepared.enabled ? 'on' : 'off'}`);
@@ -177,6 +201,10 @@ function reloadStartArgs(options, runtime) {
   if (options.shineWaterfallPath) args.push('--waterfall-path', options.shineWaterfallPath);
   if (options.shineCrowdAction) args.push('--crowd-action', options.shineCrowdAction);
   if (options.shineCrowdActionPath) args.push('--crowd-action-path', options.shineCrowdActionPath);
+  if (options.shineQuery) args.push('--query', options.shineQuery);
+  if (options.shineQueryPath) args.push('--query-path', options.shineQueryPath);
+  if (options.shineBoard) args.push('--board', options.shineBoard);
+  if (options.shineBoardPath) args.push('--board-path', options.shineBoardPath);
   return args;
 }
 
@@ -192,6 +220,12 @@ async function runReload(options) {
   }
   if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineCrowdAction ?? 'on')) {
     buildLocalPlugin(options.shineCrowdActionPath ?? defaultShineCrowdActionPath());
+  }
+  if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineQuery ?? 'on')) {
+    buildLocalPlugin(options.shineQueryPath ?? defaultShineQueryPath());
+  }
+  if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineBoard ?? 'on')) {
+    buildLocalPlugin(options.shineBoardPath ?? defaultShineBoardPath());
   }
   await stopOwned();
   const startId = randomBytes(16).toString('hex');
@@ -234,6 +268,8 @@ async function runStatus() {
   console.log(`DSH_DEV_SHINE_BRAND ${current.shineBrand ?? 'off'}`);
   console.log(`DSH_DEV_WATERFALL ${current.shineWaterfall ?? 'off'}`);
   console.log(`DSH_DEV_CROWD_ACTION ${current.shineCrowdAction ?? 'off'}`);
+  console.log(`DSH_DEV_QUERY ${current.shineQuery ?? 'off'}`);
+  console.log(`DSH_DEV_BOARD ${current.shineBoard ?? 'off'}`);
 }
 
 function isCliEntry() {

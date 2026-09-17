@@ -70,6 +70,9 @@ function loadClient() {
       open: () => { assert.fail('lifecycle test opened a tab'); },
       __ModuleLoader__: { load: row => { factoryRow = row; } },
     },
+    __SHINE_QUERY__: true,
+    __SHINE_BOARD__: true,
+    __SHINE_CROWD_ACTION__: true,
   }, { timeout: 1000 });
   return factoryRow.factory(spec => {
     assert.ok(seed.has(spec), `unexpected browser require: ${spec}`);

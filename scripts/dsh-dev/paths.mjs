@@ -40,6 +40,14 @@ export function defaultShineCrowdActionPath() {
   return join(repoRoot, 'dsh-plugins/shine-crowd-action');
 }
 
+export function defaultShineQueryPath() {
+  return join(repoRoot, 'dsh-plugins/shine-query');
+}
+
+export function defaultShineBoardPath() {
+  return join(repoRoot, 'dsh-plugins/shine-board');
+}
+
 export function contextRoot() {
   return join(repoRoot, '.context/dsh-dev');
 }

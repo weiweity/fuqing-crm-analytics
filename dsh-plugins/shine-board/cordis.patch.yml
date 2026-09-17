@@ -1,0 +1,4 @@
+# Cockpit board generate/preview/confirm. Omit this bundle to drop canvas tools.
+- insert:
+    - id: shine-board-ui
+      name: '@shine-mage/dsh-shine-board'
