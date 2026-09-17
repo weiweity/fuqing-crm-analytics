@@ -5,13 +5,19 @@ from backend.contracts.competition_computed import DATA_SCOPE
 from backend.services.analytics.access import AnalyticsError, require
 from backend.services.analytics.board_documents import ResolvedBoardFacts, fault
 from backend.services.analytics.waterfall_pack import waterfall_pack_enabled
+from backend.services.analytics.funnel_pack import funnel_pack_enabled
 from backend.services.analytics.first_purchase.asset_state import opaque
 
 
 def _catalog():
     catalog = deepcopy(CATALOG)
+    excluded = set()
     if not waterfall_pack_enabled():
-        catalog["components"] = [item for item in catalog["components"] if item["kind"] != "WATERFALL"]
+        excluded.add("WATERFALL")
+    if not funnel_pack_enabled():
+        excluded.add("FUNNEL")
+    if excluded:
+        catalog["components"] = [item for item in catalog["components"] if item["kind"] not in excluded]
     return catalog
 
 
@@ -51,7 +57,8 @@ def board_generation_context(store, actor, session_id, *, offset=0, board_store=
                 ["WATERFALL"] if waterfall_pack_enabled()
                 and getattr(result.facts, "channel_bridge", None) is not None
                 and result.facts.channel_bridge.status == "AVAILABLE" else []) + (
-                ["FUNNEL"] if getattr(result.facts, "current_purchase_frequency", None) is not None
+                ["FUNNEL"] if funnel_pack_enabled()
+                and getattr(result.facts, "current_purchase_frequency", None) is not None
                 and result.facts.current_purchase_frequency.status == "AVAILABLE" else []),
         } for result in results],
         "constraints": ["TEXT 是说明文本，不是核验数字。",
@@ -99,7 +106,7 @@ def computed_board_resolver(store):
         daily = getattr(facts, "current_daily", None)
         bridge = getattr(facts, "channel_bridge", None)
         frequency = getattr(facts, "current_purchase_frequency", None)
-        if frequency is not None and frequency.status == "AVAILABLE":
+        if funnel_pack_enabled() and frequency is not None and frequency.status == "AVAILABLE":
             normalized["funnel"] = {
                 "unit": "人",
                 "cohort_label": f"本期购买客户 · {facts.current.requested_period.start_date}–{facts.current.through_date}",

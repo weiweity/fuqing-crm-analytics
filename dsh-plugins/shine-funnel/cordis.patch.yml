@@ -1,0 +1,4 @@
+# FUNNEL catalog/render offer. Omit this bundle to drop the kind from GENERATE.
+- insert:
+    - id: shine-funnel-ui
+      name: '@shine-mage/dsh-shine-funnel'

@@ -4,7 +4,7 @@
 import { componentDefinition, isPlainObject, parseComponentProps } from './component-catalog.mjs';
 import { timelineGeometry } from './structured-content.mjs';
 import { waterfallGeometry } from '../../../shine-waterfall/src/waterfall.mjs';
-import { funnelGeometry } from './funnel.mjs';
+import { funnelGeometry } from '../../../shine-funnel/src/funnel.mjs';
 
 export const COMPONENT_FACTS_VERSION = 'board-component-facts/v1';
 const number = value => typeof value === 'number' && Number.isFinite(value);

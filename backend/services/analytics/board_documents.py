@@ -26,6 +26,7 @@ from backend.contracts.analytics_query import canonical_json
 from backend.contracts.competition_computed import DATA_SCOPE
 from backend.services.analytics.access import AnalyticsError, AnalyticsPrincipal, require
 from backend.services.analytics.waterfall_pack import waterfall_pack_enabled
+from backend.services.analytics.funnel_pack import funnel_pack_enabled
 from backend.services.analytics.first_purchase.asset_state import (
     connect, initialize_sqlite, now_ms, opaque, transaction, validate_key,
 )
@@ -283,6 +284,8 @@ class BoardDocumentStore:
                 continue
             data = facts[block.source_result_id]
             if block.kind == "FUNNEL":
+                if not funnel_pack_enabled():
+                    raise AnalyticsError(422, "COMPONENT_UNSUPPORTED", "漏斗包未安装，不能生成或保存 FUNNEL 块。")
                 try:
                     FunnelFacts.model_validate(data.get("funnel"))
                 except (ValidationError, ValueError, TypeError) as error:
