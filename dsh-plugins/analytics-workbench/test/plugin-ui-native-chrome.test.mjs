@@ -48,12 +48,18 @@ test('plugin registers additive business keys and does not occupy native tool na
   assert.doesNotMatch(indexSource, /name: 'conversation'(?![\w.])/);
 });
 
-test('account chrome does not paint the conversation white or hijack the hero row', () => {
-  assert.doesNotMatch(chromeSource, /\[class\*="centerCol"\]/);
-  assert.doesNotMatch(chromeSource, /:has\(> \[class\*="sidebarCol"\]\)/);
+test('account chrome frosts the sidebar against a tinted frame and paints chat white', () => {
+  assert.match(chromeSource, /:has\(> \[class\*="sidebarCol"\]\) \{/);
+  assert.match(chromeSource, /background: #DCDCE1;/);
+  assert.match(chromeSource, /rgba\(255, 255, 255, 0\.28\)/);
+  assert.match(chromeSource, /backdrop-filter: blur\(40px\) saturate\(1\.15\)/);
+  assert.match(chromeSource, /\[class\*="centerCol"\] \{/);
+  assert.match(chromeSource, /--dsw-alias-bg-base: #fff;/);
+  assert.match(chromeSource, /rgba\(255, 255, 255, 0\.10\)/);
+  assert.doesNotMatch(chromeSource, /#e8dff4|#EFEAF6|#cbb8e4|#805D9D/);
+  assert.doesNotMatch(chromeSource, /\[class\*="frame"\]/);
   assert.doesNotMatch(chromeSource, /isolation: isolate/);
   assert.doesNotMatch(chromeSource, /\[class\*="sidebarCol"\]::before/);
-  assert.match(chromeSource, /rgba\(255, 255, 255, 0\.15\)/);
   assert.match(chromeSource, /停止生成/);
   assert.match(chromeSource, /Stop generating/);
   assert.match(chromeSource, /requestAnimationFrame/);

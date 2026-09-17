@@ -30,7 +30,7 @@ test('brand tokens follow DESIGN.md and keep original asset URLs', async () => {
   const tokens = await source('tokens.ts');
   assert.match(tokens, /#09050D/);
   assert.match(tokens, /#805D9D/);
-  assert.match(tokens, /rgba\(255, 255, 255, 0\.15\)/);
+  assert.match(tokens, /rgba\(255, 255, 255, 0\.10\)/);
   assert.match(tokens, /#D3C3E8/);
   assert.match(tokens, /#F2FFDC/);
   assert.match(tokens, /#FEFCFF/);

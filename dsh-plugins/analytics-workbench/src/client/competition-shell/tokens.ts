@@ -200,7 +200,7 @@ export const nativeBrandTokens = Object.freeze(Object.fromEntries(Object.entries
   '--dsw-alias-label-primary': ['#111111', '#F6F3F8'],
   '--dsw-alias-label-secondary': ['#2A2A32', '#DDD6E6'],
   '--dsw-alias-state-error-primary': [lightColor.danger, competitionColor.danger],
-  '--dsw-specific-sidebar-fill': ['rgba(255, 255, 255, 0.15)', 'rgba(16, 14, 22, 0.42)'],
+  '--dsw-specific-sidebar-fill': ['rgba(255, 255, 255, 0.10)', 'rgba(16, 14, 22, 0.18)'],
   '--dsw-alias-bg-overlay': ['rgba(255, 255, 255, 0.28)', 'rgba(18, 13, 29, 0.55)'],
   '--dsw-font-family': [competitionFont.body, competitionFont.body],
   '--ds-font-family-code': [competitionFont.mono, competitionFont.mono],

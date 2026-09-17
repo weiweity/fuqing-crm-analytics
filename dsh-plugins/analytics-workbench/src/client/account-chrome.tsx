@@ -41,10 +41,24 @@ const accountCss = `
   overflow:hidden !important; clip:rect(0,0,0,0) !important;
 }
 [class*="footerActions"] { display:flex; flex-direction:row; align-items:center; gap:8px; }
+html, body { min-height: 100%; background: #DCDCE1; }
+:has(> [class*="sidebarCol"]) {
+  background: rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(40px) saturate(1.15);
+  -webkit-backdrop-filter: blur(40px) saturate(1.15);
+}
+[class*="centerCol"] {
+  background: #fff !important;
+  --dsw-alias-bg-base: #fff;
+}
+[class*="centerCol"] [data-conversation-scroll],
+[class*="centerCol"] [data-composer-seat] { background: #fff; }
 [class*="sidebarCol"] {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
   color: #111111;
   -webkit-font-smoothing: antialiased;
+  border-right: 0.5px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 button[aria-label="发送消息"],
 button[aria-label="排队发送"],
@@ -72,10 +86,25 @@ button[aria-label="Stop conversation"]:hover:not(:disabled) {
   filter: brightness(1.08);
 }
 [class*="sidebarCol"] { font-weight: 500; }
+html[data-ds-dark-theme], html[data-ds-dark-theme] body,
+body[data-ds-dark-theme] { background: #2C2C2E; }
+html[data-ds-dark-theme] :has(> [class*="sidebarCol"]),
+body[data-ds-dark-theme] :has(> [class*="sidebarCol"]) { background: rgba(255, 255, 255, 0.06) !important; }
+html[data-ds-dark-theme] [class*="centerCol"],
+body[data-ds-dark-theme] [class*="centerCol"] {
+  background: #120D1D !important;
+  --dsw-alias-bg-base: #120D1D;
+}
+html[data-ds-dark-theme] [class*="centerCol"] [data-conversation-scroll],
+html[data-ds-dark-theme] [class*="centerCol"] [data-composer-seat],
+body[data-ds-dark-theme] [class*="centerCol"] [data-conversation-scroll],
+body[data-ds-dark-theme] [class*="centerCol"] [data-composer-seat] { background: #120D1D; }
 html[data-ds-dark-theme] [class*="sidebarCol"],
 body[data-ds-dark-theme] [class*="sidebarCol"] {
-  background: rgba(16, 14, 22, 0.42) !important;
+  background: rgba(16, 14, 22, 0.18) !important;
   color: #F6F3F8;
+  border-right-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .sm-login {
   display:flex; align-items:center; justify-content:flex-start; gap:8px; box-sizing:border-box;
