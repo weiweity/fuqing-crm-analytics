@@ -150,11 +150,14 @@ print('B0 exact Python closure verified')
   }
   run(process.execPath, ['--test', ...competitionTests], root, { B0_BUILD_UPSTREAM: upstream });
 
-  const clean = await mkdtemp(join(b0, 'clean-build-'));
+  const cleanRoot = await mkdtemp(join(b0, 'clean-build-'));
+  const clean = join(cleanRoot, 'analytics-workbench');
   // No source symlinks or existing output/node_modules in the clean copy.
+  // shine-waterfall sits next to workbench so `../../../shine-waterfall` resolves.
   for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'first-purchase-query-skill-package.lock.json', 'skills', 'src', 'test']) {
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
+  await cp(join(shineWaterfall, 'src'), join(cleanRoot, 'shine-waterfall', 'src'), { recursive: true, errorOnExist: true, force: false, dereference: true });
   await mkdir(join(clean, 'build-tools'));
   for (const item of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches']) {
     await cp(join(buildTools, item), join(clean, 'build-tools', item), { recursive: true });
