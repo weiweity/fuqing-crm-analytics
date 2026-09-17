@@ -4,7 +4,15 @@ from backend.contracts.board_spec import CATALOG
 from backend.contracts.competition_computed import DATA_SCOPE
 from backend.services.analytics.access import AnalyticsError, require
 from backend.services.analytics.board_documents import ResolvedBoardFacts, fault
+from backend.services.analytics.waterfall_pack import waterfall_pack_enabled
 from backend.services.analytics.first_purchase.asset_state import opaque
+
+
+def _catalog():
+    catalog = deepcopy(CATALOG)
+    if not waterfall_pack_enabled():
+        catalog["components"] = [item for item in catalog["components"] if item["kind"] != "WATERFALL"]
+    return catalog
 
 
 def _saved_boards_section(board_store, actor, session_id):
@@ -28,7 +36,7 @@ def board_generation_context(store, actor, session_id, *, offset=0, board_store=
     results, has_more = store.list_session_results(actor, session_id, offset=offset)
     return {
         "schema_version": "board-generation-context/v1", "session_id": session_id,
-        "catalog": deepcopy(CATALOG), "has_more": has_more,
+        "catalog": _catalog(), "has_more": has_more,
         "next_offset": offset + len(results) if has_more else None,
         **_saved_boards_section(board_store, actor, session_id),
         "results": [{
@@ -40,7 +48,8 @@ def board_generation_context(store, actor, session_id, *, offset=0, board_store=
             "supported_components": ["METRIC", "BAR", "TABLE", "EVIDENCE"] + (
                 ["LINE"] if getattr(result.facts, "current_daily", None) is not None
                 and result.facts.current_daily.status == "AVAILABLE" else []) + (
-                ["WATERFALL"] if getattr(result.facts, "channel_bridge", None) is not None
+                ["WATERFALL"] if waterfall_pack_enabled()
+                and getattr(result.facts, "channel_bridge", None) is not None
                 and result.facts.channel_bridge.status == "AVAILABLE" else []) + (
                 ["FUNNEL"] if getattr(result.facts, "current_purchase_frequency", None) is not None
                 and result.facts.current_purchase_frequency.status == "AVAILABLE" else []),
@@ -103,7 +112,7 @@ def computed_board_resolver(store):
             "未记录（旧结果）；需要重新问数" if frequency is None else
             "同一购买人群的嵌套去重计数，非访客转化或历史首购" if frequency.status == "AVAILABLE" else
             "不可用：" + frequency.unavailable_reason)})
-        if bridge is not None and bridge.status == "AVAILABLE":
+        if waterfall_pack_enabled() and bridge is not None and bridge.status == "AVAILABLE":
             normalized["waterfall"] = {
                 "unit": unit, "start": {"label": "对比期 GSV", "value": comparison},
                 "end": {"label": "本期 GSV", "value": current},

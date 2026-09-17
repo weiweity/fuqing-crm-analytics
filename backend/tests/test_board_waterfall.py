@@ -148,7 +148,7 @@ def test_unknown_unit_or_legacy_result_does_not_offer_waterfall(tmp_path):
 
 def test_shared_numeric_geometry_contract():
     cases = json.loads((Path(__file__).resolve().parents[2] /
-        "dsh-plugins/analytics-workbench/tests/waterfall-cases.json").read_text())
+        "dsh-plugins/shine-waterfall/tests/waterfall-cases.json").read_text())
     for case in cases:
         if case["valid"]:
             WaterfallFacts.model_validate(case["data"])

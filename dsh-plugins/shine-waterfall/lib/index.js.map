@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/index.ts"],
+  "sourcesContent": ["/** Host entry: client overlay is discovered from package.json. */\nexport const name = 'shine-waterfall-ui';\nexport const inject = [];\n\nexport function apply(): void {}\n"],
+  "mappings": "AACO,IAAM,KAAO,qBACb,IAAM,OAAS,CAAC,EAEhB,SAAS,OAAc,CAAC",
+  "names": []
+}

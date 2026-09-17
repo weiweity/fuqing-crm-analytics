@@ -4,7 +4,7 @@
 
 当前不是这样。`dsh-plugins/analytics-workbench` 是一个大包；存板／422／问数在 `backend/`；比赛看板在 `frontend-vue3`。卸伸美包只回到官方 DSH web 壳。
 
-本文件定边界。品牌覆盖已拆成 `@shine-mage/dsh-shine-brand`（`dsh-plugins/shine-brand`）。其余包未迁。
+本文件定边界。品牌覆盖已拆成 `@shine-mage/dsh-shine-brand`。WATERFALL 已拆成 `@shine-mage/dsh-shine-waterfall`。其余包未迁。
 
 ## 卸不掉的内核（不是功能包）
 
@@ -25,7 +25,7 @@
 | 包（拟名） | 现在散落 | 卸掉应消失 | 建议顺序 |
 |---|---|---|---|
 | **品牌覆盖** | `@shine-mage/dsh-shine-brand`：标题／欢迎语／favicon／侧栏名。静态资源仍是 overlay `analytics-dev-brand-assets`。驾驶舱内 h2／logo mark 仍在 workbench | 卸 `shine-brand-ui` 后文档标题与侧栏名回官方；资源行仍可单独在 overlay | 1 已拆包 |
-| **WATERFALL** | `board-spec/waterfall.*`、catalog WATERFALL、`backend/.../computed.py` 的 `channel_bridge`、`MONEY_UNIT_UNKNOWN` 422 | 目录项、渲染、未知单位失败合同 | 2（合同岛，测试已独立） |
+| **WATERFALL** | `@shine-mage/dsh-shine-waterfall`：几何、目录供给、`SHINE_WATERFALL` 门控。`channel_bridge` 计算仍在 FastAPI GSV v5。画布几何仍随 workbench bundle | 卸 `shine-waterfall-ui` 后 GENERATE／目录不再提供 WATERFALL；`--waterfall off` 时未知单位不再作为瀑布供给。已存块仍能解析 | 2 已拆包 |
 | **FUNNEL** | `board-spec/funnel.*`、catalog FUNNEL、首购相关供给 | 漏斗块与对应问数形状 | 3 |
 | **人群行动** | `client/competition-actions`、#166 入口 | 6677 内打开人群行动 | 4 |
 | **问数／诊断** | `query-tool.ts`、`first-purchase-query-tool.ts`、`skills/*`、`competition-agent`、FastAPI 诊断／GSV／RFM | 会话里的问数工具与结果 | 5 |
@@ -36,7 +36,7 @@
 
 ## 卸载机制（目标 vs 现在）
 
-现在：`--plugin on` 默认 `dsh plugin add` 仓库内 `@shine-mage/dsh-shine-brand`（`dsh-plugins/shine-brand`，不跟 `--plugin-path` 兄弟目录）再装 workbench。`--shine-brand off` 只装 workbench，并 disable 残留 `shine-brand-ui`。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 同时禁用两个 UI id。另有 `DSH_ANALYTICS_UI_ONLY`、`COMPETITION_HTTP_*`。
+现在：`--plugin on` 默认 `dsh plugin add` 仓库内 shine-brand、shine-waterfall，再装 workbench（都不跟 `--plugin-path` 兄弟目录）。`--shine-brand off`／`--waterfall off` 可单独卸对应包。overlay 仍只插 `analytics-dev-brand-assets`。`--plugin off` 同时禁用三个 UI id。另有 `DSH_ANALYTICS_UI_ONLY`、`COMPETITION_HTTP_*`、`SHINE_WATERFALL`。
 
 目标：`scripts/dsh-dev/overlay`（或 profile bundles）里 **每包一行**。不写那一行 = 未安装。对应 FastAPI 路由随包注册，不进总 `main.py` 默认全集。
 
@@ -53,7 +53,7 @@
 
 1. 本清单（本文）。
 2. 品牌覆盖 `@shine-mage/dsh-shine-brand`（已拆；默认随 `--plugin on` 安装，`--shine-brand off` 可单独卸）。
-3. WATERFALL 包（带着 422 合同和测试一起走）。
+3. WATERFALL 包 `@shine-mage/dsh-shine-waterfall`（已拆；默认随 `--plugin on` 安装，`--waterfall off` 可单独卸）。
 4. 人群行动。
 5. 问数 vs 组板拆开。
 6. 比赛看板是否进 DSH 组合，另议。

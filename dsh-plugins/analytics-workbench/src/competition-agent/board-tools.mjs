@@ -1,5 +1,6 @@
 /** Native model surface: catalogue and draft only. No confirm/delete/HTTP passthrough. */
 import { COMPONENT_CATALOG, LIBRARY_KINDS, isPlainObject, parseComponentProps, parseComponentLayout } from '../board-spec/component-catalog.mjs';
+import { catalogKinds } from '../board-spec/waterfall-pack.mjs';
 import { overlaps } from '../board-spec/grid-layout.mjs';
 import { boardServerRequest } from '../board-spec/server-http.mjs';
 import { boardPreview, boardEditContext } from '../board-spec/receipt.mjs';
@@ -45,7 +46,7 @@ function generationError(args) {
     }
     if (seen.has(block.block_id)) return fail('INVALID_REQUEST', `${at}.block_id 重复；请使用唯一标识。`);
     seen.add(block.block_id);
-    if (!LIBRARY_KINDS.includes(block.kind)) return fail('COMPONENT_UNSUPPORTED', `${at}.kind 不在当前组件目录中。`);
+    if (!catalogKinds(LIBRARY_KINDS).includes(block.kind)) return fail('COMPONENT_UNSUPPORTED', `${at}.kind 不在当前组件目录中。`);
     if (block.library_version !== undefined && block.library_version !== COMPONENT_CATALOG.library_version) {
       return fail('COMPONENT_VERSION', `${at}.library_version 须为 ${COMPONENT_CATALOG.library_version}。`);
     }
@@ -69,7 +70,7 @@ export const BOARD_TOOL_PARAMETERS = Object.freeze({
       type: 'object', additionalProperties: false, properties: {
         block_id: { type: 'string', required: true, description: 'Unique stable local block identifier.' },
         title: { type: 'string', required: true },
-        kind: { type: 'string', enum: [...LIBRARY_KINDS], required: true },
+        kind: { type: 'string', enum: [...catalogKinds(LIBRARY_KINDS)], required: true },
         library_version: { type: 'string', const: COMPONENT_CATALOG.library_version, required: true },
         source_result_id: { type: 'string', description: 'Exact current-session result_id when catalogue requires_result=true; never a run_id. PROCESS/TIMELINE forbid result IDs and are unverified planning content.' },
         props: { type: 'object', additionalProperties: true,
@@ -84,7 +85,7 @@ export const BOARD_TOOL_PARAMETERS = Object.freeze({
   [BOARD_EDIT_TOOL_NAME]: {
     edit_context_id: { type: 'string', required: true },
     changes: { type: 'object', required: true, additionalProperties: false, properties: {
-      title: { type: 'string' }, kind: { type: 'string', enum: [...LIBRARY_KINDS] },
+      title: { type: 'string' }, kind: { type: 'string', enum: [...catalogKinds(LIBRARY_KINDS)] },
       props: { type: 'object', additionalProperties: true, description: 'Partial registered display properties only. No facts, scripts, CSS or filters.' },
       layout: { type: 'object', additionalProperties: false, properties: layout.properties, description: layout.description },
       source_result_id: { type: 'string', description: 'For a data change, exact matching result from a controlled query in this native session. Reuse existing result for display-only edits.' },

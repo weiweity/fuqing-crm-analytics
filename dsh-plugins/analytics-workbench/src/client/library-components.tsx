@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ComponentSeries, ComponentTable, ComponentView, WaterfallContent, FunnelContent } from '../board-spec/component-view.mjs';
-import { waterfallGeometry } from '../board-spec/waterfall.mjs';
+import { waterfallGeometry } from '../../../shine-waterfall/src/waterfall.mjs';
 import { funnelGeometry } from '../board-spec/funnel.mjs';
 import { ProcessDiagram, TimelineDiagram, libraryDiagramCss } from './library-diagrams.tsx';
 

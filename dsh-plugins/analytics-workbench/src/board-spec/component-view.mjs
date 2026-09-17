@@ -3,7 +3,7 @@
  */
 import { componentDefinition, isPlainObject, parseComponentProps } from './component-catalog.mjs';
 import { timelineGeometry } from './structured-content.mjs';
-import { waterfallGeometry } from './waterfall.mjs';
+import { waterfallGeometry } from '../../../shine-waterfall/src/waterfall.mjs';
 import { funnelGeometry } from './funnel.mjs';
 
 export const COMPONENT_FACTS_VERSION = 'board-component-facts/v1';

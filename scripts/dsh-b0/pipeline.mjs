@@ -13,6 +13,7 @@ import { packageManagerEnv } from './package-manager-env.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const plugin = join(root, 'dsh-plugins/analytics-workbench');
 const shineBrand = join(root, 'dsh-plugins/shine-brand');
+const shineWaterfall = join(root, 'dsh-plugins/shine-waterfall');
 const b0 = join(root, '.context/dsh-b0');
 const buildTools = join(plugin, 'build-tools');
 const [mode, pythonFlag, python, ...extra] = process.argv.slice(2);
@@ -131,9 +132,13 @@ print('B0 exact Python closure verified')
     'scripts/dsh-b0/asset-routes.test.mjs']);
   run(process.execPath, [join(plugin, 'build.mjs'), upstream]);
   run(process.execPath, [join(shineBrand, 'build.mjs'), upstream]);
+  run(process.execPath, [join(shineWaterfall, 'build.mjs'), upstream]);
   run(process.execPath, ['--test',
     join(shineBrand, 'src/brand-surface.test.mjs'),
     join(shineBrand, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
+  run(process.execPath, ['--test',
+    join(shineWaterfall, 'src/waterfall.test.mjs'),
+    join(shineWaterfall, 'src/client-lifecycle.test.mjs')], root, { B0_BUILD_UPSTREAM: upstream });
   run(process.execPath, ['--test', ...builtTests.map(file => join(plugin, 'test', file))], root, { B0_BUILD_UPSTREAM: upstream });
 
   const competitionTests = [];
@@ -145,11 +150,14 @@ print('B0 exact Python closure verified')
   }
   run(process.execPath, ['--test', ...competitionTests], root, { B0_BUILD_UPSTREAM: upstream });
 
-  const clean = await mkdtemp(join(b0, 'clean-build-'));
+  const cleanRoot = await mkdtemp(join(b0, 'clean-build-'));
+  const clean = join(cleanRoot, 'analytics-workbench');
   // No source symlinks or existing output/node_modules in the clean copy.
+  // shine-waterfall sits next to workbench so `../../../shine-waterfall` resolves.
   for (const item of ['package.json', 'toolchain.json', 'toolchain.mjs', 'build.mjs', 'pack-skills.mjs', 'skill-package.lock.json', 'query-skill-package.lock.json', 'first-purchase-query-skill-package.lock.json', 'skills', 'src', 'test']) {
     await cp(join(plugin, item), join(clean, item), { recursive: true, errorOnExist: true, force: false, dereference: true });
   }
+  await cp(join(shineWaterfall, 'src'), join(cleanRoot, 'shine-waterfall', 'src'), { recursive: true, errorOnExist: true, force: false, dereference: true });
   await mkdir(join(clean, 'build-tools'));
   for (const item of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches']) {
     await cp(join(buildTools, item), join(clean, 'build-tools', item), { recursive: true });

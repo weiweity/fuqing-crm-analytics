@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+## [0.9.0.4]
+
+- 功能包：WATERFALL 拆到 `@shine-mage/dsh-shine-waterfall`。`--plugin on` 默认安装仓库内瀑布包；`--waterfall off` 目录／GENERATE 不再提供 WATERFALL，未知单位不再作为瀑布供给。`channel_bridge` 仍在 GSV v5 事实里。几何仍随 workbench bundle。不改 DSH 上游。不上公网。
 - 入会趋势 daily-trend：兼容 DuckDB TIMESTAMP 日期，避免 `strptime %Y-%m-%d` 500。品类复购周期 / 流转矩阵 / 派样明细（含单品归类）展示走 display_name。不另升版本。
 - 账本：功能包清单见 [FEATURE-PACKAGES](docs/hackathon/FEATURE-PACKAGES.md)。品牌包已合 #194 `58031913`。其余未迁。不上公网。
 - 账本：STATUS origin/main 对齐 `#194` `58031913`。合入后指针会再差本 PR 一拍。不上公网。
