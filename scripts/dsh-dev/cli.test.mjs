@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import {
   B0_DEMO_DISABLE_IDS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, FOREIGN_PORTS,
-  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID,
+  PINNED_SHA, PLUGIN_UI_ID, PORT_RANGE, PORTS, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID,
 } from './constants.mjs';
 import { findReadyUrl, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, pluginEnabled, pluginRowState } from './overlay.mjs';
-import { defaultShineBrandPath, defaultShineWaterfallPath } from './paths.mjs';
+import { assertNoB0Disables, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, buildShineCrowdActionDisable, pluginEnabled, pluginRowState } from './overlay.mjs';
+import { defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath } from './paths.mjs';
 import { assertOwnedHost, assertOwnedPort } from './ports.mjs';
-import { isolatedEnv, parseServeArgs, profileInstallPaths, profilePluginAddArgs, resolveShineBrandPath, resolveShineWaterfallPath } from './serve.mjs';
+import { isolatedEnv, parseServeArgs, profileInstallPaths, profilePluginAddArgs, resolveShineBrandPath, resolveShineWaterfallPath, resolveShineCrowdActionPath } from './serve.mjs';
 
 test('isolated launch accepts an explicit public CA bundle without forwarding keys or TLS bypass', () => {
   const additions = {
@@ -76,13 +76,17 @@ test('shine-brand path is the repo package, not a sibling of --plugin-path', () 
   );
 });
 
-test('plugin-on install order is shine-brand then waterfall then workbench', () => {
+test('plugin-on install order is shine-brand then waterfall then crowd-action then workbench', () => {
   const workbench = '/abs/dsh-plugins/analytics-workbench';
   const brand = defaultShineBrandPath();
   const waterfall = defaultShineWaterfallPath();
-  assert.deepEqual(profileInstallPaths({ pluginPath: workbench, shineBrandPath: brand, shineWaterfallPath: waterfall }),
-    [brand, waterfall, workbench]);
-  assert.deepEqual(profileInstallPaths({ pluginPath: workbench, shineBrandPath: null, shineWaterfallPath: null }), [workbench]);
+  const crowd = defaultShineCrowdActionPath();
+  assert.deepEqual(profileInstallPaths({
+    pluginPath: workbench, shineBrandPath: brand, shineWaterfallPath: waterfall, shineCrowdActionPath: crowd,
+  }), [brand, waterfall, crowd, workbench]);
+  assert.deepEqual(profileInstallPaths({
+    pluginPath: workbench, shineBrandPath: null, shineWaterfallPath: null, shineCrowdActionPath: null,
+  }), [workbench]);
 });
 
 test('waterfall path is the repo package, not a sibling of --plugin-path', () => {
@@ -95,12 +99,23 @@ test('waterfall path is the repo package, not a sibling of --plugin-path', () =>
   assert.equal(resolveShineWaterfallPath({ plugin: 'off', shineWaterfall: 'on' }), null);
 });
 
+test('crowd-action path is the repo package, not a sibling of --plugin-path', () => {
+  const isolatedWorkbench = '/tmp/clean-build-workbench';
+  assert.equal(
+    resolveShineCrowdActionPath({ plugin: 'on', shineCrowdAction: 'on', pluginPath: isolatedWorkbench }),
+    defaultShineCrowdActionPath(),
+  );
+  assert.equal(resolveShineCrowdActionPath({ plugin: 'on', shineCrowdAction: 'off', pluginPath: isolatedWorkbench }), null);
+  assert.equal(resolveShineCrowdActionPath({ plugin: 'off', shineCrowdAction: 'on' }), null);
+});
+
 test('plugin-off layer disables the installed bundle and never touches native rows', () => {
   const patch = buildPluginDisable();
   assert.deepEqual(patch, [
     { id: PLUGIN_UI_ID, disabled: true },
     { id: SHINE_BRAND_UI_ID, disabled: true },
     { id: SHINE_WATERFALL_UI_ID, disabled: true },
+    { id: SHINE_CROWD_ACTION_UI_ID, disabled: true },
   ]);
   assertNoB0Disables(patch);
 });
@@ -115,6 +130,13 @@ test('shine-brand-off overlay disables leftover brand without touching workbench
 test('waterfall-off overlay disables leftover waterfall without touching workbench', () => {
   const patch = buildShineWaterfallDisable();
   assert.deepEqual(patch, [{ id: SHINE_WATERFALL_UI_ID, disabled: true }]);
+  assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
+  assertNoB0Disables(patch);
+});
+
+test('crowd-action-off overlay disables leftover crowd-action without touching workbench', () => {
+  const patch = buildShineCrowdActionDisable();
+  assert.deepEqual(patch, [{ id: SHINE_CROWD_ACTION_UI_ID, disabled: true }]);
   assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
   assertNoB0Disables(patch);
 });
@@ -169,6 +191,9 @@ test('serve args pin loopback and refuse foreign ports', () => {
   assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineWaterfall, 'on');
   assert.equal(parseServeArgs(['--plugin', 'on', '--waterfall', 'off', '--web-port', '6677']).shineWaterfall, 'off');
   assert.throws(() => parseServeArgs(['--plugin', 'on', '--waterfall', 'off', '--waterfall-path', '/abs/shine-waterfall']));
+  assert.equal(parseServeArgs(['--plugin', 'on', '--web-port', '6677']).shineCrowdAction, 'on');
+  assert.equal(parseServeArgs(['--plugin', 'on', '--crowd-action', 'off', '--web-port', '6677']).shineCrowdAction, 'off');
+  assert.throws(() => parseServeArgs(['--plugin', 'on', '--crowd-action', 'off', '--crowd-action-path', '/abs/shine-crowd-action']));
   assert.throws(() => parseServeArgs(['--web-port', '4317']));
   assert.throws(() => parseServeArgs(['--web-port', '15173']));
   assert.throws(() => parseServeArgs(['--host', '0.0.0.0']));
@@ -191,7 +216,7 @@ test('pinned SHA matches toolchain contract constant', () => {
 
 
 test('value-taking flags cannot silently fall back after a missing argument', () => {
-  for (const flag of ['--upstream', '--plugin-path', '--shine-brand', '--shine-brand-path', '--waterfall', '--waterfall-path', '--runtime', '--extra-patch', '--web-port']) {
+  for (const flag of ['--upstream', '--plugin-path', '--shine-brand', '--shine-brand-path', '--waterfall', '--waterfall-path', '--crowd-action', '--crowd-action-path', '--runtime', '--extra-patch', '--web-port']) {
     assert.throws(() => parseServeArgs([flag]), /missing value/);
     assert.throws(() => parseServeArgs([flag, '--fresh']), /missing value/);
   }

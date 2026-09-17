@@ -92,6 +92,7 @@ export const NATIVE_WEB_IDS = Object.freeze([
 export const PLUGIN_UI_ID = 'analytics-workbench-ui';
 export const SHINE_BRAND_UI_ID = 'shine-brand-ui';
 export const SHINE_WATERFALL_UI_ID = 'shine-waterfall-ui';
+export const SHINE_CROWD_ACTION_UI_ID = 'shine-crowd-action-ui';
 
 export const API_KEY_ENV = Object.freeze([
   'DEEPSEEK_API_KEY',

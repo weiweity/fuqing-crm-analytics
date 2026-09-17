@@ -12,6 +12,7 @@ import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 import { createHttpBoardTransport } from './competition-board/transport.mjs';
 import { createHttpAudienceTransport } from './competition-actions/transport.mjs';
 import { competitionHttpOptions } from './competition-http.mjs';
+import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
 
 type DashboardDoc = NonNullable<ReturnType<typeof decodeHttpDashboard>>;
 type AnalysisItem = { analysis_id: string; version: number; title: string; observation_days?: number; as_of?: string };
@@ -384,7 +385,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
         <button type="button" aria-pressed={panel === 'board'} data-testid="analytics-asset-board" onClick={event => { event.stopPropagation(); selectPanel('board'); }}>{competitionHttp ? '查询驾驶舱' : '驾驶舱'}</button>
         <button type="button" aria-pressed={panel === 'analyses'} data-testid="analytics-asset-analyses" onClick={event => { event.stopPropagation(); showAnalyses(); }}>已保存分析</button>
         <button type="button" aria-pressed={panel === 'competition-board'} data-testid="analytics-competition-board" onClick={event => { event.stopPropagation(); selectPanel('competition-board'); }}>认可成板</button>
-        <button type="button" aria-pressed={panel === 'competition-actions'} data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button>
+        {crowdActionPackEnabled() ? <button type="button" aria-pressed={panel === 'competition-actions'} data-testid="analytics-competition-actions" onClick={event => { event.stopPropagation(); selectPanel('competition-actions'); }}>人群行动</button> : null}
       </nav>
       {legacyPanel && <>
         <button type="button" data-testid="analytics-asset-refresh" onClick={() => void refresh()}>重新读取</button>
@@ -397,7 +398,7 @@ export function HttpAssetOverlay(props: OverlayProps) {
           <BoardWorkbench key={openTick} initialPanel={intent === 'generate' ? 'endorse' : (competitionHttp ? 'board' : undefined)} modelAvailable={false} transport={competitionHttp ? createHttpBoardTransport(competitionHttp) : undefined} />
         </OverlayErrorBoundary>
       </section>}
-      {(panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">
+      {crowdActionPackEnabled() && (panel === 'competition-actions' || visited.actions) && <section hidden={panel !== 'competition-actions'} data-panel="competition-actions" data-testid="analytics-competition-actions-view">
         <ActionsWorkbench modelAvailable={false} transport={competitionHttp ? createHttpAudienceTransport(competitionHttp) : undefined} />
       </section>}
       {panel === 'analyses' && <section data-panel="analyses" data-testid="analytics-saved-analysis-view">

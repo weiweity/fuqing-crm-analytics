@@ -6,6 +6,7 @@ import { ThemeProvider } from './competition-shell/index.ts';
 import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { ActionsWorkbench } from './competition-actions/index.ts';
 import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
+import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
 
 const css = `
 .sm-library-workspace { min-width:0; display:flex; flex-direction:column; gap:16px; padding:20px; background:var(--sm-bg); color:var(--sm-ink); font-family:var(--sm-font-body); }
@@ -80,19 +81,20 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
     return () => window.removeEventListener('beforeunload', warn);
   }, [Boolean(state.layoutDraft), Boolean(state.preview), Boolean(state.editContext)]);
   const shown = state.preview?.snapshot ?? state.layoutDraft ?? state.saved;
+  const actionsEnabled = crowdActionPackEnabled();
   return <ThemeProvider colorScheme={colorScheme} className="sm-library-theme">
     <style>{css}</style>
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
       <div className="sm-library-toolbar">
-        <h1 tabIndex={-1} ref={heading}>{panel === 'actions' ? '人群行动' : shown?.spec.title ?? '我的驾驶舱'}</h1>
+        <h1 tabIndex={-1} ref={heading}>{actionsEnabled && panel === 'actions' ? '人群行动' : shown?.spec.title ?? '我的驾驶舱'}</h1>
         <button type="button" onClick={goConversation}>返回原生对话</button>
       </div>
       <nav className="sm-library-nav" aria-label="驾驶舱页面">
         <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
           onClick={() => setPanel('board')}>我的驾驶舱</button>
-        <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
-          onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button>
+        {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
+          onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
       </nav>
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
       {state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
@@ -151,7 +153,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
           onClick={() => { void library.rollback(version.version); }}>预览回退到 v{version.version}</button>)}
       </div> : null}
       </section>
-      {(panel === 'actions' || visitedActions) ? <section hidden={panel !== 'actions'} data-panel="competition-actions"
+      {actionsEnabled && (panel === 'actions' || visitedActions) ? <section hidden={panel !== 'actions'} data-panel="competition-actions"
         data-testid="analytics-competition-actions-view">
         <OverlayErrorBoundary resetKey="library-actions">
           <ActionsWorkbench modelAvailable={false} />

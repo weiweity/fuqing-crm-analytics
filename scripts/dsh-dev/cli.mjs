@@ -6,9 +6,9 @@ import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID } from './constants.mjs';
+import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID } from './constants.mjs';
 import { pluginEnabled, pluginRowState } from './overlay.mjs';
-import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultRuntimeRoot } from './paths.mjs';
+import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultRuntimeRoot } from './paths.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { randomBytes } from 'node:crypto';
 import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
@@ -22,6 +22,8 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --shine-brand-path /absolute/shine-brand
   --waterfall on|off
   --waterfall-path /absolute/shine-waterfall
+  --crowd-action on|off
+  --crowd-action-path /absolute/shine-crowd-action
   --extra-patch /absolute/overlay.yml
   --runtime /absolute/runtime
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
@@ -29,8 +31,8 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --detach          start only
   --fresh           NEW empty runtime (wipes API keys and extra plugins). Daily plugin rebuilds must use reload, not --fresh.
 
---plugin on installs workbench, shine-brand, and shine-waterfall from repo paths (not siblings of --plugin-path). --shine-brand off / --waterfall off keep workbench and disable leftover rows. --plugin off disables all three.
-reload  builds workbench, shine-brand, and shine-waterfall (unless the matching flag is off), restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
+--plugin on installs workbench, shine-brand, shine-waterfall, and shine-crowd-action from repo paths (not siblings of --plugin-path). --shine-brand off / --waterfall off / --crowd-action off keep workbench and disable leftover rows. --plugin off disables all four.
+reload  builds workbench and the enabled feature packs, restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
 
 Node 24 required for check/start/reload. diagnose is read-only: it never binds ports or signals PIDs.
 User demo 127.0.0.1:4327 / 8000 / 5173 must not be stopped or reused.
@@ -80,6 +82,7 @@ async function runCheck(options) {
   const workbench = pluginRowState(dump, PLUGIN_UI_ID);
   const brand = pluginRowState(dump, SHINE_BRAND_UI_ID);
   const waterfall = pluginRowState(dump, SHINE_WATERFALL_UI_ID);
+  const crowd = pluginRowState(dump, SHINE_CROWD_ACTION_UI_ID);
   if (prepared.enabled) {
     assert.equal(workbench.present, true, 'plugin overlay was not composed into dump-config');
     assert.equal(workbench.disabled, false, 'plugin row is disabled while --plugin on');
@@ -95,6 +98,12 @@ async function runCheck(options) {
     } else if (waterfall.present) {
       assert.equal(waterfall.disabled, true, 'shine-waterfall row is still active while --waterfall off');
     }
+    if (prepared.shineCrowdActionPath) {
+      assert.equal(crowd.present, true, 'shine-crowd-action overlay was not composed into dump-config');
+      assert.equal(crowd.disabled, false, 'shine-crowd-action row is disabled while --crowd-action on');
+    } else if (crowd.present) {
+      assert.equal(crowd.disabled, true, 'shine-crowd-action row is still active while --crowd-action off');
+    }
   } else {
     assert.equal(workbench.disabled, true, 'plugin row is still active in a plugin-off dump');
     if (brand.present) {
@@ -102,6 +111,9 @@ async function runCheck(options) {
     }
     if (waterfall.present) {
       assert.equal(waterfall.disabled, true, 'shine-waterfall row is still active in a plugin-off dump');
+    }
+    if (crowd.present) {
+      assert.equal(crowd.disabled, true, 'shine-crowd-action row is still active in a plugin-off dump');
     }
   }
   console.log(`DSH_DEV_CHECK pinned=${prepared.verified.upstream_sha} plugin=${prepared.enabled ? 'on' : 'off'}`);
@@ -163,6 +175,8 @@ function reloadStartArgs(options, runtime) {
   if (options.shineBrandPath) args.push('--shine-brand-path', options.shineBrandPath);
   if (options.shineWaterfall) args.push('--waterfall', options.shineWaterfall);
   if (options.shineWaterfallPath) args.push('--waterfall-path', options.shineWaterfallPath);
+  if (options.shineCrowdAction) args.push('--crowd-action', options.shineCrowdAction);
+  if (options.shineCrowdActionPath) args.push('--crowd-action-path', options.shineCrowdActionPath);
   return args;
 }
 
@@ -175,6 +189,9 @@ async function runReload(options) {
   }
   if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineWaterfall ?? 'on')) {
     buildLocalPlugin(options.shineWaterfallPath ?? defaultShineWaterfallPath());
+  }
+  if (pluginEnabled(options.plugin || 'on') && pluginEnabled(options.shineCrowdAction ?? 'on')) {
+    buildLocalPlugin(options.shineCrowdActionPath ?? defaultShineCrowdActionPath());
   }
   await stopOwned();
   const startId = randomBytes(16).toString('hex');
@@ -216,6 +233,7 @@ async function runStatus() {
   console.log(`DSH_DEV_PLUGIN ${current.pluginEnabled ? current.plugin : 'off'}`);
   console.log(`DSH_DEV_SHINE_BRAND ${current.shineBrand ?? 'off'}`);
   console.log(`DSH_DEV_WATERFALL ${current.shineWaterfall ?? 'off'}`);
+  console.log(`DSH_DEV_CROWD_ACTION ${current.shineCrowdAction ?? 'off'}`);
 }
 
 function isCliEntry() {

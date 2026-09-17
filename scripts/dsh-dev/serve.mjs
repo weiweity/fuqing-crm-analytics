@@ -9,10 +9,10 @@ import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { API_KEY_ENV, FOREIGN_PORTS, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
-import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, pluginEnabled } from './overlay.mjs';
+import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, buildShineCrowdActionDisable, pluginEnabled } from './overlay.mjs';
 import { readToolchain, verifyUpstream } from './pin.mjs';
 import { assertOwnedHost, assertOwnedPort, assertFree } from './ports.mjs';
-import { assertCli, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultRuntimeRoot, ensureDir, repoRoot, resolveUpstream } from './paths.mjs';
+import { assertCli, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultRuntimeRoot, ensureDir, repoRoot, resolveUpstream } from './paths.mjs';
 
 function writeJson(path, value) {
   return writeFile(path, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
@@ -23,6 +23,7 @@ export function parseServeArgs(argv) {
     plugin: 'off',
     shineBrand: 'on',
     shineWaterfall: 'on',
+    shineCrowdAction: 'on',
     host: HOST,
     webPort: PORTS.web,
     detach: false,
@@ -34,7 +35,8 @@ export function parseServeArgs(argv) {
     const flag = args.shift();
     const valueFlags = [
       '--upstream', '--plugin', '--plugin-path', '--shine-brand', '--shine-brand-path',
-      '--waterfall', '--waterfall-path', '--extra-patch', '--runtime', '--web-port', '--host',
+      '--waterfall', '--waterfall-path', '--crowd-action', '--crowd-action-path',
+      '--extra-patch', '--runtime', '--web-port', '--host',
     ];
     if (valueFlags.includes(flag)) assert.ok(args[0] && !args[0].startsWith('--'), `missing value for ${flag}`);
     if (flag === '--upstream') options.upstream = args.shift();
@@ -44,6 +46,8 @@ export function parseServeArgs(argv) {
     else if (flag === '--shine-brand-path') options.shineBrandPath = args.shift();
     else if (flag === '--waterfall') options.shineWaterfall = args.shift();
     else if (flag === '--waterfall-path') options.shineWaterfallPath = args.shift();
+    else if (flag === '--crowd-action') options.shineCrowdAction = args.shift();
+    else if (flag === '--crowd-action-path') options.shineCrowdActionPath = args.shift();
     else if (flag === '--extra-patch') options.extraPatch.push(args.shift());
     else if (flag === '--runtime') options.runtime = args.shift();
     else if (flag === '--web-port') options.webPort = Number(args.shift());
@@ -55,6 +59,7 @@ export function parseServeArgs(argv) {
   assert.ok(options.plugin === 'on' || options.plugin === 'off', 'Usage: --plugin on|off');
   pluginEnabled(options.shineBrand);
   pluginEnabled(options.shineWaterfall);
+  pluginEnabled(options.shineCrowdAction);
   if (options.pluginPath) assert.ok(options.pluginPath.startsWith('/'), '--plugin-path must be an absolute path');
   if (options.shineBrandPath) {
     assert.ok(options.shineBrandPath.startsWith('/'), '--shine-brand-path must be an absolute path');
@@ -63,6 +68,10 @@ export function parseServeArgs(argv) {
   if (options.shineWaterfallPath) {
     assert.ok(options.shineWaterfallPath.startsWith('/'), '--waterfall-path must be an absolute path');
     assert.equal(pluginEnabled(options.shineWaterfall), true, '--waterfall-path requires --waterfall on');
+  }
+  if (options.shineCrowdActionPath) {
+    assert.ok(options.shineCrowdActionPath.startsWith('/'), '--crowd-action-path must be an absolute path');
+    assert.equal(pluginEnabled(options.shineCrowdAction), true, '--crowd-action-path requires --crowd-action on');
   }
   assertOwnedHost(options.host);
   assertOwnedPort(options.webPort);
@@ -85,10 +94,17 @@ export function resolveShineWaterfallPath(options) {
   return options.shineWaterfallPath ?? defaultShineWaterfallPath();
 }
 
+export function resolveShineCrowdActionPath(options) {
+  if (!pluginEnabled(options.plugin)) return null;
+  if (!pluginEnabled(options.shineCrowdAction ?? 'on')) return null;
+  return options.shineCrowdActionPath ?? defaultShineCrowdActionPath();
+}
+
 export function profileInstallPaths(prepared) {
   const paths = [];
   if (prepared.shineBrandPath) paths.push(prepared.shineBrandPath);
   if (prepared.shineWaterfallPath) paths.push(prepared.shineWaterfallPath);
+  if (prepared.shineCrowdActionPath) paths.push(prepared.shineCrowdActionPath);
   if (prepared.pluginPath) paths.push(prepared.pluginPath);
   return paths;
 }
@@ -117,6 +133,7 @@ export function isolatedEnv(runtime, home, extra = {}) {
     ...kept,
     ...competition,
     ...(extra.SHINE_WATERFALL ? { SHINE_WATERFALL: extra.SHINE_WATERFALL } : {}),
+    ...(extra.SHINE_CROWD_ACTION ? { SHINE_CROWD_ACTION: extra.SHINE_CROWD_ACTION } : {}),
     PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
     LANG: kept.LANG ?? 'en_US.UTF-8',
     TZ: kept.TZ ?? 'Asia/Shanghai',
@@ -150,15 +167,19 @@ export async function prepareRuntime(options) {
   const patches = [];
   let shineBrandPath = null;
   let shineWaterfallPath = null;
+  let shineCrowdActionPath = null;
   if (enabled) {
     pluginPath = await assertPluginRoot(options.pluginPath ?? defaultPluginPath());
     const brandCandidate = resolveShineBrandPath({ ...options, plugin: 'on' });
     if (brandCandidate) shineBrandPath = await assertPluginRoot(brandCandidate);
     const waterfallCandidate = resolveShineWaterfallPath({ ...options, plugin: 'on' });
     if (waterfallCandidate) shineWaterfallPath = await assertPluginRoot(waterfallCandidate);
+    const crowdCandidate = resolveShineCrowdActionPath({ ...options, plugin: 'on' });
+    if (crowdCandidate) shineCrowdActionPath = await assertPluginRoot(crowdCandidate);
     let overlay = buildPluginOverlay(pluginPath);
     if (!shineBrandPath) overlay = [...overlay, ...buildShineBrandDisable()];
     if (!shineWaterfallPath) overlay = [...overlay, ...buildShineWaterfallDisable()];
+    if (!shineCrowdActionPath) overlay = [...overlay, ...buildShineCrowdActionDisable()];
     overlayPath = join(runtime, 'plugin.patch.yml');
     await writeJson(overlayPath, overlay);
     patches.push(overlayPath);
@@ -179,7 +200,7 @@ export async function prepareRuntime(options) {
     assertNoB0Disables(composed);
   }
   return {
-    pin, upstream, verified, cli, enabled, pluginPath, shineBrandPath, shineWaterfallPath, overlayPath, patches,
+    pin, upstream, verified, cli, enabled, pluginPath, shineBrandPath, shineWaterfallPath, shineCrowdActionPath, overlayPath, patches,
     runtime, home, workspace, host: options.host, webPort: options.webPort,
   };
 }
@@ -200,6 +221,7 @@ function pluginInstallEnv(runtime, home) {
 function runtimeEnv(prepared) {
   return isolatedEnv(prepared.runtime, prepared.home, {
     SHINE_WATERFALL: prepared.shineWaterfallPath ? 'on' : 'off',
+    SHINE_CROWD_ACTION: prepared.shineCrowdActionPath ? 'on' : 'off',
   });
 }
 
@@ -312,6 +334,7 @@ export async function writeCurrent(state, path = currentPath()) {
     plugin: state.pluginPath,
     shineBrand: state.shineBrandPath ?? null,
     shineWaterfall: state.shineWaterfallPath ?? null,
+    shineCrowdAction: state.shineCrowdActionPath ?? null,
     upstream: state.upstream,
     startId: state.startId ?? null,
     ownedPorts: [PORTS.kernel, PORTS.bridge, PORTS.web, PORTS.gateway, PORTS.mock],
