@@ -2,7 +2,7 @@
 
 ## [0.9.0.8]
 
-- 修复：shine-brand 不再 inject 非插件的 `dsh-client-ui-slots`；`apply` 在 slots 未就绪时不抛，避免 web boot 整段失败、标题和增长句一起消失。不上公网。
+- 修复：shine-brand 客户端导出 `inject = ['slots']`。Cordis 在未声明 inject 时读 `ctx.slots` 会抛 `cannot get property "slots" without inject`，web boot 记成 `: failed`。同时不再打包 JSX／`react/jsx-runtime`。标题覆盖仍走 DOM 观察器；侧栏名以 priority -10 盖过官方 brand-official。不上公网。
 - 账本：比赛看板继续独立 15173，不迁进 DSH。不上公网。
 - 账本：STATUS origin/main 对齐 `#202` `10ef4c10`。合入后指针会再差本 PR 一拍。不上公网。
 
