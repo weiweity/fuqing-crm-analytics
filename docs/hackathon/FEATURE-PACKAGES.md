@@ -4,7 +4,7 @@
 
 当前不是这样。`dsh-plugins/analytics-workbench` 是一个大包；存板／422／问数在 `backend/`；比赛看板在 `frontend-vue3`。卸伸美包只回到官方 DSH web 壳。
 
-本文件定边界。品牌、WATERFALL、FUNNEL、人群行动、问数、组板已拆成独立 Cordis 包。比赛看板未迁。
+本文件定边界。品牌、WATERFALL、FUNNEL、人群行动、问数、组板已拆成独立 Cordis 包。比赛看板保持 `frontend-vue3`／15173 独立进程，不进 DSH。
 
 ## 卸不掉的内核（不是功能包）
 
@@ -30,7 +30,7 @@
 | **人群行动** | `@shine-mage/dsh-shine-crowd-action`：6677 页签入口。`ActionsWorkbench` 仍随 workbench bundle | 卸 `shine-crowd-action-ui` 后驾驶舱不再出现「人群行动」页签 | 4 已拆包 |
 | **问数／诊断** | `@shine-mage/dsh-shine-query`：工具注册门控。实现仍随 workbench；FastAPI 诊断路由默认仍在 | 卸 `shine-query-ui` 后会话不再注册问数／诊断工具 | 5 已拆包 |
 | **驾驶舱组板** | `@shine-mage/dsh-shine-board`：组板工具与「生成驾驶舱」门控。画布仍随 workbench bundle | 卸 `shine-board-ui` 后不再注册组板工具、不出现生成驾驶舱 | 6 已拆包 |
-| **比赛看板** | `frontend-vue3`、15173、品类脱敏 | 页脚「比赛看板」整站 | 7（今天不是 DSH 插件；可继续当独立进程，或做成可选包） |
+| **比赛看板** | `frontend-vue3`、15173、品类脱敏。页脚外链，不进 DSH profile | 停 15173 即整站消失；卸伸美 DSH 包不影响 15173 | 7 已定为独立进程，不迁 |
 
 六类 METRIC／LINE／BAR／TABLE／TEXT／EVIDENCE 与 PROCESS／TIMELINE 先留在 **驾驶舱组板**，不要按组件再切，否则画布合同会碎。
 
@@ -47,7 +47,8 @@
 - 不把旧 Vue 全量 CRM（PAUSED Goal）收进功能包。
 - 不改 DSH 上游。
 - 不把 131GB 归档变成插件资源。
-- 不改 6677。其余包未迁。
+- 不改 6677。
+- 不把比赛看板收进 DSH 组合；继续独立 15173。
 
 ## 迁移顺序
 
@@ -56,4 +57,4 @@
 3. WATERFALL 包 `@shine-mage/dsh-shine-waterfall`（已拆；默认随 `--plugin on` 安装，`--waterfall off` 可单独卸）。
 4. 人群行动 `@shine-mage/dsh-shine-crowd-action`（已拆；默认随 `--plugin on` 安装，`--crowd-action off` 可单独卸）。
 5. 问数 `@shine-mage/dsh-shine-query` 与组板 `@shine-mage/dsh-shine-board`（已拆；`--query off`／`--board off` 可单独卸）。
-6. 比赛看板是否进 DSH 组合，另议。 FUNNEL `@shine-mage/dsh-shine-funnel` 已拆。
+6. 比赛看板继续独立 15173，不进 DSH。FUNNEL `@shine-mage/dsh-shine-funnel` 已拆。
