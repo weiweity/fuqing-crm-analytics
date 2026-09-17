@@ -4,7 +4,7 @@
 
 当前不是这样。`dsh-plugins/analytics-workbench` 是一个大包；存板／422／问数在 `backend/`；比赛看板在 `frontend-vue3`。卸伸美包只回到官方 DSH web 壳。
 
-本文件只定边界和迁移动作。**未迁代码。** 下一刀另授权。
+本文件定边界。品牌覆盖已拆成 `@shine-mage/dsh-shine-brand`（`dsh-plugins/shine-brand`）。其余包未迁。
 
 ## 卸不掉的内核（不是功能包）
 
@@ -24,7 +24,7 @@
 
 | 包（拟名） | 现在散落 | 卸掉应消失 | 建议顺序 |
 |---|---|---|---|
-| **品牌覆盖** | `client/brand-surface`、`client/competition-shell`、`scripts/dsh-dev` overlay 品牌行 | 伸美皮肤，官方壳默认外观 | 1（最小、无 FastAPI） |
+| **品牌覆盖** | `@shine-mage/dsh-shine-brand`：标题／欢迎语／favicon／侧栏名。静态资源仍是 overlay `analytics-dev-brand-assets`。驾驶舱内 h2／logo mark 仍在 workbench | 卸 `shine-brand-ui` 后文档标题与侧栏名回官方；资源行仍可单独在 overlay | 1 已拆包 |
 | **WATERFALL** | `board-spec/waterfall.*`、catalog WATERFALL、`backend/.../computed.py` 的 `channel_bridge`、`MONEY_UNIT_UNKNOWN` 422 | 目录项、渲染、未知单位失败合同 | 2（合同岛，测试已独立） |
 | **FUNNEL** | `board-spec/funnel.*`、catalog FUNNEL、首购相关供给 | 漏斗块与对应问数形状 | 3 |
 | **人群行动** | `client/competition-actions`、#166 入口 | 6677 内打开人群行动 | 4 |
@@ -52,7 +52,7 @@
 ## 迁移顺序
 
 1. 本清单（本文）。
-2. 品牌覆盖单独 bundle 行（行为不变，只改装配）。
+2. 品牌覆盖 `@shine-mage/dsh-shine-brand`（已拆；`--plugin off` 同时禁用）。
 3. WATERFALL 包（带着 422 合同和测试一起走）。
 4. 人群行动。
 5. 问数 vs 组板拆开。

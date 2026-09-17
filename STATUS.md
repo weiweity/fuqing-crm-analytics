@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.2**。origin/main **`bba385a8`**（#192）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.3**。origin/main **`bba385a8`**（#192）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **57925** 已切（原仓 runtime + 原仓 0.9.0.2 journal 插件，未 `--fresh`）。15173 PID **85899**。 |
 | 产品 | 仍 PARTIAL。M2 其余缺口也算关（触控矩阵／下拉不是通过）。Goal 仍 PAUSED。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED。131GB 已只读打开元数据，禁止复制／改写／全表扫描 |

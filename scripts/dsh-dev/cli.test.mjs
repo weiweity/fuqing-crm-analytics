@@ -62,7 +62,10 @@ test('plugin-on install is dsh plugin add of the absolute workbench path', () =>
 
 test('plugin-off layer disables the installed bundle and never touches native rows', () => {
   const patch = buildPluginDisable();
-  assert.deepEqual(patch, [{ id: PLUGIN_UI_ID, disabled: true }]);
+  assert.deepEqual(patch, [
+    { id: PLUGIN_UI_ID, disabled: true },
+    { id: 'shine-brand-ui', disabled: true },
+  ]);
   assertNoB0Disables(patch);
 });
 

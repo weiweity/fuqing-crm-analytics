@@ -108,6 +108,7 @@ export async function prepareRuntime(options) {
   const patches = [];
   if (enabled) {
     pluginPath = await assertPluginRoot(options.pluginPath ?? defaultPluginPath());
+    await assertPluginRoot(join(dirname(pluginPath), 'shine-brand'));
     const overlay = buildPluginOverlay(pluginPath);
     overlayPath = join(runtime, 'plugin.patch.yml');
     await writeJson(overlayPath, overlay);
@@ -153,16 +154,19 @@ function pluginInstallEnv(runtime, home) {
  */
 export function installProfilePlugin(prepared) {
   assert.equal(prepared.enabled, true, 'installProfilePlugin is plugin-on only');
-  const args = profilePluginAddArgs(prepared.cli, prepared.pluginPath).slice(1);
-  const result = spawnSync(process.execPath, [prepared.cli, ...args], {
-    cwd: prepared.workspace,
-    env: pluginInstallEnv(prepared.runtime, prepared.home),
-    encoding: 'utf8',
-    timeout: 180000,
-    maxBuffer: 8 * 1024 * 1024,
-  });
-  const detail = (result.stderr || result.stdout || result.error?.message || '').slice(-2000);
-  assert.ok(!result.error && result.status === 0, `dsh plugin add failed: ${detail}`);
+  const brandPath = join(dirname(prepared.pluginPath), 'shine-brand');
+  for (const pluginPath of [brandPath, prepared.pluginPath]) {
+    const args = profilePluginAddArgs(prepared.cli, pluginPath).slice(1);
+    const result = spawnSync(process.execPath, [prepared.cli, ...args], {
+      cwd: prepared.workspace,
+      env: pluginInstallEnv(prepared.runtime, prepared.home),
+      encoding: 'utf8',
+      timeout: 180000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    const detail = (result.stderr || result.stdout || result.error?.message || '').slice(-2000);
+    assert.ok(!result.error && result.status === 0, `dsh plugin add failed (${pluginPath}): ${detail}`);
+  }
 }
 
 export function dumpConfigArgs(prepared) {

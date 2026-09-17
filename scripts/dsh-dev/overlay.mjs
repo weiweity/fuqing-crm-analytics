@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID } from './constants.mjs';
+import { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID } from './constants.mjs';
 
 export function pluginEnabled(value) {
   if (value === true || value === 'on') return true;
@@ -44,7 +44,10 @@ export function buildPluginOverlay(pluginRoot) {
  * The bundle is a persistent profile layer; dropping the brand overlay is not enough.
  */
 export function buildPluginDisable() {
-  const patch = [{ id: PLUGIN_UI_ID, disabled: true }];
+  const patch = [
+    { id: PLUGIN_UI_ID, disabled: true },
+    { id: SHINE_BRAND_UI_ID, disabled: true },
+  ];
   assertNoB0Disables(patch);
   return patch;
 }
@@ -79,4 +82,4 @@ export function assertNoB0Disables(patch) {
   }
 }
 
-export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID };
+export { B0_DEMO_DISABLE_IDS, PLUGIN_UI_ID, SHINE_BRAND_UI_ID };
