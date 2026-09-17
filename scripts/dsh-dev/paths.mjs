@@ -36,6 +36,10 @@ export function defaultShineWaterfallPath() {
   return join(repoRoot, 'dsh-plugins/shine-waterfall');
 }
 
+export function defaultShineCrowdActionPath() {
+  return join(repoRoot, 'dsh-plugins/shine-crowd-action');
+}
+
 export function contextRoot() {
   return join(repoRoot, '.context/dsh-dev');
 }

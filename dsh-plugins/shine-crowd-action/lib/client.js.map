@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/client.tsx"],
+  "sourcesContent": ["import type { Context } from '@deepseek-ai/dsh-client-core';\n\nexport function apply(_ctx: Context): void {\n  (globalThis as { __SHINE_CROWD_ACTION__?: boolean }).__SHINE_CROWD_ACTION__ = true;\n}\n"],
+  "mappings": ";;4ZAAA,IAAAA,EAAA,GAAAC,EAAAD,EAAA,WAAAE,IAAA,eAAAC,EAAAH,GAEO,SAASE,EAAME,EAAqB,CACxC,WAAoD,uBAAyB,EAChF",
+  "names": ["client_exports", "__export", "apply", "__toCommonJS", "_ctx"]
+}

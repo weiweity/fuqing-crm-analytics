@@ -1,0 +1,4 @@
+# Crowd-action cockpit entry. Omit this bundle to hide 人群行动 in 6677.
+- insert:
+    - id: shine-crowd-action-ui
+      name: '@shine-mage/dsh-shine-crowd-action'

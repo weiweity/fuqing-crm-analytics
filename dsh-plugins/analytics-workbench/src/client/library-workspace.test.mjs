@@ -591,6 +591,8 @@ function visible(el) {
 }
 
 test('native library cockpit opens 人群行动 without the old overlay', async t => {
+  globalThis.__SHINE_CROWD_ACTION__ = true;
+  t.after(() => { delete globalThis.__SHINE_CROWD_ACTION__; });
   const ui = await domFixture(t), snapshot = librarySnapshot(), pending = libraryPreview(snapshot);
   const client = createLibraryBoardClient(async (_channel, operation) => {
     if (operation === 'list') return ok(listOf(snapshot));
@@ -631,4 +633,17 @@ test('native library cockpit opens 人群行动 without the old overlay', async 
   visible(ui.doc.querySelector('[data-testid=library-preview-banner]'));
   assert.ok(ui.doc.querySelector('[data-testid=library-confirm]'));
   assert.equal(ui.doc.querySelector('[data-testid=library-preview-banner]').closest('[data-testid=library-board-view]'), null);
+});
+
+test('crowd-action pack off hides the native 人群行动 entry', async t => {
+  globalThis.__SHINE_CROWD_ACTION__ = false;
+  t.after(() => { delete globalThis.__SHINE_CROWD_ACTION__; });
+  const ui = await domFixture(t), snapshot = librarySnapshot();
+  const client = createLibraryBoardClient(async (_channel, operation) => operation === 'list' ? ok(listOf(snapshot)) : ok(snapshot));
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions-view"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="library-panel-board"]')?.textContent, '我的驾驶舱');
 });
