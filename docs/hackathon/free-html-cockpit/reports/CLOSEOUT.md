@@ -5,7 +5,7 @@
 - 执行者：主协调 Agent
 - 本收尾提示词本身不授权 Git；用户已另授权 P12 本地 commit（`4f076b37` 及本 SHA 回写）。**未 push / 未开 PR / 未 merge / 未删树**
 
-不是 READY_FOR_SHIP：完整 `pipeline.mjs --check` 未跑，真浏览器主链路未跑，C 桥仍声明 mock，P13 真实 AI 未跑，原生侧栏仍不可否决。OCR High（live 静态导入、两套离开提示）已在 `4f076b37` 修好。
+不是 READY_FOR_SHIP：完整 `pipeline.mjs --check` 未跑，headed 生成→绑定→D6/D9 未跑，C 桥仍声明 mock，P13 真实 AI 未跑，原生侧栏仍不可否决。P12 候选已重跑 Chrome T0（1 pass），live 预览已挂 `mountPreviewHost`。
 
 ## 候选
 
@@ -52,7 +52,7 @@
 
 详见 `reports/P12.md`、`reports/P13.md`。
 
-- P12：**PARTIAL**。`4f076b37` 后：free-page 70、页面 pytest 30、离线合同 `86ad3cf4`。pipeline 扫描 67 文件先 454/458，编 `lib/` 且 `PYTHON=python3.14` 后原失败 3 文件 **39 passed**。完整 `pipeline.mjs --check`、Chrome isolation-probe、headed 旅程仍 **NOT_RUN**。
+- P12：**PARTIAL**。`4f076b37` 后：free-page 70、页面 pytest 30、离线合同 `86ad3cf4`。pipeline 扫描 67 文件先 454/458，编 `lib/` 且 `PYTHON=python3.14` 后原失败 3 文件 **39 passed**。Chrome T0 isolation-probe **1 passed**（避开 6677）。live 预览挂 `mountPreviewHost`（jsdom）。完整 `pipeline.mjs --check`、headed 旅程仍 **NOT_RUN**。
 - P13：**BLOCKED**。无本轮真实模型授权；三场景全部 NOT_RUN；未用预制 HTML 代替。
 
 ## 方案覆盖（摘要）

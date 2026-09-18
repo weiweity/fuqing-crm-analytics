@@ -10,6 +10,8 @@ export function mountPreviewHost(root: Element, options?: {
   isolationEvidence?: { cpu_isolation?: string } | null;
   onEvent?: (event: object) => void;
   onError?: (error: object) => void;
+  chrome?: boolean;
+  frameTestId?: string;
 }): {
   loadPackage(pkg: object, version: number): Promise<{ ok: true; instanceId: string; isolation: object } | { ok: false; error: object }>;
   stop(reason?: string): { ok: true };

@@ -4,6 +4,7 @@ import type { CompetitionColorScheme } from '../competition-shell/tokens.ts';
 import { SAMPLE_PROMPTS } from './generate-context.mjs';
 import { bindingLabel, estimateIframeContentWidth, widthBand } from './host-visual.mjs';
 import { createFreeHtmlLibraryStore } from './store.mjs';
+import { mountPreviewHost } from '../../free-page/preview/preview-host.mjs';
 
 type ThemeSource = { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
 type Store = ReturnType<typeof createFreeHtmlLibraryStore>;
@@ -115,10 +116,46 @@ function LibraryHome({ store }: { store: Store }) {
   );
 }
 
+function LivePreviewSlot({
+  pageId, version, pkg, pointerEvents,
+}: {
+  pageId: string;
+  version: number;
+  pkg: { html?: string; css?: string; js?: string; resources?: unknown[] };
+  pointerEvents: string;
+}) {
+  const slot = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<ReturnType<typeof mountPreviewHost> | null>(null);
+  const sourceKey = `${pageId}\0${version}\0${pkg?.html ?? ''}\0${pkg?.css ?? ''}\0${pkg?.js ?? ''}`;
+  useEffect(() => {
+    if (!slot.current) return;
+    const host = mountPreviewHost(slot.current, {
+      pageId,
+      version,
+      savedPackage: pkg,
+      savedVersion: version,
+      chrome: false,
+      frameTestId: 'fhl-iframe',
+    });
+    hostRef.current = host;
+    void host.loadPackage(pkg, version);
+    return () => {
+      host.dispose();
+      hostRef.current = null;
+    };
+  }, [sourceKey, pageId, version, pkg]);
+  useEffect(() => {
+    const iframe = slot.current?.querySelector('iframe');
+    if (iframe) iframe.style.pointerEvents = pointerEvents;
+  });
+  return <div ref={slot} data-testid="fhl-live-preview" />;
+}
+
 function Workspace({ store, goConversation }: { store: Store; goConversation(): void }) {
   const state = store.getSnapshot();
   const layout = store.layout();
   const locatable = state.current?.package.node_map ?? [];
+  const livePkg = state.preview?.snapshot ?? state.current?.package;
   return (
     <section data-testid="fhl-workspace" aria-labelledby="fhl-workspace-title">
       <h2 id="fhl-workspace-title" className="sm-fhl-workspace-heading">页面工作区</h2>
@@ -136,9 +173,11 @@ function Workspace({ store, goConversation }: { store: Store; goConversation(): 
       </div>
       <div className="sm-fhl-workspace">
         <div className="sm-fhl-preview" data-testid="fhl-preview" data-mode={state.mode}>
-          {layout.srcdoc
-            ? <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" srcDoc={layout.srcdoc} sandbox="allow-scripts" style={{ pointerEvents: layout.pointerEvents }} />
-            : <p data-testid="fhl-preview-stopped">预览已停止。宿主入口仍可用。</p>}
+          {layout.srcdoc && state.adapterKind === 'p12-live' && livePkg && state.current
+            ? <LivePreviewSlot pageId={state.current.page_id} version={state.current.version} pkg={livePkg} pointerEvents={layout.pointerEvents} />
+            : layout.srcdoc
+              ? <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" srcDoc={layout.srcdoc} sandbox="allow-scripts" style={{ pointerEvents: layout.pointerEvents }} />
+              : <p data-testid="fhl-preview-stopped">预览已停止。宿主入口仍可用。</p>}
           {state.mode === 'edit' ? <div className="sm-fhl-hit" data-testid="fhl-hit-layer">
             {locatable.map(node => (
               <button type="button" key={node.node_id} data-testid={`fhl-hit-${node.node_id}`}

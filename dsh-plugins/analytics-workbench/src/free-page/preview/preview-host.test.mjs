@@ -87,3 +87,21 @@ test('preview host exposes stop/restart/restore independent of the page iframe',
   assert.match(String(host.isolation().cpuIsolation), /unverified|not a CPU isolation claim|sandbox attributes/i);
   host.dispose();
 });
+
+test('chrome:false keeps MessageChannel iframe and hides host action buttons', async () => {
+  const { root, query } = stubDom();
+  const host = mountPreviewHost(root, {
+    pageId: 'page_fixture_unbound',
+    actorId: 'actor_fixture',
+    chrome: false,
+    frameTestId: 'fhl-iframe',
+  });
+  const loaded = await host.loadPackage(SAVED_COMPLEX_PACKAGE, 1);
+  assert.equal(loaded.ok, true, JSON.stringify(loaded.error));
+  assert.ok(query('[data-testid="fp-preview-host"]'));
+  assert.ok(query('[data-testid="fhl-iframe"]'));
+  assert.equal(query('[data-testid="fp-preview-frame"]'), null);
+  assert.equal(query('[data-testid="fp-stop"]'), null);
+  assert.equal(query('[data-testid="fp-restart"]'), null);
+  host.dispose();
+});

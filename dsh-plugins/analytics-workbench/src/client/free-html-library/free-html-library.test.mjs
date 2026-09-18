@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join, resolve } from 'node:path';
 import { createFreeHtmlLibraryStore } from './store.mjs';
 import { createMockPageAdapters } from './mock-adapters.mjs';
+import { createHostPageStore } from './create-host-page-store.mjs';
 
 const plugin = fileURLToPath(new URL('../../..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
@@ -150,6 +151,20 @@ test('dirty native-chat leave shows three choices and stay keeps the page', asyn
   await ui.click('[data-testid="fhl-leave-save"]');
   assert.equal(native, 1);
   assert.equal(store.getSnapshot().pendingLeaveIntent, null);
+});
+
+test('live adapters mount Lane B preview host instead of a raw srcdoc iframe', async t => {
+  const ui = await domFixture(t);
+  const store = createHostPageStore();
+  await ui.render(React.createElement(FreeHtmlLibraryApp, { store, themeSource: theme, goConversation() {} }));
+  await act(async () => { store.setPrompt('页'); await store.generate(); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.ok(ui.doc.querySelector('[data-testid="fhl-live-preview"]'));
+  assert.ok(ui.doc.querySelector('[data-testid="fp-preview-host"]'));
+  const frame = ui.doc.querySelector('[data-testid="fhl-iframe"]');
+  assert.ok(frame);
+  assert.equal(frame.getAttribute('sandbox'), 'allow-scripts');
+  assert.equal(frame.hasAttribute('srcdoc') || Boolean(frame.srcdoc), true);
 });
 
 test('when the host owns conversation leave, dirty native-chat does not open a second prompt', async t => {

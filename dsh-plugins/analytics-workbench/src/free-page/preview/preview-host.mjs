@@ -41,8 +41,10 @@ export function mountPreviewHost(root, options = {}) {
   const restartBtn = el(doc, 'button', { type: 'button', 'data-testid': 'fp-restart' }, '重启');
   const restoreBtn = el(doc, 'button', { type: 'button', 'data-testid': 'fp-restore' }, '恢复已保存版本');
   const frameSlot = el(doc, 'div', { class: 'fp-preview-frame-slot', 'data-testid': 'fp-frame-slot' });
+  const showChrome = options.chrome !== false;
   actions.append(stopBtn, restartBtn, restoreBtn);
-  chrome.append(status, actions, frameSlot);
+  if (showChrome) chrome.append(status, actions, frameSlot);
+  else chrome.append(status, frameSlot);
   root.append(chrome);
 
   function paint() {
@@ -70,7 +72,7 @@ export function mountPreviewHost(root, options = {}) {
       sandbox: FREE_PAGE_SANDBOX,
       referrerpolicy: FREE_PAGE_REFERRER_POLICY,
       title: '自由页面预览',
-      'data-testid': 'fp-preview-frame',
+      'data-testid': options.frameTestId ?? 'fp-preview-frame',
     });
     iframe.srcdoc = srcdoc;
     frameSlot.append(iframe);
@@ -179,9 +181,11 @@ export function mountPreviewHost(root, options = {}) {
     return result;
   }
 
-  stopBtn.addEventListener('click', () => { stop('页面已停止'); });
-  restartBtn.addEventListener('click', () => { void restart(); });
-  restoreBtn.addEventListener('click', () => { void restoreSaved(); });
+  if (showChrome) {
+    stopBtn.addEventListener('click', () => { stop('页面已停止'); });
+    restartBtn.addEventListener('click', () => { void restart(); });
+    restoreBtn.addEventListener('click', () => { void restoreSaved(); });
+  }
 
   return {
     loadPackage,
