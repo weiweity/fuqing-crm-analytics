@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-16。VERSION 现为 **v0.8.0.1**，非正式 release。origin/main **`25ffc1f7`**（[#169](https://github.com/weiweity/fuqing-crm-analytics/pull/169)）。0.8.0.0 基线仍是 #129 `a729ff6`。最新 Git HEAD、S3 接续与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-18。VERSION **0.9.0.8**，非正式 release。origin/main **`7a465316`**（[#207](https://github.com/weiweity/fuqing-crm-analytics/pull/207)）。DSH **0.1.6-alpha.2**（`ddefc45f`）。0.8.0.0 基线仍是 #129 `a729ff6`。最新 Git HEAD 与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
@@ -14,6 +14,8 @@
 | [`hackathon/S3-CROSS-MATRIX-2026-09-15.md`](./hackathon/S3-CROSS-MATRIX-2026-09-15.md) | 9-15 正式壳核心分支双视口交叉；v14 账本，v15 为 SETUP_FAILED |
 | [`hackathon/MISSION-API.md`](./hackathon/MISSION-API.md) | Mission、问数、审批与 `DRAFT_EXPORT` 契约 |
 | [`hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md`](./hackathon/ARCHITECTURE-AND-RELEASE-AUDIT.md) | 架构边界、质量证据、远端状态和剩余任务 |
+| [`hackathon/DSH-PLUGIN-UI-COMPAT.md`](./hackathon/DSH-PLUGIN-UI-COMPAT.md) | 现役插件插槽表（登录/主题/composer.dock）；9-09 候选见文末附录 |
+| [`hackathon/FEATURE-PACKAGES.md`](./hackathon/FEATURE-PACKAGES.md) | 伸美 Cordis 包装卸边界 |
 | [`../DESIGN.md`](../DESIGN.md) | 伸美 VI、Liquid Glass 令牌与页面组件边界 |
 
 ## 一图流
@@ -32,6 +34,8 @@ fuqing-crm-analytics/docs/
 │   ├── S3-ACCEPTANCE-2026-09-15.md    9-15 原型／正式壳续验
 │   ├── S3-CROSS-MATRIX-2026-09-15.md  9-15 核心分支交叉补验
 │   ├── MISSION-API.md                 API、幂等与状态流
+│   ├── DSH-PLUGIN-UI-COMPAT.md        现役 DSH 插槽
+│   ├── FEATURE-PACKAGES.md            伸美包装卸
 │   └── ARCHITECTURE-AND-RELEASE-AUDIT.md  架构审计与提交清单
 │
 ├── architecture/                      为什么这样设计
@@ -97,7 +101,9 @@ fuqing-crm-analytics/docs/
 | 你想… | 看 |
 |---|---|
 | 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
-| 看 BoardSpec 驾驶舱怎么生成 / 刷新 | [`../dsh-plugins/analytics-workbench/README.md`](../dsh-plugins/analytics-workbench/README.md) + 根 `STATUS.md` 当前分支 |
+| 看 BoardSpec 驾驶舱怎么生成 / 刷新 | [`../dsh-plugins/analytics-workbench/README.md`](../dsh-plugins/analytics-workbench/README.md) + 根 `STATUS.md` |
+| 看插件占了哪些 DSH 槽 | `hackathon/DSH-PLUGIN-UI-COMPAT.md` |
+| 起 6677 / 插拔伸美包 | [`../scripts/dsh-dev/README.md`](../scripts/dsh-dev/README.md) |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
 | 团队怎么合 PR | 根 `AGENTS.md`；`operating/team-workflow-v1.md` 仅作历史参考 |
 | 根目录该不该堆文件 | `operating/project-hygiene.md` |
