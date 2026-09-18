@@ -4,6 +4,7 @@
 - 侧栏灰玻璃、主聊天纯白；发送/停止统一品牌色；生成驾驶舱在 composer.dock。不改 DSH 上游。不上公网。
 - DSH 钉升到 **0.1.6-alpha.2**（`ddefc45f`）。alpha.1 上游备份保留。合入不等于公网发布。不上公网。
 - 账本：STATUS origin/main 对齐 `#207` `7a465316`。合入后指针会再差本 PR 一拍。不上公网。
+- 账本：根 README、docs 索引、DSH-PLUGIN-UI-COMPAT 对齐 #207 现役插槽（登录/主题、composer.dock、retain）。不上公网。
 
 ## [0.9.0.8]
 
