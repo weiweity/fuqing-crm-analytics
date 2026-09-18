@@ -1,6 +1,6 @@
 # 自由 HTML 驾驶舱施工包
 
-这份包将已确认的 48 项决定与 30 项任务整理为 **13 个可顺序交给不同 AI 的施工提示词**。准备已完成，业务施工尚未执行。用户本轮要求进入执行并准备 AI 接力材料；原方案快照保留上一轮讨论语境，不表示当前仍要重新讨论。
+这份包将已确认的 48 项决定与 30 项任务整理为 **13 个可顺序交给不同 AI 的施工提示词**。P01–P12 代码已合 `main`（#209 / #210 `22a0028f`）。P13 真实 AI 样本尚未跑。施工工作树已删；现役 6677 已 `reload --page-http on`。原方案快照保留讨论语境，不表示还要重新讨论。
 
 ## 从这里开始
 
@@ -9,7 +9,7 @@
 
 如果你要让 6 个 AI 同时工作，使用 [六路并行方案](PARALLEL-6.md)。只有独立 worktree、owner paths 和 P12/P13 总协调门禁同时成立时才并行。
 3. 也可每次使用 [接力入口](RUN-NEXT.md)，由 AI 从 manifest 与报告中选择一个依赖已完成的批次；每次只做一个。P01 未通过时不把后续运行时当作可行。
-4. 跨机器/新工作树需携带本目录 **和相应代码**。当前文件仅本地生成，尚未 commit/push；六个 worktree 已从 `b45a27bb` 创建，并各自复制了施工包和 `AI-PROMPT.md`。后续如果重建 worktree，仍需重新复制未提交的施工包。
+4. 跨机器需携带本目录 **和相应代码**。施工包多数文件仍未跟踪。A–F / G / H / K / P12 / SEAMS 工作树已删除；新施工从当前 `main` 拉分支即可。
 
 ## 材料与优先级
 
@@ -49,7 +49,7 @@
 
 ## 代码与工具链快照
 
-准备时 HEAD `b45a27bb9022057ce37aa9123927e8b4663a2720`，branch `main`，有他人未跟踪 HANDOVER-CODEX.md，本包未触碰。执行者每次重新核验，不把该分支当永久目标。工具链事实以 `dsh-plugins/analytics-workbench/toolchain.json` 为准：DSH 0.1.6-alpha.2 / `ddefc45f`、Node 24、pnpm 11.7.0、B0 Python 3.14+。无环境自动升级授权。
+当前 `origin/main` `22a0028f`（#210）。工具链以 `dsh-plugins/analytics-workbench/toolchain.json` 为准：DSH 0.1.6-alpha.2 / `ddefc45f`、Node 24、pnpm 11.7.0、B0 Python 3.14+。无环境自动升级授权。
 
 已核验 `scripts/dsh-b0/pipeline.mjs` 当前会发现 `src/client` 的单测；旧评审关于便捷 package 脚本覆盖不足不能被误读为当前 pipeline 完全漏掉它。新增 `src/free-page` 是否入真实入口仍需 P12 检查。模块变动时按当前源码核验，不根据旧行号直接改。
 

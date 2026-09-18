@@ -75,8 +75,4 @@ CI 不替代完整真实模型、Figma、本人 UAT 或合入后的运行态验�
 
 ## 验证与历史入口
 
-本地及 CI 按 [验证入口](docs/operating/verification.md)。skip 不算运行通过。B0 当轮 T01–T09 已收口，清单是历史队列，不是当前任务卡。
-
-#108 首购、W4/W5 和更早测试数已迁入 [历史记录](docs/history/STATUS-HISTORY.md)，不扩大为当前真实模型、容量或业务验收通过。
-
-行为与数据边界见 [AGENTS.md](AGENTS.md)，设计合同见 [DESIGN.md](DESIGN.md)，开放债见 [TECH-DEBT](docs/TECH-DEBT.md)，验收缺口见 [TODOS](docs/hackathon/TODOS.md)。
+本地及 CI 按 [验证入口](docs/operating/verification.md)。skip 不算运行通过。B0 当轮 T01–T09 已收口。#108／W4/W5 见 [历史记录](docs/history/STATUS-HISTORY.md)。行为见 [AGENTS.md](AGENTS.md)，设计见 [DESIGN.md](DESIGN.md)，债见 [TECH-DEBT](docs/TECH-DEBT.md)，缺口见 [TODOS](docs/hackathon/TODOS.md)。
