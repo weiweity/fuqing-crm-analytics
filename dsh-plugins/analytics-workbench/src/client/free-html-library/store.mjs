@@ -54,10 +54,28 @@ function emptyState(viewportWidth, adapters) {
   };
 }
 
+function createLifetime() {
+  if (typeof AbortController === 'function') return new AbortController();
+  const listeners = new Set();
+  const signal = {
+    aborted: false,
+    addEventListener(type, fn) { if (type === 'abort') listeners.add(fn); },
+    removeEventListener(type, fn) { listeners.delete(fn); },
+  };
+  return {
+    signal,
+    abort() {
+      if (signal.aborted) return;
+      signal.aborted = true;
+      for (const fn of listeners) fn();
+    },
+  };
+}
+
 export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), viewportWidth = 1440 } = {}) {
   const bound = adapters ?? createMockPageAdapters({ now });
   const listeners = new Set();
-  const lifetime = new AbortController();
+  const lifetime = createLifetime();
   let state = emptyState(viewportWidth, bound);
 
   const emit = patch => {

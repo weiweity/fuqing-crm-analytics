@@ -13,7 +13,35 @@ const K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
-const encoder = new TextEncoder();
+function utf8Bytes(input) {
+  if (typeof input !== 'string') return input;
+  if (typeof globalThis.TextEncoder === 'function') return new globalThis.TextEncoder().encode(input);
+  if (typeof Buffer === 'function') return Uint8Array.from(Buffer.from(input, 'utf8'));
+  const bytes = [];
+  for (let i = 0; i < input.length; i += 1) {
+    let code = input.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff && i + 1 < input.length) {
+      const next = input.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        code = 0x10000 + ((code - 0xd800) << 10) + (next - 0xdc00);
+        i += 1;
+      }
+    }
+    if (code < 0x80) bytes.push(code);
+    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    else if (code < 0x10000) {
+      bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+    } else {
+      bytes.push(
+        0xf0 | (code >> 18),
+        0x80 | ((code >> 12) & 0x3f),
+        0x80 | ((code >> 6) & 0x3f),
+        0x80 | (code & 0x3f),
+      );
+    }
+  }
+  return Uint8Array.from(bytes);
+}
 
 function rotr(n, x) {
   return (x >>> n) | (x << (32 - n));
@@ -84,6 +112,6 @@ function toHex(words) {
 }
 
 export function sha256Hex(input) {
-  const bytes = typeof input === 'string' ? encoder.encode(input) : input;
+  const bytes = typeof input === 'string' ? utf8Bytes(input) : input;
   return toHex(sha256(bytes));
 }
