@@ -14,8 +14,8 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `4f076b37` `feat(free-page): inject live adapters from host and unify leave`（父提交 `ac70cd21`） |
-| SHA 回写 | 本文件与 `P12.md` 记录 `4f076b37`；施工包其余提示词/配图仍未跟踪 |
+| 已提交 HEAD | `c0ffc037` docs 回写 ← `4f076b37` 接缝（父提交 `ac70cd21`） |
+| SHA 回写 | `c0ffc037` `docs(free-page): record P12 closeout HEAD 4f076b37` |
 
 未提交接缝指纹（SHA-256 前 16 位，收尾当时）：
 
@@ -52,7 +52,7 @@
 
 详见 `reports/P12.md`、`reports/P13.md`。
 
-- P12：**PARTIAL**。`4f076b37` 后复跑 free-page 切片 **70 passed**、页面 pytest **30 passed**、离线合同 `86ad3cf4`。完整 `pipeline.mjs --check`、headed 旅程、C 真结果库、FHL MessageChannel 挂载仍 **NOT_RUN**。
+- P12：**PARTIAL**。`4f076b37` 后：free-page 70、页面 pytest 30、离线合同 `86ad3cf4`。pipeline 扫描 67 文件先 454/458，编 `lib/` 且 `PYTHON=python3.14` 后原失败 3 文件 **39 passed**。完整 `pipeline.mjs --check`、Chrome isolation-probe、headed 旅程仍 **NOT_RUN**。
 - P13：**BLOCKED**。无本轮真实模型授权；三场景全部 NOT_RUN；未用预制 HTML 代替。
 
 ## 方案覆盖（摘要）

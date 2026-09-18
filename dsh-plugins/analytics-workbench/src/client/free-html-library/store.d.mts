@@ -50,6 +50,11 @@ export type FreeHtmlLibraryStore = {
   generate(): Promise<void>;
   openPage(pageId: string): void;
   requestLeave(intent: string): { blocked: boolean; hasUnsavedChanges: boolean; hasActiveEditContext: boolean };
+  stayLeave(): { navigated: false; intent: null };
+  persistForLeave(): Promise<{ ok: boolean; reason?: string }>;
+  discardForLeave(): Promise<{ ok: boolean; reason?: string }>;
+  saveAndLeave(): Promise<{ navigated: boolean; intent: string | null; reason?: string }>;
+  discardAndLeave(): Promise<{ navigated: boolean; intent: string | null; reason?: string }>;
   enterEdit(): void;
   exitEdit(): void;
   selectLocatable(request: Record<string, unknown>): void;
