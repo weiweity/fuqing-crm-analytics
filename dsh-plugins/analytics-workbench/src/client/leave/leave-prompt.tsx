@@ -22,6 +22,7 @@ const css = `
   border-top:1px solid var(--dsw-alias-border-l3, #d9d9d9); font:14px/1.5 var(--ds-font-family-base, sans-serif); }
 .sm-leave-prompt h2 { margin:0; font-size:15px; font-weight:600; }
 .sm-leave-prompt p { margin:0; }
+.sm-leave-prompt-note { color:var(--dsw-alias-label-secondary, #555); }
 .sm-leave-prompt-reasons { margin:0; padding-left:20px; color:var(--dsw-alias-label-secondary, #555); }
 .sm-leave-prompt-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .sm-leave-prompt button { font:inherit; color:inherit; min-height:32px; padding:6px 12px; cursor:pointer;
@@ -67,6 +68,8 @@ export function LeavePrompt({ coordinator, pageName }: {
     <style>{css}</style>
     <h2>{title}</h2>
     <p>这份页面有未保存的修改。请选择如何处理，再继续原来的操作。</p>
+    <p className="sm-leave-prompt-note" data-testid="leave-sidebar-note">
+      侧栏的原生面板行由宿主直接切换，不会询问未保存的自由页面；请从页面内入口离开。</p>
     {state.reasons.length ? <ul className="sm-leave-prompt-reasons" data-testid="leave-reasons">
       {state.reasons.map(reason => <li key={reason}>{REASON_TEXT[reason] ?? reason}</li>)}
     </ul> : null}
@@ -87,18 +90,23 @@ export function LeavePrompt({ coordinator, pageName }: {
 
 /**
  * Overlay seat for the prompt. It reads the page name from the library snapshot
- * so the confirmation names what is about to be left (D40).
+ * so the confirmation names what is about to be left (D40); a dirty free-HTML
+ * page names that page instead, since it is what the user would lose.
  *
  * It also watches the host panel selection. The pinned `ui-sidebar` panel row
  * calls `ctx.layout.selectPanel` straight from its own onClick, so a plugin
  * cannot veto that write — but observing it lets the adapter advance the
  * navigation epoch, which is what stops a read issued for the old panel from
- * committing over the new one (D43). That limitation is recorded for P12.
+ * committing over the new one (D43). That limitation is recorded for P12 and
+ * surfaced in the prompt's own copy.
  */
-export function LeavePromptOverlay({ coordinator, library, usePanelInfo }: PropsRuntime<'shell.overlay'> & {
+export function LeavePromptOverlay({ coordinator, library, usePanelInfo, pageStore }: PropsRuntime<'shell.overlay'> & {
   coordinator: LeaveCoordinator; library: LibraryBoardClient;
+  pageStore?: ReturnType<typeof import('../free-html-library/store.mjs').createFreeHtmlLibraryStore>;
 }) {
   const state = useSyncExternalStore(coordinator.subscribe, coordinator.getSnapshot);
+  const pageState = useSyncExternalStore(
+    pageStore?.subscribe ?? (() => () => {}), pageStore?.getSnapshot ?? (() => null));
   const panel = (usePanelInfo?.(info => info.activePanelId) ?? null) as string | null;
   const adapter = useRef<HostLeaveAdapter | null>(null);
   const seenPanel = useRef<string | null>(null);
@@ -115,6 +123,8 @@ export function LeavePromptOverlay({ coordinator, library, usePanelInfo }: Props
   }, [panel]);
   if (state.status === 'idle') return null;
   const board = library.getSnapshot();
-  const pageName = (board.preview?.snapshot ?? board.layoutDraft ?? board.saved)?.spec?.title ?? null;
+  const htmlDirty = pageStore?.hasUnsavedChanges() === true;
+  const pageName = htmlDirty && pageState?.current?.title ? pageState.current.title
+    : (board.preview?.snapshot ?? board.layoutDraft ?? board.saved)?.spec?.title ?? null;
   return <LeavePrompt coordinator={coordinator} pageName={pageName} />;
 }

@@ -7,7 +7,7 @@ import { mkdir, mkdtemp, writeFile, readFile, access, rm } from 'node:fs/promise
 import { createServer } from 'node:http';
 import { dirname, isAbsolute, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { API_KEY_ENV, FOREIGN_PORTS, HOST, NODE_MAJOR, PINNED_SHA, PORTS } from './constants.mjs';
+import { API_KEY_ENV, COMPETITION_WEB_PORT, FOREIGN_PORTS, HOST, NODE_MAJOR, PINNED_SHA, PORTS, PORT_RANGE } from './constants.mjs';
 import { findReadyUrl, originOf, redactLaunchLog } from './launch-url.mjs';
 import { assertNoB0Disables, assertPluginRoot, buildPluginDisable, buildPluginOverlay, buildShineBrandDisable, buildShineWaterfallDisable, buildShineCrowdActionDisable, buildShineQueryDisable, buildShineBoardDisable, buildShineFunnelDisable, pluginEnabled } from './overlay.mjs';
 import { readToolchain, verifyUpstream } from './pin.mjs';
@@ -40,7 +40,7 @@ export function parseServeArgs(argv) {
       '--upstream', '--plugin', '--plugin-path', '--shine-brand', '--shine-brand-path',
       '--waterfall', '--waterfall-path', '--crowd-action', '--crowd-action-path',
       '--query', '--query-path', '--board', '--board-path', '--funnel', '--funnel-path',
-      '--extra-patch', '--runtime', '--web-port', '--host',
+      '--extra-patch', '--runtime', '--web-port', '--host', '--page-http', '--page-http-port',
     ];
     if (valueFlags.includes(flag)) assert.ok(args[0] && !args[0].startsWith('--'), `missing value for ${flag}`);
     if (flag === '--upstream') options.upstream = args.shift();
@@ -62,6 +62,8 @@ export function parseServeArgs(argv) {
     else if (flag === '--runtime') options.runtime = args.shift();
     else if (flag === '--web-port') options.webPort = Number(args.shift());
     else if (flag === '--host') options.host = args.shift();
+    else if (flag === '--page-http') options.pageHttp = args.shift();
+    else if (flag === '--page-http-port') options.pageHttpPort = Number(args.shift());
     else if (flag === '--detach') options.detach = true;
     else if (flag === '--fresh') options.fresh = true;
     else throw new Error(`unknown flag ${flag}`);
@@ -100,6 +102,15 @@ export function parseServeArgs(argv) {
   }
   assertOwnedHost(options.host);
   assertOwnedPort(options.webPort);
+  if (options.pageHttp !== undefined) {
+    assert.ok(options.pageHttp === 'on' || options.pageHttp === 'off', 'Usage: --page-http on|off');
+  }
+  if (options.pageHttpPort !== undefined) {
+    assert.ok(Number.isInteger(options.pageHttpPort) && options.pageHttpPort > 0
+      && options.pageHttpPort <= 65535 && options.pageHttpPort !== 6677
+      && !PORT_RANGE.includes(options.pageHttpPort) && options.pageHttpPort !== COMPETITION_WEB_PORT,
+      '--page-http-port must be 1-65535 and never 6677 or an owned web port');
+  }
   for (const patch of options.extraPatch) {
     assert.ok(patch && patch.startsWith('/'), '--extra-patch must be an absolute path');
   }
@@ -174,6 +185,27 @@ export function isolatedEnv(runtime, home, extra = {}) {
     }
     competition.COMPETITION_HTTP_BASE = httpBase;
     competition.COMPETITION_HTTP_TOKEN = httpToken;
+  }
+  // Isolated page documents/result HTTP: forwarded only when explicitly
+  // configured; a base containing the live web port refuses to boot.
+  const pageBase = process.env.PAGE_DOCUMENTS_HTTP_BASE;
+  if (pageBase) {
+    if (pageBase.includes(':6677')) {
+      throw new Error('PAGE_DOCUMENTS_HTTP_BASE must not target the live web port 6677');
+    }
+    const pageToken = process.env.PAGE_DOCUMENTS_HTTP_TOKEN;
+    assert.ok(pageToken && pageToken.length >= 32,
+      'PAGE_DOCUMENTS_HTTP_TOKEN must be at least 32 chars when PAGE_DOCUMENTS_HTTP_BASE is set');
+    competition.PAGE_DOCUMENTS_HTTP_BASE = pageBase;
+    competition.PAGE_DOCUMENTS_HTTP_TOKEN = pageToken;
+    const resultBase = process.env.PAGE_RESULT_HTTP_BASE;
+    if (resultBase) {
+      if (resultBase.includes(':6677')) {
+        throw new Error('PAGE_RESULT_HTTP_BASE must not target the live web port 6677');
+      }
+      competition.PAGE_RESULT_HTTP_BASE = resultBase;
+      competition.PAGE_RESULT_HTTP_TOKEN = process.env.PAGE_RESULT_HTTP_TOKEN ?? pageToken;
+    }
   }
   return {
     ...kept,
@@ -402,6 +434,7 @@ export async function writeCurrent(state, path = currentPath()) {
     shineQuery: state.shineQueryPath ?? null,
     shineBoard: state.shineBoardPath ?? null,
     shineFunnel: state.shineFunnelPath ?? null,
+    pageHttpBase: state.pageHttpBase ?? null,
     upstream: state.upstream,
     startId: state.startId ?? null,
     ownedPorts: [PORTS.kernel, PORTS.bridge, PORTS.web, PORTS.gateway, PORTS.mock],

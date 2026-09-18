@@ -49,6 +49,22 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /seedBoard\.facts/);
   assert.doesNotMatch(indexSource, /onClick=\{\(\) => props\.actions\.openGenerate\(\)\}/);
   assert.match(indexSource, /props\.openCockpit\?\.\(\);/);
+  // Lane K: the cockpit entry routes a dirty page through the leave
+  // coordinator (panel intent), keeps a clean entry on the direct switch (the
+  // tool-card gesture's preview read must not be epoch-discarded), and the
+  // navigate callback keeps the composition alive for the cockpit entry.
+  assert.match(indexSource, /leaveAdapter\.request\('panel', \{ kind: 'panel', id: COCKPIT_PANEL_ID \}\)/);
+  assert.match(indexSource, /hasUnsavedChanges\(\{ \.\.\.library\.getSnapshot\(\), htmlUnsaved/);
+  assert.match(indexSource, /intent\.id === COCKPIT_PANEL_ID/);
+  {
+    const entry = indexSource.indexOf('const openCockpitPanel');
+    assert.ok(entry >= 0, 'openCockpitPanel exists');
+    const dirtyCheck = indexSource.indexOf('hasUnsavedChanges({ ...library.getSnapshot(), htmlUnsaved', entry);
+    const directSwitch = indexSource.indexOf('selectPanel(COCKPIT_PANEL_ID as MainPanelId)', entry);
+    assert.ok(dirtyCheck >= 0 && directSwitch > dirtyCheck,
+      'the dirty check must guard the direct switch, not follow it');
+  }
+  assert.match(indexSource, /pageStore \}/);
   assert.match(indexSource, /name: 'conversation.composer.dock'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });

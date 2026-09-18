@@ -208,6 +208,25 @@ test('the overlay seat names the page from the library snapshot', async t => {
     'the page name comes from the current snapshot');
 });
 
+test('a dirty free-HTML page names that page and explains the sidebar limit', async t => {
+  const ui = await domFixture(t);
+  const { coordinator } = coordinatorFor({ preview: null, htmlUnsaved: true });
+  const saved = snap();
+  const library = { getSnapshot: () => ({ preview: null, layoutDraft: null, saved }), subscribe: () => () => {} };
+  const pageState = { current: { title: '大促复盘自由页', dirty: true }, pages: [] };
+  const pageStore = {
+    subscribe: () => () => {}, getSnapshot: () => pageState, hasUnsavedChanges: () => true,
+  };
+  await ui.render(React.createElement(LeavePromptOverlay, { coordinator, library, pageStore }));
+  await ui.trigger(() => { void coordinator.request({ kind: 'panel', id: 'cockpit' }); });
+  const prompt = ui.doc.querySelector('[data-testid=leave-prompt]');
+  assert.ok(prompt, 'the prompt is shown for the panel entry too');
+  assert.match(prompt.textContent, /大促复盘自由页/, 'the free page is named, not the board');
+  assert.match(prompt.textContent, /侧栏/, 'the un-vetoable sidebar row is disclosed in place');
+  assert.ok(ui.doc.querySelector('[data-testid=leave-sidebar-note]'));
+  assert.match(ui.doc.querySelector('[data-testid=leave-reasons]').textContent, /自由页面/, 'the html reason is shown');
+});
+
 test('an un-vetoable host panel switch still advances the navigation epoch', async t => {
   const ui = await domFixture(t);
   const saved = snap();

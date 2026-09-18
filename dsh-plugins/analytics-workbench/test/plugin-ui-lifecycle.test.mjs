@@ -149,7 +149,7 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.deepEqual(entries.map(row => row.options.name), [
     'sidebar.brand.mark', 'conversation.hero.brand.mark',
     'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay', 'shell.overlay',
-    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
+    'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
     'conversation.input.dock', 'conversation.composer.dock',
     'sidebar.panellist', 'main',
     'sidebar.panellist', 'main',
@@ -166,7 +166,7 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(typeof footers[0].component, 'function');
   assert.equal(typeof footers[1].component, 'function');
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
-    'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit',
+    'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit', 'free_html_page_generate',
   ]);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
   assert.equal(entries.length, 0);

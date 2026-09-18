@@ -10,6 +10,8 @@ import {
 import { createCompetitionToolBoundary } from './boundary.mjs';
 import { liveDiagnosisCall } from './tools.mjs';
 import { BOARD_TOOL_PARAMETERS, executeBoardTool } from './board-tools.mjs';
+import { PAGE_GENERATE_TOOL_NAME } from './page-family.mjs';
+import { PAGE_TOOL_PARAMETERS, executePageTool } from './page-tools.mjs';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 
 export const name = 'analytics-workbench-competition-growth';
@@ -105,4 +107,18 @@ export function apply(ctx: Context, packInput: { manifest: object; contents: Rec
       execute: async (args, execution) => executeBoardTool(toolName, args as Record<string, unknown>, execution) as never,
     }));
   }
+  ctx.tools.register(defineTool({
+    name: PAGE_GENERATE_TOOL_NAME,
+    description: 'Deliver one free-HTML page source package authored in this reply to the user workbench. Copy the page-gen request id from the user message verbatim. Free HTML/CSS/JS; never a BoardSpec. This tool does not save, publish, query, or fetch anything.',
+    parameters: PAGE_TOOL_PARAMETERS[PAGE_GENERATE_TOOL_NAME] as never,
+    output: {
+      schema: { type: 'object', additionalProperties: true },
+      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+      // The browser workbench intake reads the canonical receipt from the tool card.
+      presentationMeta: (_args, value) => value,
+    },
+    timeoutMs: 6000,
+    isConcurrencySafe: () => false,
+    execute: async (args, execution) => executePageTool(PAGE_GENERATE_TOOL_NAME, args as Record<string, unknown>, execution) as never,
+  }));
 }

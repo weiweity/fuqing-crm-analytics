@@ -33,7 +33,10 @@ export function buildPluginOverlay(pluginRoot) {
   if (pluginRoot !== undefined) {
     assert.ok(pluginRoot.startsWith('/'), 'plugin path must be absolute');
   }
-  const rows = [{ id: 'analytics-dev-brand-assets', name: new URL('./brand.mjs', import.meta.url).href }];
+  const rows = [
+    { id: 'analytics-dev-brand-assets', name: new URL('./brand.mjs', import.meta.url).href },
+    { id: 'analytics-dev-page-globals', name: new URL('./page-globals.mjs', import.meta.url).href },
+  ];
   const patch = [{ insert: rows }];
   assertNoB0Disables(patch);
   return patch;

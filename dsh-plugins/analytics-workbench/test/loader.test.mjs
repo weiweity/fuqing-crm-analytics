@@ -43,7 +43,7 @@ test('one package entry registers competition tools only for explicitly connecte
         assert.deepEqual(channels, ['/api/shine-mage-board']);
         assert.deepEqual(tools, connected ? ['competition_growth_skill_resource', 'competition_growth_capabilities',
           'competition_growth_step', 'competition_growth_patch', 'competition_board_catalog', 'competition_board_generate',
-          'competition_board_edit_context', 'competition_board_edit'] : []);
+          'competition_board_edit_context', 'competition_board_edit', 'free_html_page_generate'] : []);
         assert.equal(skills.length, connected ? 1 : 0);
       } finally { await ctx.fiber.dispose(); }
     }
