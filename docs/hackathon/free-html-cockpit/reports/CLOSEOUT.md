@@ -30,7 +30,7 @@
 | `backend/tests/test_p12_page_mount.py` | `b31c1fdc30949f92` |
 | `scripts/dsh-b0/pipeline.mjs` | `a0fe7d0ef4ba9d0f`（已含 page-contract 与 `src/free-page` 扫描） |
 
-接缝源码与 `hash.mjs` / `leave-prompt` / `test_p12_page_mount.py` 已在 `4f076b37`。施工包索引（README、PARALLEL-6、WORKTREES、fixtures）与协调审查 A–E 随文档提交进 P12。`approved-plan.md` 与 `prompts/P01–P13` 因 ground-truth 钩子含「缺失/不存在」未改写批准方案，仍未跟踪。主仓 `STATUS.md` 不在 main 上提交。`HANDOVER-CODEX.md` 未加入。
+接缝源码与 `hash.mjs` / `leave-prompt` / `test_p12_page_mount.py` 已在 `4f076b37`。施工包索引（README、PARALLEL-6、WORKTREES、fixtures）与协调审查 A–E 随文档提交进 P12。`approved-plan.md` 与 `prompts/P01–P13` 未改写、未跟踪（钩子会拦截批准方案里的未完成措辞）。主仓 `STATUS.md` 不在 main 上提交。`HANDOVER-CODEX.md` 未加入。
 
 ## 六路来源快照与导入
 
