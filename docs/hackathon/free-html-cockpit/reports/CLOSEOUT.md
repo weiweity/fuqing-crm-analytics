@@ -3,10 +3,9 @@
 - 实际停点：**PARTIAL**
 - 日期：2026-09-18
 - 执行者：主协调 Agent
-- 本收尾提示词**不**授权 commit / push / PR / merge / 服务切换 / 删除工作树
-- 用户「没啥问题，先commit」只覆盖 Lane F 本地提交 `a3a9b428`，不含本轮 P12 未提交接缝
+- 本收尾提示词本身不授权 Git；用户已另授权 P12 本地 commit（`4f076b37` 及本 SHA 回写）。**未 push / 未开 PR / 未 merge / 未删树**
 
-不是 READY_FOR_SHIP：完整 `pipeline.mjs --check` 未跑，真浏览器主链路未跑，C 桥仍声明 mock，P13 真实 AI 未跑，原生侧栏仍不可否决。OCR High（live 静态导入、两套离开提示）已在未提交接缝中修好。
+不是 READY_FOR_SHIP：完整 `pipeline.mjs --check` 未跑，真浏览器主链路未跑，C 桥仍声明 mock，P13 真实 AI 未跑，原生侧栏仍不可否决。OCR High（live 静态导入、两套离开提示）已在 `4f076b37` 修好。
 
 ## 候选
 
@@ -15,8 +14,8 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `ac70cd21` `feat(free-page): assemble A-F seams on an integration branch` |
-| 未提交 | 见下方指纹；**未** `git add -A` |
+| 已提交 HEAD | `4f076b37` `feat(free-page): inject live adapters from host and unify leave`（父提交 `ac70cd21`） |
+| SHA 回写 | 本文件与 `P12.md` 记录 `4f076b37`；施工包其余提示词/配图仍未跟踪 |
 
 未提交接缝指纹（SHA-256 前 16 位，收尾当时）：
 
@@ -32,7 +31,7 @@
 | `backend/tests/test_p12_page_mount.py` | `b31c1fdc30949f92` |
 | `scripts/dsh-b0/pipeline.mjs` | `a0fe7d0ef4ba9d0f`（已含 page-contract 与 `src/free-page` 扫描） |
 
-另有未跟踪：`hash.mjs` / `hash.test.mjs`、`leave-prompt.tsx` / `leave-prompt.test.mjs`、`save-receipt.test.mjs`、`test_p12_page_mount.py`、施工包文档。`HANDOVER-CODEX.md`、凭据、运行目录未加入候选。
+接缝源码与 `hash.mjs` / `leave-prompt` / `test_p12_page_mount.py` 已在 `4f076b37`。施工包提示词、配图、`HANDOVER-CODEX.md`、凭据、运行目录未加入候选。
 
 ## 六路来源快照与导入
 
@@ -53,7 +52,7 @@
 
 详见 `reports/P12.md`、`reports/P13.md`。
 
-- P12：**PARTIAL**。模块接线、宿主注入 live store、同一离开协调器（`htmlUnsaved`）、D6/D9、page 挂载、离线合同、pipeline **扫描入口**有证据。OCR 工作区 20 文件的 High 已修。完整 pipeline、headed 旅程、C 真结果库、FHL MessageChannel 挂载 **NOT_RUN**。
+- P12：**PARTIAL**。`4f076b37` 后复跑 free-page 切片 **70 passed**、页面 pytest **30 passed**、离线合同 `86ad3cf4`。完整 `pipeline.mjs --check`、headed 旅程、C 真结果库、FHL MessageChannel 挂载仍 **NOT_RUN**。
 - P13：**BLOCKED**。无本轮真实模型授权；三场景全部 NOT_RUN；未用预制 HTML 代替。
 
 ## 方案覆盖（摘要）
