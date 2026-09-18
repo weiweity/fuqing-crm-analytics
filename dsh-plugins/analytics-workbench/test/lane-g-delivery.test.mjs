@@ -1,6 +1,7 @@
 /** Lane G: native page-package delivery tool to workbench generate. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -116,7 +117,9 @@ test('waiter times out a lost delivery and rejects the generate', async () => {
   assert.equal(waiter.pendingCount, 0);
 });
 
-test('tool card registration wires the delivery intake (compiled client)', async () => {
+test('tool card registration wires the delivery intake (compiled client)', {
+  skip: existsSync(join(plugin, 'lib/client.js')) ? false : 'plugin lib/client.js is built later in pipeline --check',
+}, async () => {
   const webRequire = (await import('node:module')).createRequire(join(upstream, 'apps/web/package.json'));
   const stores = await import(pathToFileURL(join(upstream, 'packages/client/store/lib/index.js')).href);
   const source = await readFile(join(plugin, 'lib/client.js'), 'utf8');
