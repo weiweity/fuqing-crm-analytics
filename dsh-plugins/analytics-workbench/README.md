@@ -208,21 +208,22 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 
 构建不再将 `COMPETITION_HTTP_BASE/TOKEN` 编译进公共 JS。带合成哨兵配置的真实构建及 JS/SourceMap 检查通过。旧 C0 overlay 仍有显式直连配置接缝，认证迁移/部署兼容待核验；不要恢复内联 token，也不要声称旧 HTTP 资产流程已由新看板集成覆盖。
 
-### 侧栏比赛看板入口（2026-09-15）
+### 侧栏登录与比赛看板入口
 
-侧栏底部在同一 `sidebar.footer.action` 槽新增第二个入口「比赛看板」（id=`shine-mage.analytics-b0.legacy-board`、order=20；原入口 id=`shine-mage.analytics-b0.footer`、order=10，选择改按稳定 id 而非 slot 名）。它在新标签页打开旧 CRM 前端 `http://127.0.0.1:15173/`，即 `scripts/ops/start-stack.sh` 的默认 `FQ_FRONTEND_PORT`（dsh-dev 预留的比赛轨 Vite，不用通用 5173）。
+侧栏底 `sidebar.footer.action` 现为登录（id=`shine-mage.account.login`）与主题（id=`shine-mage.account.theme`）。比赛看板在登录菜单里用锚点打开旧 CRM 前端 `http://127.0.0.1:15173/`，即 `scripts/ops/start-stack.sh` 的默认 `FQ_FRONTEND_PORT`（dsh-dev 预留的比赛轨 Vite，不用通用 5173）。不再占用第二个 footer 按钮。
 
-- 用真实锚点而不是 `window.open`：弹窗策略拦截不会让按钮静默失效，中键与状态栏预览也仍可用。`target="_blank"` + `rel="noopener noreferrer"` 与两档文案（宽栏「比赛看板」／收窄「看板」）由 `test/plugin-ui-lifecycle.test.mjs` 的编译后 DOM 断言覆盖，该测试在 `window.open` 被调用时直接失败。
-- 看板仍是独立应用、独立进程与独立登录：DSH 不内嵌、不代理，也不放松旧前端的 `frame-ancestors 'none'`。
-- 地址按 `start-stack.sh` 的默认 `FQ_FRONTEND_PORT=15173` 写死；改该变量后此入口不跟随。`--strictPort` 让端口冲突表现为启动失败。裸 `npm run dev` 仍可能听 5173，和本入口不是同一条。前端未启动时用户看到浏览器自身的连接失败页，插件不接管。
+- 未登录显示「未登录」。登录菜单可填显示名称，写入 `localStorage` 后页脚显示名字；来源为 feishu 时副标题为「飞书」。这不是飞书 OAuth。同页刷新靠 `shine-account-change`。
+- 收起侧栏后登录只留 icon，主题钮叠在 rail。选择器是 `[class*="footerActions"]:has(.sm-login[data-wide="0"])`，不用 `collapsed` 子串。
+- 比赛看板用 `target="_blank"` + `rel="noopener noreferrer"`，不用 `window.open`。`test/plugin-ui-lifecycle.test.mjs` 覆盖菜单链接；调用 `window.open` 会失败。
+- 看板仍是独立应用、独立进程与独立登录：DSH 不内嵌、不代理，也不放松旧前端的 `frame-ancestors 'none'`。地址按 `FQ_FRONTEND_PORT=15173` 写死；改该变量后此入口不跟随。裸 `npm run dev` 仍可能听 5173。
 
 ## v0.8 实际能力与边界（历史基线）
 
 - 根 Host 入口 `lib/index.js` 同时提供 UI discover 与私有原生协议桥，不登记工具、不保存业务账本或循环调用模型。桥只接受本次运行能力，返回原请求关联的原生日志及 `whenIdle + flush` 退出证据。
 - 独立 `lib/tool.js` 默认登记 `analytics_b0_query`，参数只有 `{"query":"channel_repeat_rate"}`。从可信原生 call/turn 查找原 requestId，在 FastAPI 预留步骤后取得固定 `STUB / SYNTHETIC_FIXTURE`：100 位合成客户、25 位复购、25%，日期 2026-09-01。调用私有 loopback 接口；无 SQL、真实文件查询、任意网络或本地备用结果路径。`B0_RUNTIME_FAMILY=channel_followup` 时改为登记 `analytics_channel_followup_query`（完整 G2 请求，固定 `/internal/native/channel-followup`，输出 typed receipt）。B0 fixture 工具卡仍保留；渠道后续购买查询卡见 G4b，资产保存见 `--native-query-assets`。
 - 独立 `lib/skills.js` 默认注册固定 `growth-analysis-b0` 及精确资源工具；整包包含 `SKILL.md`、证据引用与无数字示例，`skill-package.lock.json` 冻结全部字节。query-mode 另有不可变 `channel-followup-query` 包与 `query-skill-package.lock.json`。构建拒绝越界、软/硬链接、额外文件/脚本、超限和引用漂移；运行时读取不可变快照。每步与方法读取都回查后端权限、版本和预算，不新增通用文件工具或 Agent loop。
-- 客户端登记品牌 `sidebar.brand.mark/name` 及原四项 `sidebar.footer.action`、`shell.overlay`、`tool.call.toolview`、`conversation.input.dock`；品牌单槽使用 `priority:-10` 先于上游默认贡献，不修改上游代码。等待 owner 声明后登记；两个 root 插槽共享 `defineStore`。任务状态栏只读 FastAPI 投影，展示最近三个 run 的状态、阶段和步数；断线明确标记旧快照，刷新不重新提交。
-- UI-B01 最小适配：客户端只在 `ctx.sessions.list.phase === 'ready'` 且指定 `session-b0-synthetic-primary` 同时存在于 Host `ids/byId` 时，通过公开 `ctx.sessions.open(id)` 自动选中一次。不会调用 `create`、操作 DOM、选任意其他会话，或在用户后续切换时抢回焦点；目标缺失继续等待，选择失败只报告一次并无 fallback。每次插件重新加载/页面刷新会重新校验，这是 B0 固定主会话接缝，不是业务 run 自动受理实现。
+- 客户端登记品牌 `sidebar.brand.mark/name`、`sidebar.footer.action` 登录/主题、`shell.overlay` 账户菜单、`tool.call.toolview`、`conversation.input.dock` 任务状态、`conversation.composer.dock` 生成驾驶舱；品牌单槽使用 `priority:-10` 先于上游默认贡献，不修改上游代码。等待 owner 声明后登记。任务状态栏只读 FastAPI 投影，展示最近三个 run 的状态、阶段和步数；断线明确标记旧快照，刷新不重新提交。
+- UI-B01 最小适配：Host `ids/byId` 就绪且指定 `session-b0-synthetic-primary` 存在时，`retain({ source: 'mainView' })` 钉住主会话。alpha.2 没有 `ISessions.open` / `clear` / `SessionListState.current`。不会调用 `create`、操作 DOM、选任意其他会话；目标缺失继续等待。这是 B0 固定主会话接缝，不是业务 run 自动受理实现。
 - 默认“我的驾驶舱 · B0”打开源码内置 finite mock：一个板块的手工标题预览、应用、撤销未应用草稿与页面刷新恢复；不依赖活动会话/模型。不是 AI 局部编辑，也不是完整可组装驾驶舱。
 - 仅当 `serve.mjs --native-query-assets` 且 GET `/b0/assets` 返回 `http_api=CONNECTED` 时，同一入口改走 HTTP overlay：列出已保存 SNAPSHOT，对唯一私人驾驶舱 add/copy/remove/layout/preview/undo。浏览器不带 backend bearer；GET 列表不自动建板。无板时加入会先 `POST /b0/dashboards` 再建预览；预览/保存 409 后重读，不保留过期 pending。kernel 不可用时 `/b0/assets` 为 `UNAVAILABLE`，不报 CONNECTED，入口回退 mock。`test/asset-overlay.test.mjs` 用 mock transport 覆盖上述编译后 DOM，不是浏览器 E2E。
 - mock 路径的 localStorage 仅存 `analytics-b0-ui/v1 + title` 两字段，不缓存授权、身份、结果或业务资产。HTTP overlay 的权威资产在独立 SQLite（`analyses/` 与 `cockpit/`）；分析库读取与驾驶舱写入是先后事务，不是跨库原子。
@@ -231,8 +232,8 @@ FQ_B0_PYTHON=/Users/hutou/homebrew/opt/python@3.14/bin/python3.14 node dsh-plugi
 - 画布 closed kinds：`METRIC` `BAR` `LINE` `TABLE` `EVIDENCE` `html_sandbox` `LINK`。刷新按块上的 `source_result_id` 重绑数字，不是写死 `r1`。回退走 history 上一版。`html_sandbox` 用 srcdoc + CSP（无 script）；刷新不跟随跳转、不打内网。
 - 聊天下「生成飞书文档 / 生成多维表」只往板上加 LINK 占位（`example.invalid`），不接飞书 token。
 - 侧栏「数据员工」面板（`sidebar.panellist` id=`staff` + `main` key=`staff`）是旁路 fixture，不另开一套聊天；广场入口可 `sessions.create()` 回到对话。
-- 底栏「我的驾驶舱」有 `layout.selectPanel('cockpit')` 就切侧栏面板；没有 layout 才打开 overlay。底栏另有「比赛看板」，只在新标签页打开独立前端，不切面板、不开 overlay。
-- 驾驶舱可经公开 `sessions.clear()` 脱离当前会话，关闭时仅恢复仍存在的原选择，不创建/删除/取消会话；未应用草稿退出需确认，Tab 双向保持在弹层、关闭后归还固定入口焦点。原始品牌静态路径与完整条件往返标本由固定网关服务；后者不是实际同条件 BI，不加载旧 Vue/Pinia。
+- 底栏登录菜单提供「比赛看板」（新标签独立前端）和「设置」（点原生 Settings）。驾驶舱面板仍走 `sidebar.panellist` / `main` key=`cockpit`。
+- 驾驶舱 overlay 脱离选择时不能卸掉官方 `mainView` retain；关闭只恢复仍存在的原选择，不创建/删除/取消会话。未应用草稿退出需确认，Tab 双向保持在弹层、关闭后归还固定入口焦点。原始品牌静态路径与完整条件往返标本由固定网关服务；后者不是实际同条件 BI，不加载旧 Vue/Pinia。
 - 工具卡只读取 `block.meta` 的精确版本化结果；处理中/失败/未知格式分开，不从模型文本猜成功。默认不开放保存、导出或审批。`--native-query-assets` 下可将 SUCCEEDED 查询保存为 SNAPSHOT 并加入驾驶舱；仍无导出/审批。“停止查询”取消当前卡片所属会话，不取页面第一个 `data-session-id`。
 
 ## 固定构建与验证
