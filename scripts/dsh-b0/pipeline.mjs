@@ -110,7 +110,11 @@ print('B0 exact Python closure verified')
   // HTTP/computation tests import the archived CRM dependency closure and run
   // under the shared bounded backend profile, not the minimal B0 interpreter.
   pyTests.push('backend/tests/test_competition_assets.py',
-    'backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py');
+    'backend/services/analytics/competition_diagnosis/tests/test_competition_diagnosis.py',
+    'backend/tests/test_page_documents.py',
+    'backend/tests/test_page_result_access.py',
+    'backend/tests/test_page_result_access_http.py',
+    'backend/tests/test_p12_page_mount.py');
   run(python, ['-m', 'pytest', '--noconftest', '-W', 'error::ResourceWarning', '-q', ...pyTests]);
   run(python, ['-m', 'ruff', 'check', 'backend/analytics_app.py', 'backend/analytics_runtime.py', 'backend/analytics_query_app.py',
     'backend/analytics_analysis_app.py', 'backend/analytics_cockpit_app.py',
