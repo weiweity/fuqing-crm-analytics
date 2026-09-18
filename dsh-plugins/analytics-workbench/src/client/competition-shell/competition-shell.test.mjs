@@ -39,6 +39,10 @@ test('brand tokens follow DESIGN.md and keep original asset URLs', async () => {
   assert.match(tokens, /\/b0\/brand\/logo\.png/);
   assert.match(tokens, /brightness\(0\) invert\(1\)/);
   assert.match(tokens, /controlHeight: 44/);
+  assert.match(tokens, /Noto Sans SC/);
+  assert.match(tokens, /--sm-focus/);
+  assert.match(tokens, /LIBRARY_THEME_MAP/);
+  assert.doesNotMatch(tokens, /body: "'Alibaba PuHuiTi 3.0'/);
   assert.doesNotMatch(tokens, /frontend-vue3\/src\/theme/);
 });
 
@@ -53,7 +57,12 @@ test('competition CSS covers welcome/nav/title/error/dialog and reduced motion',
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(css, /max-width: 390px/);
   assert.match(css, /max-width: 768px/);
+  assert.match(css, /sm-fhl-status/);
+  assert.match(css, /sm-fhl-generate/);
+  assert.doesNotMatch(css, /data-testid="fhl-generate"/);
+  assert.match(css, /--sm-focus/);
   assert.doesNotMatch(css, /linear-gradient\([^)]*#805D9D[^)]*\)/);
+  assert.doesNotMatch(css, /noto-sans-sc\.woff2/, 'do not 404-claim Noto is bundled');
 });
 
 test('native chrome export const css is not painted with Vue brand literals', async () => {

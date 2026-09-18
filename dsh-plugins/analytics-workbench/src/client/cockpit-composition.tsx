@@ -39,7 +39,7 @@ export function ActivateCockpitComposition({ composition, library, themeSource, 
     const board = library.getSnapshot();
     composition.open((board.preview?.snapshot ?? board.saved)?.spec.session_id);
   }, [composition, library, state.fallback]);
-  return state.fallback ? <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={goConversation} />
+  return state.fallback ? <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={goConversation} initialSurface="pages" />
     : <p role="status">正在打开驾驶舱与原生对话…</p>;
 }
 
@@ -157,7 +157,7 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
           {geometry.chat > 0 ? '收起原生对话' : '展开原生对话'}</button>
       </header>
       <div className="sm-cockpit-composition-canvas" style={{ width: geometry.canvas, display: geometry.canvas > 0 ? undefined : 'none' }}>
-        <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={() => composition.close()} />
+        <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={() => composition.close()} initialSurface="pages" />
       </div>
       {geometry.mode === 'split' ? <div className="sm-cockpit-divider" role="separator" aria-label="调整原生对话宽度" aria-orientation="vertical"
         tabIndex={0} aria-valuemin={CHAT_MIN} aria-valuemax={Math.max(CHAT_MIN, box.width - 568)} aria-valuenow={geometry.chat} style={{ left: geometry.canvas }}

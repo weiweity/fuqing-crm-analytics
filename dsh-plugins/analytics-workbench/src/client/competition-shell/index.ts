@@ -1,6 +1,7 @@
 export {
   antdSeedToken, antdTheme, BRAND_ASSET_URLS, BRAND_DIGESTS, competitionColor, competitionCssVars,
-  competitionFont, competitionMaterial, competitionTokens, PRODUCT_NAME, PRODUCT_NAME_EN, PRODUCT_TAGLINE,
+  competitionFont, competitionMaterial, competitionTokens, LIBRARY_THEME_MAP,
+  PRODUCT_NAME, PRODUCT_NAME_EN, PRODUCT_TAGLINE,
 } from './tokens.ts';
 export type { AntdSeedToken, AntdThemeConfig, CompetitionTokens } from './tokens.ts';
 export { competitionShellCss } from './css.ts';

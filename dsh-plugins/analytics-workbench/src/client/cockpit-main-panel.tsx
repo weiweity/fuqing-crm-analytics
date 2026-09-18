@@ -92,7 +92,7 @@ export function CockpitPanelIcon({ size, active }: PropsRuntime<'sidebar.panelli
 export function CockpitMainPanel(props: CockpitMainPanelProps) {
   if (props.library && props.composition) return <ActivateCockpitComposition composition={props.composition}
     library={props.library} themeSource={props.themeSource} goConversation={props.goConversation} />;
-  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} />;
+  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} initialSurface="pages" />;
   return <LegacyCockpitMainPanel {...props} />;
 }
 
