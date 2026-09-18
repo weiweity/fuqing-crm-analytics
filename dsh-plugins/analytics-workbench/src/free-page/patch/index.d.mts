@@ -1,0 +1,10 @@
+export const ERRORS: Record<string, { code: string; http: number }>;
+export function fail(code: string, extra?: object): { ok: false; error: { code: string; http: number } };
+export function isIdentity(value: unknown): boolean;
+export function analyzeImpact(index: object, located: object, proposedPackage: object): object;
+export function createMemoryPageStore(options?: { now?: () => number }): object;
+export function applyInnerText(pagePackage: object, located: object, text: string): object;
+export function applyRegionOuter(pagePackage: object, located: object, outerHtml: string): object;
+export function applyCss(pagePackage: object, css: string): object;
+export function createPatchPreview(input: object): object;
+export function rebuildAfterApply(pagePackage: object): object;

@@ -1,0 +1,664 @@
+{
+  "schema": "free-html-execution-packet/v1",
+  "created_at": "2026-09-18T03:30:45.439792+00:00",
+  "baseline_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+  "approved_plan_sha256": "47fa5bfe482cb9bd93f4f02a7c62c6933d0242b5204ea95f2b912edc603a6ffb",
+  "approved_plan": "approved-plan.md",
+  "preparation_status": "READY",
+  "implementation_status": "IN_PROGRESS",
+  "coordinator_status": "CLOSEOUT-PARTIAL",
+  "coordinator_report": "reports/CLOSEOUT.md",
+  "coordinator_updated_at": "2026-09-18T16:30:00+00:00",
+  "lanes": {
+    "A": {
+      "status": "DONE",
+      "scope": "owner_contract_store",
+      "report": "reports/LANE-A.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-A.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-A",
+      "branch": "codex/free-html/lane-a",
+      "head": "6a11fedf",
+      "committed": true,
+      "verified_result": "ruff 0; page tests 13 passed; board regression 60 passed; schema 4 passed; page-contract --check sha256 86ad3cf4; commits 8d1884bd+6a11fedf",
+      "not_run": [
+        "pipeline.mjs --check",
+        "live_http_mount",
+        "real_browser",
+        "real_ai"
+      ]
+    },
+    "B": {
+      "status": "DONE",
+      "scope": "owner_runtime",
+      "report": "reports/LANE-B.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-B.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-B",
+      "branch": "codex/free-html/lane-b",
+      "head": "02af826c",
+      "committed": true,
+      "verified_result": "27 pass exit 0 including Chrome T0; gates host_operable/close_restart/saved_restore true; Chrome/153 headless",
+      "not_run": [
+        "pipeline.mjs --check",
+        "p12_browser_journey",
+        "real_ai",
+        "headed_chrome"
+      ]
+    },
+    "C": {
+      "status": "PARTIAL",
+      "scope": "synthetic_fixture",
+      "report": "reports/LANE-C.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-C.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-C",
+      "branch": "codex/free-html/lane-c",
+      "head": "40e048ce",
+      "committed": true,
+      "verified_result": "ruff 0; bounded pytest 15 passed exit 0; node --test bridge 15 passed exit 0",
+      "not_run": [
+        "pipeline.mjs --check",
+        "real_browser",
+        "real_result_store",
+        "generated_types"
+      ]
+    },
+    "D": {
+      "status": "DONE",
+      "scope": "owner_fixture",
+      "report": "reports/LANE-D.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-D.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-D",
+      "branch": "codex/free-html/lane-d",
+      "head": "fdb07749",
+      "committed": true,
+      "verified_command": "/Users/hutou/homebrew/opt/node@24/bin/node --test dsh-plugins/analytics-workbench/src/free-page/source-index/source-index.test.mjs dsh-plugins/analytics-workbench/src/free-page/patch/patch.test.mjs dsh-plugins/analytics-workbench/src/free-page/edit/edit.test.mjs dsh-plugins/analytics-workbench/src/free-page/edit/d48-scope.test.mjs",
+      "verified_result": "34 pass, exit 0, node v24.19.0",
+      "not_run": [
+        "pipeline.mjs --check",
+        "real_browser",
+        "real_ai",
+        "page_documents"
+      ]
+    },
+    "E": {
+      "status": "PARTIAL",
+      "scope": "host_ui_mock_adapters",
+      "report": "reports/LANE-E.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-E.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-E",
+      "branch": "codex/free-html/lane-e",
+      "head": "6271b43f",
+      "committed": true,
+      "verified_result": "58 pass exit 0 Node 24 in E tree; P12 UI tests keep mock store",
+      "not_run": ["pipeline.mjs --check", "noto_font_file", "real_ai"]
+    },
+    "F": {
+      "status": "PARTIAL",
+      "scope": "leave_coordinator",
+      "report": "reports/LANE-F.md",
+      "coordinator_review": "reports/COORDINATOR-LANE-F.md",
+      "worktree": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-F",
+      "branch": "codex/free-html/lane-f",
+      "head": "a3a9b428",
+      "committed": true,
+      "verified_result": "local commit a3a9b428; leave/nav + leave-prompt pass in P12 slice; sidebar row cannot veto",
+      "not_run": ["real_dsh_browser_host", "touch_375_768", "sidebar_row_veto"]
+    }
+  },
+  "sequence": [
+    "P01",
+    "P02",
+    "P03",
+    "P04",
+    "P05",
+    "P06",
+    "P07",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12",
+    "P13"
+  ],
+  "assets": [
+    {
+      "id": "R01",
+      "path": "references/workbuddy/01.png",
+      "title": "资料库入口与资产导航",
+      "source": "user_attachment",
+      "sha256": "791960e662e2c6a58e5dd845a49bf2017235637724172d914a271695d67ca3ff"
+    },
+    {
+      "id": "R02",
+      "path": "references/workbuddy/02.png",
+      "title": "聊天生成与完整网页预览",
+      "source": "user_attachment",
+      "sha256": "984859f2967831bd208b6f9b7680818f8e0385c99955c0fa49bb270b0dd075c8"
+    },
+    {
+      "id": "R03",
+      "path": "references/workbuddy/03.png",
+      "title": "HTML 与关联数据资源",
+      "source": "user_attachment",
+      "sha256": "4280bb1de56665fb9a94f2eef4557b583dcd16f921476f0b1f43407361b151ec"
+    },
+    {
+      "id": "R04",
+      "path": "references/workbuddy/04.png",
+      "title": "生成→入库→编辑→复用",
+      "source": "user_attachment",
+      "sha256": "3244649c2efac9aa6d0bcf1521974c4038e1bd426f13b0a7737679bbdd2f026c"
+    },
+    {
+      "id": "R05",
+      "path": "references/workbuddy/05.png",
+      "title": "新建与上传入口",
+      "source": "user_attachment",
+      "sha256": "44c976813888087ce200ce52c600011b9532fdd7261d658b7f5b0bf15382fcf5"
+    },
+    {
+      "id": "R06",
+      "path": "references/workbuddy/06.png",
+      "title": "元素选择与局部 AI 编辑",
+      "source": "user_attachment",
+      "sha256": "7cca658e43aae9bb8663a3e6b6cbbb78212b3dfaf61b9c8abb735f9bc45e0823"
+    },
+    {
+      "id": "R07",
+      "path": "references/workbuddy/07.png",
+      "title": "公开发布界面（首期不做）",
+      "source": "user_attachment",
+      "sha256": "99f3eda09fba10635c819c184f3185121e18ecca608227296b2601a8248f7db3"
+    },
+    {
+      "id": "W01",
+      "path": "references/early-wireframes/01-generate.png",
+      "source": "historical_D12_wireframe",
+      "status": "historical_structure_only",
+      "sha256": "1a48874ecd78641f091b9075899f9f04f2cebe3ea6ed1f531d26ba01f8d7c9c6"
+    },
+    {
+      "id": "W02",
+      "path": "references/early-wireframes/02-preview.png",
+      "source": "historical_D12_wireframe",
+      "status": "historical_structure_only",
+      "sha256": "aa71898e221c54b02f4b074eace76275f13a1478fd8dc526734bb944ffdcb150"
+    },
+    {
+      "id": "W03",
+      "path": "references/early-wireframes/03-edit.png",
+      "source": "historical_D12_wireframe",
+      "status": "historical_structure_only",
+      "sha256": "75bb5e022168cb55f03850a09fe834280fc97b2497f0cb4da7f95bc8c997ce80"
+    },
+    {
+      "id": "W00",
+      "path": "references/early-wireframes/sketch.html",
+      "source": "historical_D12_wireframe",
+      "status": "historical_structure_only",
+      "sha256": "d7d74dac1a03086cff46f36252549fc59c81572f84c9f994a0e0a036dc65b049"
+    }
+  ],
+  "batches": [
+    {
+      "id": "P01",
+      "slug": "runtime-feasibility",
+      "title": "运行时隔离可行性",
+      "tasks": [
+        0
+      ],
+      "deps": [],
+      "nodes": [
+        "N07",
+        "N15"
+      ],
+      "refs": [
+        "R02",
+        "W02"
+      ],
+      "owner": "隔离浏览器夹具、插件运行时验证",
+      "prompt": "prompts/P01-runtime-feasibility.md",
+      "status": "DONE",
+      "report": "reports/LANE-B.md",
+      "note": "Lane B T0 Chrome/153 headless gates verified by coordinator. cpu_isolation is observation only. P12 journey and headed Chrome remain NOT_RUN."
+    },
+    {
+      "id": "P02",
+      "slug": "contracts",
+      "title": "页面资产与能力桥合同",
+      "tasks": [
+        1
+      ],
+      "deps": [],
+      "nodes": [
+        "N07",
+        "N11",
+        "N12",
+        "N13"
+      ],
+      "refs": [
+        "R03",
+        "R04"
+      ],
+      "owner": "backend/contracts/、插件 src/free-page/、离线合同入口",
+      "prompt": "prompts/P02-contracts.md",
+      "status": "DONE",
+      "report": "reports/LANE-A.md",
+      "note": "Lane A free-page/v1 contract and offline generator verified. Live HTTP mount and pipeline.mjs scan remain P12. OpenAPI x-schema-sha256=86ad3cf4."
+    },
+    {
+      "id": "P03",
+      "slug": "asset-state",
+      "title": "资产持久化与版本恢复",
+      "tasks": [
+        2
+      ],
+      "deps": [
+        "P02"
+      ],
+      "nodes": [
+        "N05",
+        "N13",
+        "N14"
+      ],
+      "refs": [
+        "R03",
+        "R04"
+      ],
+      "owner": "backend/services/analytics/、业务路由和测试",
+      "prompt": "prompts/P03-asset-state.md",
+      "status": "DONE",
+      "report": "reports/LANE-A.md",
+      "note": "Lane A page_documents store: CAS, idempotency, reopen, rollback, 13 page tests plus 60 board_documents regression. Not mounted on 6677."
+    },
+    {
+      "id": "P04",
+      "slug": "source-runtime",
+      "title": "源码包、资源和预览运行时",
+      "tasks": [
+        3,
+        4
+      ],
+      "deps": [
+        "P01",
+        "P02"
+      ],
+      "nodes": [
+        "N07",
+        "N09",
+        "N15"
+      ],
+      "refs": [
+        "R02",
+        "W02"
+      ],
+      "owner": "插件 src/free-page/、src/client/ 预览容器与资源适配",
+      "prompt": "prompts/P04-source-runtime.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-B.md",
+      "note": "Lane B T3/T4 module tests and T0 Chrome pass. P02 generated types, pipeline scan, and C data.read adapter remain NOT_RUN. Not P12/P13."
+    },
+    {
+      "id": "P05",
+      "slug": "data-bridge",
+      "title": "授权数据桥与绑定状态",
+      "tasks": [
+        5
+      ],
+      "deps": [
+        "P03",
+        "P04"
+      ],
+      "nodes": [
+        "N06",
+        "N07",
+        "N12"
+      ],
+      "refs": [
+        "R02",
+        "R03"
+      ],
+      "owner": "backend/services/analytics/、插件 src/free-page/",
+      "prompt": "prompts/P05-data-bridge.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-C.md",
+      "note": "Lane C synthetic fixture remains for module tests. P12 live data.read uses isolated page-result-access HTTP; routes mount only when explicitly configured. Real native result store and P13 remain NOT_RUN."
+    },
+    {
+      "id": "P06",
+      "slug": "source-editing",
+      "title": "源码定位与局部 AI 修改",
+      "tasks": [
+        6,
+        29
+      ],
+      "deps": [
+        "P03",
+        "P04"
+      ],
+      "nodes": [
+        "N08",
+        "N09",
+        "N10",
+        "N11",
+        "N13"
+      ],
+      "refs": [
+        "R06",
+        "W03"
+      ],
+      "owner": "插件 src/free-page/、src/client/ 编辑适配、原生 Agent 工具",
+      "prompt": "prompts/P06-source-editing.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-D.md",
+      "note": "Lane D owner fixture DONE in isolated worktree. P03/P04 deps, page_documents, real browser, and pipeline scan remain NOT_RUN. Not P13."
+    },
+    {
+      "id": "P07",
+      "slug": "library-core",
+      "title": "资料库主链路与主题上下文",
+      "tasks": [
+        7,
+        10,
+        20
+      ],
+      "deps": [
+        "P03",
+        "P04",
+        "P05",
+        "P06"
+      ],
+      "nodes": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N10",
+        "N13",
+        "N15"
+      ],
+      "refs": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "W01",
+        "W02",
+        "W03"
+      ],
+      "owner": "插件 src/client/、现有 competition-shell 主题、生成提示适配",
+      "prompt": "prompts/P07-library-core.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-E.md",
+      "note": "Lane E UI 58 tests pass with mock adapters. Live A/B/C/D adapters are in P12 tree only."
+    },
+    {
+      "id": "P08",
+      "slug": "browse-edit-access",
+      "title": "浏览编辑模式与基础响应式",
+      "tasks": [
+        11,
+        12
+      ],
+      "deps": [
+        "P06",
+        "P07"
+      ],
+      "nodes": [
+        "N07",
+        "N08",
+        "N09",
+        "N10",
+        "N11",
+        "N16"
+      ],
+      "refs": [
+        "R06",
+        "W03"
+      ],
+      "owner": "插件 src/client/、src/free-page/ 选择事件桥与浏览器夹具",
+      "prompt": "prompts/P08-browse-edit-access.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-E.md"
+    },
+    {
+      "id": "P09",
+      "slug": "host-experience",
+      "title": "可信状态、首页层级与可访问性责任",
+      "tasks": [
+        13,
+        14,
+        15,
+        16
+      ],
+      "deps": [
+        "P05",
+        "P07",
+        "P08"
+      ],
+      "nodes": [
+        "N02",
+        "N03",
+        "N05",
+        "N06",
+        "N10",
+        "N12",
+        "N13",
+        "N16"
+      ],
+      "refs": [
+        "R01",
+        "R03",
+        "R05",
+        "W01",
+        "W02",
+        "W03"
+      ],
+      "owner": "插件 src/client/ 状态/布局/检查器、页面检查接缝",
+      "prompt": "prompts/P09-host-experience.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-E.md"
+    },
+    {
+      "id": "P10",
+      "slug": "visual-width-acceptance",
+      "title": "字体、对比度和有效宽度验收",
+      "tasks": [
+        17,
+        18,
+        19
+      ],
+      "deps": [
+        "P07",
+        "P08",
+        "P09"
+      ],
+      "nodes": [
+        "N01",
+        "N03",
+        "N06",
+        "N07",
+        "N10",
+        "N16"
+      ],
+      "refs": [
+        "W01",
+        "W02",
+        "W03"
+      ],
+      "owner": "集中主题映射、字体资产、浏览器视觉夹具",
+      "prompt": "prompts/P10-visual-width-acceptance.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-E.md"
+    },
+    {
+      "id": "P11",
+      "slug": "leave-coordinator",
+      "title": "未保存离开保护与导航竞态",
+      "tasks": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "deps": [
+        "P03",
+        "P06",
+        "P07",
+        "P08"
+      ],
+      "nodes": [
+        "N01",
+        "N02",
+        "N06",
+        "N13",
+        "N14",
+        "N16"
+      ],
+      "refs": [
+        "W03"
+      ],
+      "owner": "插件 src/client/ 状态与 host adapter、真实宿主接缝夹具",
+      "prompt": "prompts/P11-leave-coordinator.md",
+      "status": "PARTIAL",
+      "report": "reports/LANE-F.md",
+      "note": "Lane F module tests pass. Native sidebar row cannot veto leave. Real DSH browser host and touch viewports NOT_RUN."
+    },
+    {
+      "id": "P12",
+      "slug": "integrated-verification",
+      "title": "集成验收与验证入口",
+      "tasks": [
+        8
+      ],
+      "deps": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11"
+      ],
+      "nodes": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N08",
+        "N09",
+        "N10",
+        "N11",
+        "N12",
+        "N13",
+        "N14",
+        "N15",
+        "N16"
+      ],
+      "refs": [
+        "R01",
+        "R02",
+        "R03",
+        "R06",
+        "W01",
+        "W02",
+        "W03"
+      ],
+      "owner": "各模块测试、插件 test/、scripts/dsh-b0/ 和实际检查选择入口",
+      "prompt": "prompts/P12-integrated-verification.md",
+      "status": "PARTIAL",
+      "report": "reports/P12.md",
+      "note": "Local HEAD 9fb89a75. Seams 9c12eee6, headed/pipeline 7e135755, ledger 9fb89a75. Headed journey 1 passed on an isolated port. Full pipeline --check FAIL at dsh-dev git-lfs brand pointer. P12 slice 35 page pytest / 120 node / contract 86ad3cf4. PARTIAL, not READY_FOR_SHIP. Single PR path is p12 to main. Not pushed."
+    },
+    {
+      "id": "P13",
+      "slug": "real-ai-acceptance",
+      "title": "真实 AI 样本与比赛链路验收",
+      "tasks": [
+        9
+      ],
+      "deps": [
+        "P12"
+      ],
+      "nodes": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N08",
+        "N09",
+        "N10",
+        "N11",
+        "N12",
+        "N13",
+        "N14",
+        "N15",
+        "N16"
+      ],
+      "refs": [
+        "R02",
+        "R03",
+        "R06",
+        "W01",
+        "W02",
+        "W03"
+      ],
+      "owner": "隔离synthetic样本、真实模型运行与证据记录",
+      "prompt": "prompts/P13-real-ai-acceptance.md",
+      "status": "BLOCKED",
+      "report": "reports/P13.md",
+      "note": "No model/quota authorization this session. Three scenes NOT_RUN. Did not substitute canned HTML."
+    }
+  ],
+  "parallel_orchestration": {
+    "lanes_file": "PARALLEL-6.md",
+    "lane_count": 6,
+    "full_completion_parallel_groups": [
+      [
+        "P01",
+        "P02"
+      ],
+      [
+        "P03",
+        "P04"
+      ],
+      [
+        "P05",
+        "P06"
+      ]
+    ],
+    "scaffold_parallel_groups": [
+      [
+        "P05",
+        "P06",
+        "P07",
+        "P11"
+      ]
+    ],
+    "integration_batches": [
+      "P12",
+      "P13"
+    ],
+    "requires_isolated_worktrees": true,
+    "shared_worktree_parallelism": "forbidden",
+    "note": "P07/P11 may scaffold against stable adapters, but their DONE gates retain manifest dependencies; P12/P13 are coordinator-only."
+  },
+  "baseline_branch": "main",
+  "baseline_refreshed_at": "2026-09-18T04:02:35.655174+00:00"
+}

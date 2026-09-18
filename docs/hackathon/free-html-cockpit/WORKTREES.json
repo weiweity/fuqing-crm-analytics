@@ -1,0 +1,64 @@
+{
+  "schema": "free-html-worktrees/v1",
+  "created_at": "2026-09-18T04:04:26.728755+00:00",
+  "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+  "base_branch": "main",
+  "worktrees": [
+    {
+      "lane": "A",
+      "branch": "codex/free-html/lane-a",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-A",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    },
+    {
+      "lane": "B",
+      "branch": "codex/free-html/lane-b",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-B",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    },
+    {
+      "lane": "C",
+      "branch": "codex/free-html/lane-c",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-C",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    },
+    {
+      "lane": "D",
+      "branch": "codex/free-html/lane-d",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-D",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    },
+    {
+      "lane": "E",
+      "branch": "codex/free-html/lane-e",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-E",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    },
+    {
+      "lane": "F",
+      "branch": "codex/free-html/lane-f",
+      "path": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-F",
+      "base_commit": "b45a27bb9022057ce37aa9123927e8b4663a2720",
+      "prompt": "AI-PROMPT.md",
+      "packet": "docs/hackathon/free-html-cockpit",
+      "status": "READY"
+    }
+  ],
+  "coordinator_prompt": "MAIN-COORDINATOR.md",
+  "root_packet": "/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics/docs/hackathon/free-html-cockpit"
+}

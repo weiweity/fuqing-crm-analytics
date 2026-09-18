@@ -1,0 +1,19 @@
+{
+  "schema": "free-page-leave-fixture/v0",
+  "predicates": {
+    "hasUnsavedChanges_true": ["layout_changed", "pending_patch_preview", "confirmationUncertain"],
+    "hasUnsavedChanges_false": ["clean_selection", "open_edit_context_only", "saved_head_matches_draft"],
+    "hasActiveEditContext_independent": true
+  },
+  "leave_choices": ["save_and_leave", "discard", "stay"],
+  "navigation": {
+    "success": "execute original intent once after matching receipt",
+    "failure_conflict_unknown": "stay; keep draft",
+    "repeat_click": "stay; do not queue a second navigation"
+  },
+  "epoch": {
+    "discard": ["get", "list", "preview"],
+    "never_discard_as_read": ["save_receipt"],
+    "save_receipt_check": ["idempotency_key", "CAS", "page_id", "base_version"]
+  }
+}

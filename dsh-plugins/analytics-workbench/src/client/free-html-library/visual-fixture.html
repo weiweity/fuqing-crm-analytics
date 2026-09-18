@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>自由 HTML 资料库宿主视觉夹具</title>
+  <style>
+    :root {
+      --sm-bg:#09050D; --sm-ink:#FEFCFF; --sm-lilac:#D3C3E8; --sm-purple:#805D9D;
+      --sm-signal:#F2FFDC; --sm-danger:#FF7D91; --sm-nav:rgba(9,5,13,.90);
+      --sm-line:rgba(211,195,232,.12); --sm-line-strong:rgba(211,195,232,.24);
+      --sm-font-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      --sm-font-display:Outfit,"Noto Sans SC","PingFang SC",sans-serif;
+      --sm-focus:#F2FFDC; --sm-touch:44px; --sm-space-3:16px; --sm-space-4:20px;
+    }
+    body { margin:0; background:var(--sm-bg); color:var(--sm-ink); font:16px/24px var(--sm-font-body); }
+    .sm-fhl { padding:var(--sm-space-4); }
+    .sm-fhl-status { position:sticky; top:0; display:flex; flex-wrap:wrap; gap:8px; padding:12px 0; background:var(--sm-nav); border-bottom:1px dashed var(--sm-line); }
+    textarea, button { font:inherit; min-height:var(--sm-touch); }
+    button:focus-visible, textarea:focus-visible { outline:2px solid var(--sm-focus); outline-offset:2px; }
+    iframe { width:100%; min-height:240px; border:1px solid var(--sm-line); background:#fff; }
+    #readout { color:var(--sm-lilac); }
+  </style>
+</head>
+<body>
+  <div class="sm-fhl" data-testid="fhl-visual">
+    <p><button type="button">返回原生对话</button></p>
+    <div class="sm-fhl-status" data-binding="UNBOUND_SAMPLE">示例数据 · 未绑定经营数据 · 浏览中</div>
+    <h1>从资料库开始工作</h1>
+    <label>描述想生成的页面 <textarea>做一张本周收入波动复盘页</textarea></label>
+    <p><button type="button">生成页面</button></p>
+    <!-- sandbox without allow-same-origin: page scripts cannot reach the host status spine. Token copies are fixture-only. -->
+    <iframe title="自由 HTML 页面预览" sandbox="allow-scripts" srcdoc="<!doctype html><title>preview</title><h1>示例页</h1><button>页面按钮</button>"></iframe>
+    <p id="readout"></p>
+  </div>
+  <script>
+    const root = document.querySelector('[data-testid="fhl-visual"]');
+    const iframe = document.querySelector('iframe');
+    const readout = document.getElementById('readout');
+    const probe = () => {
+      const cs = getComputedStyle(root);
+      const hit = document.fonts ? [...document.fonts].map(f => f.family) : [];
+      readout.textContent = JSON.stringify({
+        viewport: innerWidth, iframeWidth: iframe.getBoundingClientRect().width,
+        font: cs.fontFamily, ink: cs.color, bg: cs.backgroundColor, fonts: hit
+      });
+    };
+    probe();
+    addEventListener('resize', probe);
+  </script>
+</body>
+</html>

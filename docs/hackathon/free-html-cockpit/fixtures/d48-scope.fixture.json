@@ -1,0 +1,51 @@
+{
+  "schema": "free-page-d48-fixture/v0",
+  "cases": [
+    {
+      "id": "static-precise",
+      "selection": {"kind": "static_element", "node_id": "n_title", "mapping": "valid"},
+      "allowed_scope": "exact_source_range",
+      "submit_without_confirm": false,
+      "expect": "PATCH html title text only; canvas/js unchanged"
+    },
+    {
+      "id": "dynamic-region",
+      "selection": {"kind": "dynamic_region", "node_id": "r_chart", "mapping": "valid"},
+      "allowed_scope": "declared_region",
+      "expect": "PATCH region as a whole; sibling static nodes unchanged"
+    },
+    {
+      "id": "mapping-stale",
+      "selection": {"kind": "static_element", "node_id": "n_missing", "mapping": "stale"},
+      "allowed_scope": "none",
+      "error": "MAPPING_STALE",
+      "expect": "keep draft; require reselect; do not widen to whole page"
+    },
+    {
+      "id": "forged-marker",
+      "selection": {"kind": "static_element", "node_id": "n_forged", "mapping": "forged"},
+      "allowed_scope": "none",
+      "error": "MAPPING_STALE",
+      "expect": "same as stale; markers are not credentials"
+    },
+    {
+      "id": "user-whole-page",
+      "selection": {"kind": "whole_page", "user_switched": true},
+      "allowed_scope": "whole_package",
+      "expect": "only when user_switched is true"
+    },
+    {
+      "id": "shared-css-expansion",
+      "selection": {"kind": "static_element", "node_id": "n_title", "mapping": "valid", "affects_shared_css": true},
+      "allowed_scope": "preview_expanded_range",
+      "error_if_unconfirmed": "SCOPE_REQUIRES_CONFIRMATION",
+      "expect": "show actual shared CSS/JS impact; wait for matching confirm"
+    },
+    {
+      "id": "cancel-expired-fail",
+      "selection": {"kind": "static_element", "node_id": "n_title", "mapping": "valid"},
+      "outcomes": ["cancel", "expired", "failed"],
+      "expect": "no new server version; retain current source"
+    }
+  ]
+}

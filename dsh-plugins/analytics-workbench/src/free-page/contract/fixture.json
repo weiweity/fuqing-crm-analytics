@@ -1,0 +1,61 @@
+{
+  "schema": "free-page-contract-fixture/v1",
+  "schema_version": "free-page/v1",
+  "bridge_protocol": "free-page-bridge/v1",
+  "identity_pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+  "binding_states": ["UNBOUND_SAMPLE", "BOUND_VERIFIED", "BOUND_STALE"],
+  "operations": ["GENERATE", "PATCH", "SAVE", "ROLLBACK"],
+  "preview_status": ["PENDING", "APPLIED", "CANCELLED"],
+  "submit_paths": {
+    "D6_PATCH": "preview then confirm; one version; original idempotency_key",
+    "D9_SAVE": "explicit save of host draft; not exit-edit",
+    "not_save": ["cancel", "exit_edit", "close_panel", "clear_selection"]
+  },
+  "package": {
+    "html": "<!doctype html><html><body><h1 data-shine-node=\"n_title\">示例标题</h1><canvas data-shine-region=\"r_chart\"></canvas></body></html>",
+    "css": "h1{font:600 28px/1.3 sans-serif}",
+    "js": "document.querySelector('canvas')?.getContext('2d')",
+    "resources": [],
+    "node_map": [
+      {"node_id": "n_title", "kind": "static_element", "selector": "[data-shine-node='n_title']"},
+      {"node_id": "r_chart", "kind": "dynamic_region", "selector": "[data-shine-region='r_chart']"}
+    ]
+  },
+  "binding_manifest": {
+    "bindings": [],
+    "result_refs": []
+  },
+  "bridge": {
+    "handshake": ["protocol", "instance_id", "page_id", "version", "nonce"],
+    "page_to_host_ops": ["data.read", "data.cancel"],
+    "host_to_page_events": ["data.chunk", "data.end", "data.error", "binding.state"],
+    "forbidden_ops": ["sql", "save", "http.fetch", "credential.read"]
+  },
+  "data_read": {
+    "op": "data.read",
+    "result_ref": "result_fixture_1",
+    "mode": "summary",
+    "cursor": null,
+    "limit": 50
+  },
+  "budget": {"max_response_bytes": 65536, "max_cumulative_rows": 2000},
+  "errors": {
+    "VERSION_CONFLICT": 409,
+    "NOT_FOUND": 404,
+    "FORBIDDEN": 403,
+    "PREVIEW_EXPIRED": 409,
+    "PREVIEW_CANCELLED": 409,
+    "IDEMPOTENCY_CONFLICT": 409,
+    "INVALID_PAGE": 422,
+    "RESULT_UNAVAILABLE": 409,
+    "RESULT_STALE": 409,
+    "RESULT_REVOKED": 403,
+    "MAPPING_STALE": 409,
+    "SCOPE_REQUIRES_CONFIRMATION": 409,
+    "RESOURCE_HASH_MISMATCH": 409,
+    "PACKAGE_TOO_LARGE": 413,
+    "BRIDGE_UNKNOWN_OP": 400,
+    "BRIDGE_NONCE": 409,
+    "BRIDGE_EXPIRED_INSTANCE": 409
+  }
+}

@@ -38,6 +38,11 @@ import { refreshFacts } from '../board-spec/refresh.mjs';
 
 import { DEMO_BOARD } from '../board-spec/demo-board.mjs';
 import { createLibraryBoardClient, type LibraryBoardClient } from './library-board-client.mjs';
+import { createLeaveCoordinator } from './leave/leave-coordinator.mjs';
+import { createHostLeaveAdapter, type HostLeaveAdapter } from './leave/host-leave-adapter.mjs';
+import { LeavePromptOverlay } from './leave/leave-prompt.tsx';
+import { createHostPageStore } from './free-html-library/create-host-page-store.mjs';
+import { createNativePageGenerate } from './free-html-library/native-generate.mjs';
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { createCockpitComposition } from './cockpit-composition.mjs';
@@ -371,6 +376,63 @@ export function apply(ctx: Context): void {
     })
     : undefined;
   ctx.effect(() => () => library?.dispose(), 'analytics-board: client lifetime');
+  const pageStore = boardPackEnabled() ? createHostPageStore({
+    nativeGenerate: createNativePageGenerate({
+      submitPrompt: async (prompt) => {
+        const ids = ctx.sessions.list.getSnapshot().ids ?? [];
+        const sessionId = ids.find(id => id === B0_PRIMARY_SESSION_ID) ?? ids[0];
+        if (!sessionId || typeof ctx.remote?.session?.prompt !== 'function') {
+          const error = new Error('原生 Agent 未返回页面源码包');
+          (error as Error & { code?: string }).code = 'NATIVE_GENERATE_UNAVAILABLE';
+          throw error;
+        }
+        return ctx.remote.session.prompt({
+          sessionId: sessionId as never,
+          requestId: `page-gen-${crypto.randomUUID()}` as never,
+          mode: 'queue',
+          clientTimeZone: 'Asia/Shanghai',
+          content: [{
+            type: 'text',
+            text: `请生成自由 HTML 页面源码包。只返回 JSON 对象，字段为 html、css、js、resources、node_map。不要使用 BoardSpec。提示：${prompt}`,
+          }],
+        });
+      },
+    }),
+  }) : undefined;
+  ctx.effect(() => () => pageStore?.dispose(), 'analytics-board: free-html page store');
+  /**
+   * One leave transaction for every plugin-owned entry (D44/T25). The
+   * coordinator reads the dirty predicate, runs the three choices and performs
+   * the original navigation at most once; `goConversation` and the panel
+   * entries below submit an intent instead of switching directly.
+   * Free-HTML dirty state is folded into the same predicate so returning to
+   * chat does not open a second three-choice prompt.
+   */
+  const leaveCoordinator = library ? createLeaveCoordinator({
+    snapshot: () => ({ ...library.getSnapshot(), htmlUnsaved: Boolean(pageStore?.hasUnsavedChanges()) }),
+    beginEpoch: kind => library.beginNavigation(kind),
+    save: async () => {
+      if (pageStore?.hasUnsavedChanges()) {
+        const html = await pageStore.persistForLeave();
+        if (!html?.ok) return html ?? { ok: false, reason: 'failed' };
+      }
+      return library.saveForLeave();
+    },
+    discard: async () => {
+      if (pageStore?.hasUnsavedChanges()) {
+        const html = await pageStore.discardForLeave();
+        if (!html?.ok) return html ?? { ok: false, reason: 'failed' };
+      }
+      return library.discardDraft();
+    },
+    // Deferred: the adapter owns the host setter, and it is constructed around
+    // this coordinator. By the time any intent resolves, both exist.
+    navigate: (intent: { kind: string; id?: string | null }): Promise<void> => leaveAdapter!.perform(intent),
+  }) : undefined;
+  const leaveAdapter: HostLeaveAdapter | undefined = leaveCoordinator
+    ? createHostLeaveAdapter({ coordinator: leaveCoordinator, layout: ctx.layout }) : undefined;
+  ctx.effect(() => () => leaveAdapter?.dispose(), 'analytics-board: leave adapter lifetime');
+  ctx.effect(() => () => leaveCoordinator?.dispose(), 'analytics-board: leave coordinator lifetime');
   ctx.effect(() => () => composition?.dispose(), 'analytics-board: native composition lifetime');
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
@@ -392,9 +454,27 @@ export function apply(ctx: Context): void {
       return false;
     }
   };
+  /**
+   * Return to the native conversation. The leave transaction runs first: a
+   * clean cockpit closes immediately, and a dirty one is held on the page until
+   * the user chooses. The panel switch itself happens in the coordinator's
+   * navigation callback, so the original navigation still occurs exactly once.
+   */
   const goConversation = (): void => {
-    composition?.close();
-    try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
+    if (!leaveAdapter) {
+      // No library client to protect (pack disabled): keep the original switch.
+      composition?.close();
+      try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
+      return;
+    }
+    void leaveAdapter.request('conversation').then((result: 'navigated' | 'prompt' | 'busy' | 'stayed') => {
+      if (result === 'navigated') composition?.close();
+      // 'prompt' keeps the cockpit open while the three choices are shown;
+      // 'busy' means an earlier intent is still resolving — do not queue a second.
+    }).catch(() => {
+      // The host refused the switch: stay on the current page rather than
+      // unloading the library state.
+    });
   };
   const themeSource = {
     subscribe: (listener: () => void) => {
@@ -410,8 +490,19 @@ export function apply(ctx: Context): void {
   };
   if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
-    inject: () => ({ composition, library, themeSource }),
+    inject: () => ({ composition, library, themeSource, pageStore }),
   }, CockpitCompositionOverlay));
+  /**
+   * The N14 three-choice prompt. It is its own overlay so the leave transaction
+   * (Lane F) stays out of the composition/workspace components (Lane E): those
+   * keep display and session binding, and the prompt renders whatever the
+   * coordinator reports. It also observes the host panel selection, which is
+   * the only hook the pinned host offers for an un-vetoable sidebar switch.
+   */
+  if (boardPackEnabled() && leaveCoordinator && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'shine-mage.leave-prompt',
+    inject: () => ({ coordinator: leaveCoordinator, library }),
+  }, LeavePromptOverlay));
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.account.login', order: 10, store: accountStore,
   }, LoginFooter));
@@ -519,6 +610,7 @@ export function apply(ctx: Context): void {
         board: boardLive,
         library,
         composition,
+        pageStore,
         askTransport: http
           ? {
             fetchImpl: http.fetchImpl,

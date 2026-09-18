@@ -7,6 +7,7 @@ import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { ActionsWorkbench } from './competition-actions/index.ts';
 import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
+import { FreeHtmlLibraryApp } from './free-html-library/FreeHtmlLibraryApp.tsx';
 
 const css = `
 .sm-library-workspace { min-width:0; display:flex; flex-direction:column; gap:16px; padding:20px; background:var(--sm-bg); color:var(--sm-ink); font-family:var(--sm-font-body); }
@@ -42,9 +43,11 @@ function EditDiff({ state }: { state: LibraryState }) {
   </div>;
 }
 
-export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
+export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board', pageStore }: {
   library: LibraryBoardClient; goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
+  initialSurface?: 'pages' | 'board';
+  pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
 }) {
   const state = useSyncExternalStore(library.subscribe, library.getSnapshot);
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
@@ -53,7 +56,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
   const recovery = useRef<HTMLButtonElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const wasBusy = useRef(state.busy);
-  const [panel, setPanel] = useState<'board' | 'actions'>('board');
+  const [panel, setPanel] = useState<'pages' | 'board' | 'actions'>(initialSurface);
   const [visitedActions, setVisitedActions] = useState(false);
   useEffect(() => { void library.refresh(); }, [library]);
   useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id, Boolean(state.layoutDraft)]);
@@ -75,36 +78,42 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
     else heading.current?.focus();
   }, [state.busy]);
   useEffect(() => {
-    if (!state.layoutDraft && !state.preview && !state.editContext) return;
+    if (!library.hasUnsavedChanges()) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [Boolean(state.layoutDraft), Boolean(state.preview), Boolean(state.editContext)]);
+  }, [library, state.layoutDraft, state.preview, state.confirmationUncertain, state.editContext]);
   const shown = state.preview?.snapshot ?? state.layoutDraft ?? state.saved;
   const actionsEnabled = crowdActionPackEnabled();
+  const boardChrome = panel !== 'pages';
+  let headingText = shown?.spec.title ?? '我的驾驶舱';
+  if (panel === 'pages') headingText = '从资料库开始工作';
+  if (actionsEnabled && panel === 'actions') headingText = '人群行动';
   return <ThemeProvider colorScheme={colorScheme} className="sm-library-theme">
     <style>{css}</style>
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
       <div className="sm-library-toolbar">
-        <h1 tabIndex={-1} ref={heading}>{actionsEnabled && panel === 'actions' ? '人群行动' : shown?.spec.title ?? '我的驾驶舱'}</h1>
+        <h1 tabIndex={-1} ref={heading}>{headingText}</h1>
         <button type="button" onClick={goConversation}>返回原生对话</button>
       </div>
       <nav className="sm-library-nav" aria-label="驾驶舱页面">
+        <button type="button" aria-pressed={panel === 'pages'} data-testid="library-panel-pages"
+          onClick={() => setPanel('pages')}>自由页面</button>
         <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
           onClick={() => setPanel('board')}>我的驾驶舱</button>
         {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
           onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
       </nav>
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
-      {state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
+      {boardChrome && state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
         <p>{state.confirmationUncertain ? '保存结果待核对。切换前可尝试取消尚未应用的草稿；已保存内容需通过回退处理。' : '切换前，是否取消当前未确认草稿？'}</p>
         <div className="sm-library-actions">
           <button type="button" disabled={state.busy} onClick={() => library.keepDraft()}>继续检查当前草稿</button>
           <button type="button" disabled={state.busy} onClick={() => { void library.discardAndNavigate(); }}>{state.confirmationUncertain ? '尝试取消草稿并切换' : '取消草稿并切换'}</button>
         </div>
       </div> : null}
-      {state.preview ? <div className="sm-library-banner" data-testid="library-preview-banner" ref={previewBanner}>
+      {boardChrome && state.preview ? <div className="sm-library-banner" data-testid="library-preview-banner" ref={previewBanner}>
         <p>{{ ROLLBACK: '回退预览', LAYOUT: '布局预览', PATCH: '组件修改预览', GENERATE: '生成预览' }[state.preview.operation]} · v{state.preview.snapshot.spec.version} · {state.confirmationUncertain
           ? '保存结果待核对。可能已写入服务端；请核对状态，或重试同一次保存。取消草稿不会撤销已保存内容。'
           : '尚未保存。请检查下方内容和出处。'}</p>
@@ -117,7 +126,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
             onClick={() => { void library.confirm(); }}>{state.busy ? '处理中…' : state.confirmationUncertain ? '重试这次保存' : '确认保存这份看板'}</button>
         </div>
       </div> : null}
-      {state.editContext && !state.preview ? <div className="sm-library-banner" data-testid="library-edit-banner">
+      {boardChrome && state.editContext && !state.preview ? <div className="sm-library-banner" data-testid="library-edit-banner">
         <p>已选中「{state.editContext.block.title}」· 基于 v{state.editContext.base_version}。请在原生对话描述修改要求；当前内容尚未改变。</p>
         <div className="sm-library-actions">
           <button type="button" disabled={state.busy} onClick={() => { void library.resumeEdit(); }}>转到原生对话描述修改</button>
@@ -125,13 +134,17 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource }: {
           <button type="button" disabled={state.busy} onClick={() => { void library.cancel(); }}>取消组件编辑</button>
         </div>
       </div> : null}
-      {state.layoutDraft ? <div className="sm-library-banner" aria-label="布局编辑" data-testid="library-layout-banner">
+      {boardChrome && state.layoutDraft ? <div className="sm-library-banner" aria-label="布局编辑" data-testid="library-layout-banner">
         <p>布局编辑中 · 仅修改位置和尺寸，不改数据。检查后还需确认保存。</p>
         <div className="sm-library-actions">
           <button type="button" disabled={state.busy} data-testid="layout-cancel" onClick={() => { void library.cancel(); }}>取消布局调整</button>
           <button type="button" disabled={state.busy} data-testid="layout-preview" onClick={() => { void library.previewLayout(); }}>检查布局</button>
         </div>
       </div> : null}
+      <section hidden={panel !== 'pages'} data-testid="library-pages-view">
+        {panel === 'pages' ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
+          store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} /> : null}
+      </section>
       <section hidden={panel !== 'board'} data-testid="library-board-view">
       <div className="sm-library-toolbar">
         <button type="button" disabled={state.busy} onClick={() => { void library.refresh(); }}>刷新已保存看板</button>

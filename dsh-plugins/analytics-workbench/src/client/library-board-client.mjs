@@ -1,12 +1,17 @@
 /** Server-backed canvas state. No service token, local fake save or automatic write retry. */
 import { boardSnapshot as snapshot, boardPreview, boardIdentity, boardEditContext } from '../board-spec/receipt.mjs';
 import { changedLayouts, validatePlacement } from '../board-spec/grid-layout.mjs';
+import { createNavigationEpoch, isEpochDiscarded, isSupersededRead, SupersededRead } from './navigation/navigation-epoch.mjs';
+import { cancelDraft, cancelTarget } from './leave/cancel-receipt.mjs';
+import { verifySaveReceipt, confirmIdempotencyKey } from './leave/save-receipt.mjs';
+import { hasUnsavedChanges, hasActiveEditContext, unsavedReasons, layoutChanged } from './leave/dirty-predicate.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function createLibraryBoardClient(call, { editNative } = {}) {
   const listeners = new Set();
   const lifetime = new AbortController();
+  const epoch = createNavigationEpoch();
   let state = { busy: false, message: '', boards: [], saved: null, preview: null, confirmationUncertain: false, layoutDraft: null, editContext: null, incoming: null, history: [] };
   const emit = patch => {
     if (lifetime.signal.aborted) return;
@@ -23,28 +28,62 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     state = { ...state, ...patch };
     for (const listener of listeners) listener();
   };
+  /**
+   * One server call. Reads carry the navigation epoch that issued them: when a
+   * newer intent has taken ownership, the settled result is dropped instead of
+   * publishing an old page, an old list or an old error.
+   *
+   * Save/cancel operations are deliberately NOT epoch-gated — their receipt is
+   * evidence matched by idempotency key/CAS, and a plain navigation must not
+   * discard it. They are also never given the epoch signal, so a leave intent
+   * cannot cancel a write in flight.
+   */
   async function request(operation, payload) {
+    const ticket = isEpochDiscarded(operation) ? epoch.ticket() : null;
+    const stale = () => ticket !== null && !epoch.isCurrent(ticket.epoch);
+    // The read is cancellable by the next intent as well as by plugin disposal.
+    const signal = ticket ? AbortSignal.any([lifetime.signal, ticket.signal]) : lifetime.signal;
     let reply;
-    try { reply = await call('/shine-mage-board', operation, payload, lifetime.signal); }
+    try { reply = await call('/shine-mage-board', operation, payload, signal); }
     catch {
       lifetime.signal.throwIfAborted();
+      if (stale()) throw new SupersededRead(ticket.epoch);
       throw new Error(operation === 'confirm'
         ? '未收到保存回执，保存结果待核对。请核对保存结果，或重试这次保存。'
         : '连接中断，未取得本次操作回执；保留当前内容，请稍后重试。');
     }
     lifetime.signal.throwIfAborted();
+    if (stale()) throw new SupersededRead(ticket.epoch);
     if (!reply?.ok && operation === 'cancel' && reply?.error?.code === 'VERSION_CONFLICT') {
-      throw new Error('取消未成功：这份草稿已保存，不能通过取消撤销。请核对保存结果；如需恢复旧内容，请读取最新看板后预览回退。');
+      const conflict = new Error('取消未成功：这份草稿已保存，不能通过取消撤销。请核对保存结果；如需恢复旧内容，请读取最新看板后预览回退。');
+      conflict.cancelConflict = true;
+      throw conflict;
     }
     if (!reply?.ok) throw new Error(reply?.error?.message || '未取得看板服务回执；当前内容不变。');
     return reply.value;
   }
   async function perform(work) {
-    if (state.busy || lifetime.signal.aborted) return;
+    if (state.busy || lifetime.signal.aborted) return undefined;
     emit({ busy: true, message: '' });
-    try { await work(); }
-    catch (error) { emit({ message: error instanceof Error ? error.message : '看板操作失败，当前内容不变。' }); }
+    try { return await work(); }
+    catch (error) {
+      // A superseded read is not a user-facing failure: a newer intent owns the
+      // page now, so there is nothing to report and nothing to overwrite.
+      if (isSupersededRead(error)) return undefined;
+      emit({ message: error instanceof Error ? error.message : '看板操作失败，当前内容不变。' });
+      return undefined;
+    }
     finally { emit({ busy: false }); }
+  }
+  /**
+   * Submit a navigation intent: advance ownership, then run the work. An intent
+   * that loses the busy gate does NOT advance the epoch, so an ignored second
+   * click cannot kill the read the user is actually waiting for.
+   */
+  function intend(kind, work) {
+    if (state.busy || lifetime.signal.aborted) return Promise.resolve(undefined);
+    epoch.begin(kind);
+    return perform(work);
   }
   async function reloadList() {
     const value = await request('list', {});
@@ -92,8 +131,12 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     emit({ preview: value, layoutDraft: null, incoming: null, history: [] });
   }
   async function navigate(intent) {
-    if (state.layoutDraft || (state.preview && !(intent.kind === 'preview' && state.preview.preview_id === intent.id))
-      || (state.editContext && !(intent.kind === 'preview' && intent.contextId === state.editContext.edit_context_id))) {
+    // The barrier reads the same dirty predicate the leave coordinator does
+    // (D42): a merely-open layout mode or a clean selection is not a reason to
+    // block, and only a real draft raises the switch prompt. Re-opening the
+    // draft already on screen destroys nothing, so it stays allowed.
+    const reopensSamePreview = intent.kind === 'preview' && state.preview?.preview_id === intent.id;
+    if (unsavedReasons(state).length > 0 && !reopensSamePreview) {
       emit({ incoming: intent, message: '有未确认的草稿。请继续检查，或取消当前草稿后切换。' });
       return;
     }
@@ -121,23 +164,35 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     if (context.preview_id) { await readPreview(context.preview_id); return; }
     await sendEdit();
   }
+  /**
+   * One cancellation path for all three entries (D45/T26). The receipt is
+   * checked before any local state is cleared, so a missing, mismatched or
+   * conflicting reply keeps the draft and the recovery prompt. The layout
+   * special case lives in the helper, not here, so every caller shares it.
+   */
+  const cancelCurrent = target => cancelDraft({ ...target, request, emit });
   async function cancelEdit() {
-    const id = state.editContext.edit_context_id;
-    const cancelled = await request('cancel_edit', { edit_context_id: id });
-    if (cancelled?.status !== 'CANCELLED' || cancelled.edit_context_id !== id) throw new Error('未取得取消回执，保留当前组件编辑。');
-    emit({ editContext: null, preview: null, confirmationUncertain: false });
+    return cancelCurrent(cancelTarget({ editContext: state.editContext }));
   }
   return Object.freeze({
     getSnapshot: () => state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    dispose() { lifetime.abort(); listeners.clear(); },
-    refresh: () => perform(async () => {
+    dispose() { lifetime.abort(); epoch.dispose(); listeners.clear(); },
+    /** Dirty-draft predicate (D42): only real unsaved work blocks leaving. */
+    hasUnsavedChanges: () => hasUnsavedChanges(state),
+    /** Selection/focus context (D42): never a reason to block leaving. */
+    hasActiveEditContext: () => hasActiveEditContext(state),
+    unsavedReasons: () => unsavedReasons(state),
+    /** Advance navigation ownership for a leave intent (D43/T25). */
+    beginNavigation: kind => epoch.begin(kind),
+    navigationEpoch: () => epoch.current,
+    refresh: () => intend('refresh', async () => {
       await reloadList();
       if (state.saved && !state.preview && !state.layoutDraft && !state.editContext) await readBoard(state.saved.spec.board_id);
     }),
-    openBoard: id => perform(() => navigate({ kind: 'board', id })),
-    openPreview: (id, contextId) => perform(() => navigate({ kind: 'preview', id, ...(contextId ? { contextId } : {}) })),
-    beginEdit: blockId => perform(() => navigate({ kind: 'edit', id: blockId })),
+    openBoard: id => intend('board', () => navigate({ kind: 'board', id })),
+    openPreview: (id, contextId) => intend('preview', () => navigate({ kind: 'preview', id, ...(contextId ? { contextId } : {}) })),
+    beginEdit: blockId => intend('edit', () => navigate({ kind: 'edit', id: blockId })),
     resumeEdit: () => perform(sendEdit),
     inspectEdit: () => perform(async () => {
       if (!state.editContext) return;
@@ -155,29 +210,79 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       await readPreview(context.preview_id);
     }),
     keepDraft: () => emit({ incoming: null, message: '' }),
+    /**
+     * Drop the draft without navigating. Used by the leave coordinator's
+     * "discard" choice; returns the receipt result instead of throwing so the
+     * coordinator can stay on the page with the draft intact.
+     *
+     * `forLeave` keeps a clean selection out of the cancel targets: D42 says a
+     * bare edit context is not an obstacle to leaving, so leaving must not
+     * cancel it.
+     */
+    discardDraft: () => perform(async () => {
+      const target = cancelTarget(state, { forLeave: true });
+      if (!target) return { ok: true };
+      try {
+        await cancelCurrent(target);
+        emit({ incoming: null });
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : '未能放弃草稿，已留在当前页。' };
+      }
+    }),
+    /**
+     * Save the pending draft for a leave. Returns a receipt result; it never
+     * throws, so the coordinator can apply the stay-on-failure rule. The receipt
+     * is matched here, where the draft is in hand, and the idempotency key is
+     * reused verbatim on a retry.
+     *
+     * A local layout draft has no saved receipt to match: it is only durable
+     * once `previewLayout()` has produced a server-side preview. Saving one
+     * directly would report success for a write that never happened, so it is
+     * reported as unsaved instead of navigating away from the change.
+     */
+    saveForLeave: () => perform(async () => {
+      const draft = state.preview;
+      if (!draft) {
+        if (layoutChanged(state)) return { ok: false, reason: 'layout_unsaved' };
+        return { ok: true };
+      }
+      emit({ confirmationUncertain: true });
+      const key = confirmIdempotencyKey(draft.preview_id);
+      let saved;
+      try {
+        saved = snapshot(await request('confirm', { preview_id: draft.preview_id, key }));
+      } catch (error) {
+        // The write may or may not have landed; that is exactly what
+        // `uncertain` means, and the coordinator must not navigate on it.
+        return { ok: false, reason: 'uncertain', message: error instanceof Error ? error.message : undefined };
+      }
+      // The receipt is matched on the key that was actually sent: a snapshot
+      // that merely shares board/session/version is not proof of this save.
+      const receipt = verifySaveReceipt({ draft, saved, key });
+      if (!receipt.ok) return receipt;
+      const current = state.saved;
+      emit({ saved: current?.spec.board_id === saved.spec.board_id && current.spec.version > saved.spec.version ? current : saved,
+        preview: null, confirmationUncertain: false, editContext: null, incoming: null, message: '已确认保存。' });
+      try { await readBoard(saved.spec.board_id); await reloadList(); }
+      catch { emit({ message: '保存已确认，但当前版本刷新失败；保留收到的快照，可稍后刷新核对。' }); }
+      return { ok: true };
+    }),
     discardAndNavigate: () => perform(async () => {
       const intent = state.incoming;
-      if (!intent || (!state.preview && !state.layoutDraft && !state.editContext)) return;
+      const target = cancelTarget(state);
+      if (!intent || !target) return;
       if (state.editContext) await cancelEdit();
-      else if (state.preview) {
-        const cancelled = await request('cancel', { preview_id: state.preview.preview_id });
-        if (cancelled?.status !== 'CANCELLED' || cancelled.preview_id !== state.preview.preview_id) throw new Error('未取得取消回执，保留当前草稿。');
-      }
+      else await cancelCurrent(target);
       emit({ preview: null, layoutDraft: null, confirmationUncertain: false });
       await navigate(intent);
     }),
     cancel: () => perform(async () => {
-      if (state.editContext) {
-        await cancelEdit(); emit({ incoming: null, message: '已取消组件编辑及其待确认预览；已保存版本不变。' }); return;
-      }
-      if (state.layoutDraft) {
-        emit({ layoutDraft: null, incoming: null, message: '已取消布局调整；已保存版本不变。' });
-        return;
-      }
-      if (!state.preview) return;
-      const cancelled = await request('cancel', { preview_id: state.preview.preview_id });
-      if (cancelled?.status !== 'CANCELLED' || cancelled.preview_id !== state.preview.preview_id) throw new Error('未取得取消回执，保留当前草稿。');
-      emit({ preview: null, incoming: null, confirmationUncertain: false, message: '已取消草稿；已保存看板不变。' });
+      const target = cancelTarget(state);
+      if (!target) return;
+      if (target.kind === 'layout') { await cancelCurrent(target); return; }
+      await cancelCurrent(target);
+      emit({ incoming: null });
     }),
     beginLayout() {
       if (state.busy || state.preview || !state.saved || state.layoutDraft || state.editContext) return;
@@ -209,7 +314,7 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       if (!draft) return;
       // Until a matching success receipt arrives, failure cannot prove the write did not commit.
       emit({ confirmationUncertain: true });
-      const saved = snapshot(await request('confirm', { preview_id: draft.preview_id, key: `board-confirm:${draft.preview_id}` }));
+      const saved = snapshot(await request('confirm', { preview_id: draft.preview_id, key: confirmIdempotencyKey(draft.preview_id) }));
       if (saved.spec.board_id !== draft.snapshot.spec.board_id || saved.spec.version !== draft.snapshot.spec.version) {
         throw new Error('保存回执与预览版本不一致，保留草稿以便核对。');
       }

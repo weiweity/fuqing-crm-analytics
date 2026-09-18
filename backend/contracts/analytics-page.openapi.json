@@ -1,0 +1,1464 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Free Page Documents",
+    "version": "free-page/v1",
+    "description": "Independent HTML page assets. Not BoardSpec. D6=PATCH confirm, D9=SAVE."
+  },
+  "x-page-http": true,
+  "x-free-page-schema": "free-page/v1",
+  "x-b0-board-spec-untouched": "board-spec/v1",
+  "x-page-operations": [
+    "GENERATE",
+    "PATCH",
+    "SAVE",
+    "ROLLBACK"
+  ],
+  "x-binding-states": [
+    "UNBOUND_SAMPLE",
+    "BOUND_VERIFIED",
+    "BOUND_STALE"
+  ],
+  "x-bridge-protocol": "free-page-bridge/v1",
+  "x-bridge-forbidden-ops": [
+    "sql",
+    "save",
+    "http.fetch",
+    "credential.read"
+  ],
+  "x-page-errors": {
+    "VERSION_CONFLICT": 409,
+    "NOT_FOUND": 404,
+    "FORBIDDEN": 403,
+    "PREVIEW_EXPIRED": 409,
+    "PREVIEW_CANCELLED": 409,
+    "IDEMPOTENCY_CONFLICT": 409,
+    "INVALID_PAGE": 422,
+    "RESULT_UNAVAILABLE": 409,
+    "RESULT_STALE": 409,
+    "RESULT_REVOKED": 403,
+    "MAPPING_STALE": 409,
+    "SCOPE_REQUIRES_CONFIRMATION": 409,
+    "RESOURCE_HASH_MISMATCH": 409,
+    "PACKAGE_TOO_LARGE": 413,
+    "BRIDGE_UNKNOWN_OP": 400,
+    "BRIDGE_NONCE": 409,
+    "BRIDGE_EXPIRED_INSTANCE": 409,
+    "BINDING_CORRUPT": 409
+  },
+  "x-bridge-budget": {
+    "max_response_bytes": 65536,
+    "max_cumulative_rows": 2000
+  },
+  "paths": {
+    "/api/v1/analytics/page-documents/previews": {
+      "post": {
+        "operationId": "page_generate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageDraft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Page preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/previews/{preview_id}": {
+      "get": {
+        "operationId": "page_preview",
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/previews/{preview_id}/confirm": {
+      "post": {
+        "operationId": "page_confirm",
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/previews/{preview_id}/cancel": {
+      "post": {
+        "operationId": "page_cancel",
+        "parameters": [
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCancelResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages": {
+      "get": {
+        "operationId": "page_list",
+        "responses": {
+          "200": {
+            "description": "Metadata list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages/{page_id}": {
+      "get": {
+        "operationId": "page_get",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages/{page_id}/versions": {
+      "get": {
+        "operationId": "page_history",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PageRevision"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages/{page_id}/patch-preview": {
+      "post": {
+        "operationId": "page_patch",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePatchPreview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Page preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages/{page_id}/save-preview": {
+      "post": {
+        "operationId": "page_save",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageSavePreview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Page preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/page-documents/pages/{page_id}/rollback-preview": {
+      "post": {
+        "operationId": "page_rollback",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRollbackPreview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Page preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PageResource": {
+        "additionalProperties": false,
+        "properties": {
+          "resource_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "content_type": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._+-]+/[A-Za-z0-9._+-]+$",
+            "title": "Content Type",
+            "type": "string"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "byte_length": {
+            "maximum": 2000000,
+            "minimum": 0,
+            "title": "Byte Length",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "resource_id",
+          "content_type",
+          "sha256",
+          "byte_length"
+        ],
+        "title": "PageResource",
+        "type": "object"
+      },
+      "PageNodeMapEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "node_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Node Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "static_element",
+              "dynamic_region",
+              "whole_page"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "selector": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Selector",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "kind",
+          "selector"
+        ],
+        "title": "PageNodeMapEntry",
+        "type": "object"
+      },
+      "PagePackage": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "maxLength": 1048576,
+            "minLength": 1,
+            "title": "Html",
+            "type": "string"
+          },
+          "css": {
+            "default": "",
+            "maxLength": 524288,
+            "title": "Css",
+            "type": "string"
+          },
+          "js": {
+            "default": "",
+            "maxLength": 524288,
+            "title": "Js",
+            "type": "string"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/PageResource"
+            },
+            "maxItems": 32,
+            "title": "Resources",
+            "type": "array"
+          },
+          "node_map": {
+            "items": {
+              "$ref": "#/components/schemas/PageNodeMapEntry"
+            },
+            "maxItems": 2000,
+            "title": "Node Map",
+            "type": "array"
+          }
+        },
+        "required": [
+          "html"
+        ],
+        "title": "PagePackage",
+        "type": "object"
+      },
+      "PageBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "binding_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Node Id"
+          },
+          "data_ref": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Data Ref"
+          },
+          "mode": {
+            "default": "summary",
+            "enum": [
+              "summary",
+              "page",
+              "range"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "binding_id",
+          "result_ref"
+        ],
+        "title": "PageBinding",
+        "type": "object"
+      },
+      "PageBindingManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "items": {
+              "$ref": "#/components/schemas/PageBinding"
+            },
+            "maxItems": 64,
+            "title": "Bindings",
+            "type": "array"
+          },
+          "result_refs": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Result Refs",
+            "type": "array"
+          }
+        },
+        "title": "PageBindingManifest",
+        "type": "object"
+      },
+      "PageDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PagePackage"
+          },
+          "binding_manifest": {
+            "$ref": "#/components/schemas/PageBindingManifest"
+          }
+        },
+        "required": [
+          "title",
+          "session_id",
+          "package"
+        ],
+        "title": "PageDraft",
+        "type": "object"
+      },
+      "PageDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PagePackage"
+          },
+          "binding_manifest": {
+            "$ref": "#/components/schemas/PageBindingManifest"
+          },
+          "schema_version": {
+            "const": "free-page/v1",
+            "default": "free-page/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "page_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "binding_state": {
+            "enum": [
+              "UNBOUND_SAMPLE",
+              "BOUND_VERIFIED",
+              "BOUND_STALE"
+            ],
+            "title": "Binding State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "session_id",
+          "package",
+          "page_id",
+          "version",
+          "binding_state"
+        ],
+        "title": "PageDocument",
+        "type": "object"
+      },
+      "PagePatchPreview": {
+        "additionalProperties": false,
+        "description": "D6: patch preview of source and/or manifest. Confirm is a separate call.",
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string",
+            "title": "Title"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PagePackage"
+          },
+          "binding_manifest": {
+            "$ref": "#/components/schemas/PageBindingManifest"
+          }
+        },
+        "required": [
+          "base_version"
+        ],
+        "title": "PagePatchPreview",
+        "type": "object"
+      },
+      "PageSavePreview": {
+        "additionalProperties": false,
+        "description": "D9: explicit save of the host in-memory draft. Exit-edit is not save.",
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PagePackage"
+          },
+          "binding_manifest": {
+            "$ref": "#/components/schemas/PageBindingManifest"
+          }
+        },
+        "required": [
+          "base_version",
+          "title",
+          "package",
+          "binding_manifest"
+        ],
+        "title": "PageSavePreview",
+        "type": "object"
+      },
+      "PageRollbackPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "to_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "To Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "base_version",
+          "to_version"
+        ],
+        "title": "PageRollbackPreview",
+        "type": "object"
+      },
+      "PageSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/PageDocument"
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "title": "PageSnapshot",
+        "type": "object"
+      },
+      "PagePreview": {
+        "additionalProperties": false,
+        "properties": {
+          "preview_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "APPLIED",
+              "CANCELLED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "GENERATE",
+              "PATCH",
+              "SAVE",
+              "ROLLBACK"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "base_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "expires_at_ms": {
+            "title": "Expires At Ms",
+            "type": "integer"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PageSnapshot"
+          }
+        },
+        "required": [
+          "preview_id",
+          "status",
+          "operation",
+          "base_version",
+          "expires_at_ms",
+          "snapshot"
+        ],
+        "title": "PagePreview",
+        "type": "object"
+      },
+      "PageRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "operation": {
+            "enum": [
+              "GENERATE",
+              "PATCH",
+              "SAVE",
+              "ROLLBACK"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "created_at_ms": {
+            "title": "Created At Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "created_at_ms"
+        ],
+        "title": "PageRevision",
+        "type": "object"
+      },
+      "PageListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "page_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "session_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "binding_state": {
+            "enum": [
+              "UNBOUND_SAMPLE",
+              "BOUND_VERIFIED",
+              "BOUND_STALE"
+            ],
+            "title": "Binding State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "version",
+          "session_id",
+          "binding_state"
+        ],
+        "title": "PageListItem",
+        "type": "object"
+      },
+      "PageList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PageListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PageList",
+        "type": "object"
+      },
+      "PageCancelResult": {
+        "additionalProperties": false,
+        "properties": {
+          "preview_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "CANCELLED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_id",
+          "status"
+        ],
+        "title": "PageCancelResult",
+        "type": "object"
+      },
+      "PageBridgeHandshake": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "page_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Page Id",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "page_id",
+          "version",
+          "nonce"
+        ],
+        "title": "PageBridgeHandshake",
+        "type": "object"
+      },
+      "PageDataReadRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "data.read",
+            "title": "Op",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "mode": {
+            "default": "summary",
+            "enum": [
+              "summary",
+              "page",
+              "range"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cursor"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 50,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op",
+          "result_ref"
+        ],
+        "title": "PageDataReadRequest",
+        "type": "object"
+      },
+      "PageDataCancelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "data.cancel",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op"
+        ],
+        "title": "PageDataCancelRequest",
+        "type": "object"
+      },
+      "PageDataChunkEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "data.chunk",
+            "title": "Op",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 24,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          },
+          "time_range": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Time Range"
+          },
+          "queried_at": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Queried At"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "maximum": 2000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "byte_length": {
+            "anyOf": [
+              {
+                "maximum": 65536,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Byte Length"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op"
+        ],
+        "title": "PageDataChunkEvent",
+        "type": "object"
+      },
+      "PageDataEndEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "data.end",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op"
+        ],
+        "title": "PageDataEndEvent",
+        "type": "object"
+      },
+      "PageDataErrorEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "data.error",
+            "title": "Op",
+            "type": "string"
+          },
+          "code": {
+            "enum": [
+              "RESULT_UNAVAILABLE",
+              "RESULT_STALE",
+              "RESULT_REVOKED",
+              "FORBIDDEN",
+              "BRIDGE_NONCE",
+              "BRIDGE_EXPIRED_INSTANCE",
+              "BRIDGE_UNKNOWN_OP",
+              "PACKAGE_TOO_LARGE"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op",
+          "code",
+          "message"
+        ],
+        "title": "PageDataErrorEvent",
+        "type": "object"
+      },
+      "PageBindingStateEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "free-page-bridge/v1",
+            "default": "free-page-bridge/v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "instance_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "request_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "nonce": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "seq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "op": {
+            "const": "binding.state",
+            "title": "Op",
+            "type": "string"
+          },
+          "binding_state": {
+            "enum": [
+              "UNBOUND_SAMPLE",
+              "BOUND_VERIFIED",
+              "BOUND_STALE"
+            ],
+            "title": "Binding State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance_id",
+          "request_id",
+          "nonce",
+          "seq",
+          "op",
+          "binding_state"
+        ],
+        "title": "PageBindingStateEvent",
+        "type": "object"
+      }
+    }
+  },
+  "x-schema-sha256": "86ad3cf4d71b05cb827a52f38b568ae3e0ed02ea7312a9dd3b6d848971e0ef3a"
+}

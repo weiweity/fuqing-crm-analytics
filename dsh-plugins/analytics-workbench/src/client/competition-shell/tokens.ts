@@ -9,12 +9,16 @@ export const BRAND_ASSET_URLS = Object.freeze({
   mark: '/b0/brand/mark.svg',
   outfit: '/b0/brand/outfit.ttf',
   outfitLicense: '/b0/brand/outfit-ofl.txt',
+  /** Declared D37 path. File is not bundled yet; do not treat this URL as a loaded font. */
+  notoSansSc: '/b0/brand/noto-sans-sc.woff2',
+  notoSansScLicense: '/b0/brand/noto-sans-sc-ofl.txt',
 });
 
 export const BRAND_DIGESTS = Object.freeze({
   logoPng: '21b8273703b9015027b572cb830b8bb01e9fc406c39b14ec7c228fbcdcaf4000',
   markSvg: '1bcd095360e42081429d23972e25f8d4a831a241df565d920c020d27aab8f4a8',
   outfitTtf: 'fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade',
+  notoSansSc: null,
 });
 
 export const competitionColor = Object.freeze({
@@ -38,10 +42,16 @@ export const competitionColor = Object.freeze({
   warning: '#F59E0B',
 });
 
+/**
+ * D37 declared stacks. Noto Sans SC is the Chinese default name; PuHuiTi is a
+ * candidate only and is not an active default until license/file/load/distribution
+ * are verified. A declared family is not proof the file loaded.
+ */
 export const competitionFont = Object.freeze({
-  body: "'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
-  display: "'Outfit', 'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+  body: "'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+  display: "'Outfit', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
   mono: "'SFMono-Regular', 'SF Mono', Menlo, Monaco, Consolas, monospace",
+  candidateChinese: "'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi'",
 });
 
 export const competitionMaterial = Object.freeze({
@@ -112,6 +122,17 @@ export const competitionCssVars = Object.freeze({
   '--sm-font-body': competitionFont.body,
   '--sm-font-display': competitionFont.display,
   '--sm-font-mono': competitionFont.mono,
+  '--sm-focus': competitionColor.brandAccent,
+  '--sm-focus-offset': '2px',
+  '--sm-type-body': '16px/24px',
+  '--sm-type-title': '600 28px/36px',
+  '--sm-type-title-narrow': '600 22px/30px',
+  '--sm-space-1': '8px',
+  '--sm-space-2': '12px',
+  '--sm-space-3': '16px',
+  '--sm-space-4': '20px',
+  '--sm-space-5': '24px',
+  '--sm-radius-control': '12px',
   '--sm-touch': '44px',
   '--sm-logo-width': '177px',
   '--sm-logo-width-compact': '140px',
@@ -134,7 +155,28 @@ export const competitionTokens = Object.freeze({
   cssVars: competitionCssVars,
   assets: BRAND_ASSET_URLS,
   antd: antdTheme,
-  breakpoint: Object.freeze({ phone: 390, tablet: 768, desktop: 1440 }),
+  breakpoint: Object.freeze({ phone: 375, phoneCompact: 390, tablet: 768, laptop: 1280, desktop: 1440 }),
+});
+
+/**
+ * D39 library host mapping. Components consume these roles; generated pages
+ * receive a value copy via generate-context and must not import this selector set.
+ */
+export const LIBRARY_THEME_MAP = Object.freeze({
+  canvas: { token: 'competitionColor.background', css: '--sm-bg', dark: '#09050D' },
+  nav: { token: 'competitionMaterial.nav', css: '--sm-nav' },
+  rule: { token: 'competitionMaterial.line', css: '--sm-line' },
+  body: { token: 'competitionFont.body', css: '--sm-font-body', declared: 'Noto Sans SC', loaded: false },
+  display: { token: 'competitionFont.display', css: '--sm-font-display', latin: 'Outfit' },
+  ink: { token: 'competitionColor.ink', css: '--sm-ink', role: 'title and high-priority copy', dark: '#FEFCFF' },
+  lilac: { token: 'competitionColor.brandSecondary', css: '--sm-lilac', role: 'body/link on dark', dark: '#D3C3E8' },
+  purple: { token: 'competitionColor.brandPrimary', css: '--sm-purple', role: 'emphasis only', dark: '#805D9D' },
+  signal: { token: 'competitionColor.brandAccent', css: '--sm-signal', role: 'confirm/focus on dark', dark: '#F2FFDC' },
+  danger: { token: 'competitionColor.danger', css: '--sm-danger', role: 'error with text', dark: '#FF7D91' },
+  focus: { token: '--sm-focus', geometry: '2px outline / 2px offset' },
+  control: { token: 'antdSeedToken.controlHeight', css: '--sm-touch', value: '44px' },
+  radius: { token: 'antdSeedToken.borderRadius', css: '--sm-radius-control', value: '12px' },
+  panel: { token: 'antdSeedToken.colorBgElevated', css: 'colorBgElevated' },
 });
 
 export type CompetitionColorScheme = 'light' | 'dark';
@@ -172,6 +214,7 @@ const lightCompetitionTokens = Object.freeze({
     '--sm-line': lightMaterial.line, '--sm-line-strong': lightMaterial.lineStrong,
     '--sm-glass': lightMaterial.glass, '--sm-nav': lightMaterial.nav, '--sm-nav-active': lightMaterial.navActive,
     '--sm-filter-brand-inverse': 'none',
+    '--sm-focus': lightColor.brandSecondary,
   }),
   antd: Object.freeze({
     ...antdTheme, cssVar: { prefix: 'sm', key: 'competition-light' },
