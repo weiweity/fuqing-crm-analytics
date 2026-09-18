@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { createFreeHtmlLibraryStore } from './store.mjs';
 import { createMockPageAdapters } from './mock-adapters.mjs';
 import { createHostPageStore } from './create-host-page-store.mjs';
+import { AGENT_PACKAGE, createIsolatedFetch } from './p12-http-fakes.mjs';
 
 const plugin = fileURLToPath(new URL('../../..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
@@ -155,7 +156,12 @@ test('dirty native-chat leave shows three choices and stay keeps the page', asyn
 
 test('live adapters mount Lane B preview host instead of a raw srcdoc iframe', async t => {
   const ui = await domFixture(t);
-  const store = createHostPageStore();
+  const isolated = createIsolatedFetch({ token: 'library-page-isolated-test-token-32chars' });
+  const store = createHostPageStore({
+    nativeGenerate: async () => AGENT_PACKAGE,
+    documentsHttp: { base: 'http://127.0.0.1:18091', token: 'library-page-isolated-test-token-32chars', fetchImpl: isolated.fetchImpl },
+    resultHttp: { base: 'http://127.0.0.1:18091', token: 'library-page-isolated-test-token-32chars', fetchImpl: isolated.fetchImpl },
+  });
   await ui.render(React.createElement(FreeHtmlLibraryApp, { store, themeSource: theme, goConversation() {} }));
   await act(async () => { store.setPrompt('页'); await store.generate(); });
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });

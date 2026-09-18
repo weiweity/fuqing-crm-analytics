@@ -5,6 +5,7 @@ from backend.analytics_competition_app import create_competition_app
 from backend.contracts.competition_computed import DATA_SCOPE
 from backend.services.analytics.access import AnalyticsPrincipal, B0IdentityRegistry
 from backend.services.analytics.page_documents_routes import PREFIX
+from backend.services.analytics.page_result_access_routes import PREFIX as RESULT_PREFIX
 
 CAPS = frozenset({"analysis:read", "analysis:save", "dashboard:read", "dashboard:update"})
 TOKEN = "library-page-isolated-test-token-32chars"
@@ -14,6 +15,12 @@ def test_page_routes_absent_without_page_state_dir():
     app = create_competition_app()
     paths = {getattr(route, "path", "") for route in app.routes}
     assert not any(path.startswith(PREFIX) for path in paths)
+
+
+def test_result_routes_absent_without_explicit_access():
+    app = create_competition_app()
+    paths = {getattr(route, "path", "") for route in app.routes}
+    assert not any(path.startswith(RESULT_PREFIX) for path in paths)
 
 
 def test_page_routes_present_with_page_state_dir(tmp_path):

@@ -40,7 +40,7 @@ export type PageAdapters = {
     get(pageId: string): FreeHtmlPage | null;
     put(page: FreeHtmlPage): FreeHtmlPage;
   };
-  nativeChat: { kind: string; note: string; prompts: unknown[]; submitGeneratePrompt(prompt: string, context?: object): { accepted: boolean; runtime: string }; open(): { reachable: true } };
+  nativeChat: { kind: string; note: string; prompts: unknown[]; submitGeneratePrompt(prompt: string, context?: object): { accepted: boolean; runtime: string; package?: { html: string; css?: string; js?: string } } | Promise<{ accepted: boolean; runtime: string; package?: { html: string; css?: string; js?: string } }>; open(): { reachable: true } };
   samplePackage(): typeof SAMPLE_PACKAGE;
   nextId(prefix: string): string;
 };

@@ -48,7 +48,7 @@ export type FreeHtmlLibraryStore = {
   toggleAssets(): void;
   applyExample(text: string): void;
   generate(): Promise<void>;
-  openPage(pageId: string): void;
+  openPage(pageId: string): Promise<void> | void;
   requestLeave(intent: string): { blocked: boolean; hasUnsavedChanges: boolean; hasActiveEditContext: boolean };
   stayLeave(): { navigated: false; intent: null };
   persistForLeave(): Promise<{ ok: boolean; reason?: string }>;

@@ -42,6 +42,7 @@ import { createLeaveCoordinator } from './leave/leave-coordinator.mjs';
 import { createHostLeaveAdapter, type HostLeaveAdapter } from './leave/host-leave-adapter.mjs';
 import { LeavePromptOverlay } from './leave/leave-prompt.tsx';
 import { createHostPageStore } from './free-html-library/create-host-page-store.mjs';
+import { createNativePageGenerate } from './free-html-library/native-generate.mjs';
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { createCockpitComposition } from './cockpit-composition.mjs';
@@ -375,7 +376,29 @@ export function apply(ctx: Context): void {
     })
     : undefined;
   ctx.effect(() => () => library?.dispose(), 'analytics-board: client lifetime');
-  const pageStore = boardPackEnabled() ? createHostPageStore() : undefined;
+  const pageStore = boardPackEnabled() ? createHostPageStore({
+    nativeGenerate: createNativePageGenerate({
+      submitPrompt: async (prompt) => {
+        const ids = ctx.sessions.list.getSnapshot().ids ?? [];
+        const sessionId = ids.find(id => id === B0_PRIMARY_SESSION_ID) ?? ids[0];
+        if (!sessionId || typeof ctx.remote?.session?.prompt !== 'function') {
+          const error = new Error('原生 Agent 未返回页面源码包');
+          (error as Error & { code?: string }).code = 'NATIVE_GENERATE_UNAVAILABLE';
+          throw error;
+        }
+        return ctx.remote.session.prompt({
+          sessionId: sessionId as never,
+          requestId: `page-gen-${crypto.randomUUID()}` as never,
+          mode: 'queue',
+          clientTimeZone: 'Asia/Shanghai',
+          content: [{
+            type: 'text',
+            text: `请生成自由 HTML 页面源码包。只返回 JSON 对象，字段为 html、css、js、resources、node_map。不要使用 BoardSpec。提示：${prompt}`,
+          }],
+        });
+      },
+    }),
+  }) : undefined;
   ctx.effect(() => () => pageStore?.dispose(), 'analytics-board: free-html page store');
   /**
    * One leave transaction for every plugin-owned entry (D44/T25). The

@@ -7,6 +7,21 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function asAgentPackage(pkg) {
+  if (!pkg || typeof pkg.html !== 'string' || !String(pkg.html).trim()) return null;
+  return {
+    html: pkg.html,
+    css: typeof pkg.css === 'string' ? pkg.css : '',
+    js: typeof pkg.js === 'string' ? pkg.js : '',
+    resources: Array.isArray(pkg.resources) ? pkg.resources : [],
+    node_map: Array.isArray(pkg.node_map) ? pkg.node_map : [],
+  };
+}
+
+function isLive(adapters) {
+  return adapters?.kind === 'p12-live';
+}
+
 function emptyState(viewportWidth, adapters) {
   return {
     view: 'home',
@@ -135,15 +150,52 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
     async generate() {
       const prompt = state.prompt;
       await perform(async () => {
+        let submitted;
         try {
-          bound.nativeChat.submitGeneratePrompt(prompt, { designGuide: state.designGuide, skill: state.skill });
+          submitted = await Promise.resolve(
+            bound.nativeChat.submitGeneratePrompt(prompt, { designGuide: state.designGuide, skill: state.skill }),
+          );
         } catch (error) {
           emit({ prompt, liveStatus: '生成失败，已保留输入', message: error.message });
           throw error;
         }
+        const title = prompt.slice(0, 32) || '未命名页面';
+        if (isLive(bound)) {
+          const pkg = asAgentPackage(submitted?.package);
+          if (!pkg) {
+            const error = new Error('原生 Agent 未返回页面源码包');
+            error.code = 'NATIVE_GENERATE_UNAVAILABLE';
+            emit({ prompt, liveStatus: '生成失败，已保留输入', message: error.message });
+            throw error;
+          }
+          if (typeof bound.documents?.generateAndConfirm !== 'function') {
+            const error = new Error('页面保存库尚未配置隔离 HTTP');
+            error.code = 'http_not_configured';
+            throw error;
+          }
+          const persisted = await bound.documents.generateAndConfirm({
+            title,
+            session_id: submitted?.session_id || 'native_session_fixture',
+            package: pkg,
+            binding_manifest: { bindings: [], result_refs: [] },
+            idempotency_key: bound.nextId('idem'),
+          });
+          if (!persisted?.ok || !persisted.page) {
+            const error = new Error('页面未能写入保存库');
+            error.code = persisted?.reason || 'http_not_configured';
+            throw error;
+          }
+          bound.assets.put(persisted.page);
+          refreshList();
+          emit({
+            view: 'workspace', current: persisted.page, mode: 'browse', selection: null, overlay: null,
+            contextPanel: null, preview: null, liveStatus: '已用原生对话生成并写入保存库',
+            message: '无经营数据也可生成；当前为未绑定样例',
+          });
+          return;
+        }
         const pageId = bound.nextId('page');
         const pkg = bound.samplePackage();
-        const title = prompt.slice(0, 32) || '未命名页面';
         pkg.html = applyTextToShineNode(pkg.html, 'n_title', title);
         const saved = clone(pkg);
         const page = {
@@ -168,7 +220,10 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
         });
       });
     },
-    openPage(pageId) {
+    async openPage(pageId) {
+      if (isLive(bound) && bound.documents?.pullPage) {
+        try { await bound.documents.pullPage(pageId); } catch { /* keep local cache */ }
+      }
       const page = bound.assets.get(pageId);
       if (!page) { emit({ message: '页面不存在或无权限' }); return; }
       emit({
@@ -256,6 +311,23 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
         if (!located) throw Object.assign(new Error('请先选择有效范围'), { code: 'MAPPING_STALE' });
         try {
           const preview = bound.edit.previewPatch({ pkg: state.current.package, selection: { ...located, ...extras }, instruction, affectsShared: extras.affectsShared });
+          if (isLive(bound) && bound.documents?.patchPreview) {
+            const remote = await bound.documents.patchPreview({
+              page_id: state.current.page_id,
+              base_version: state.current.version,
+              package: preview.snapshot,
+            });
+            if (!remote.ok) {
+              const error = new Error('页面保存库尚未配置隔离 HTTP');
+              error.code = remote.reason || 'http_not_configured';
+              throw error;
+            }
+            emit({
+              preview: { ...preview, preview_id: remote.body.preview_id },
+              overlay: 'patch', lastIdempotencyKey: preview.idempotency_key, liveStatus: '补丁预览待确认',
+            });
+            return;
+          }
           emit({ preview, overlay: 'patch', lastIdempotencyKey: preview.idempotency_key, liveStatus: '补丁预览待确认' });
         } catch (error) {
           if (error.code === 'SCOPE_REQUIRES_CONFIRMATION' && error.preview) {
@@ -278,6 +350,24 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
           throw Object.assign(new Error('共享样式影响超出选区，请确认实际范围'), { code: 'SCOPE_REQUIRES_CONFIRMATION' });
         }
         try {
+          if (isLive(bound) && bound.documents?.confirmPreview) {
+            const confirmed = await bound.documents.confirmPreview(preview.preview_id, state.lastIdempotencyKey);
+            const spec = confirmed.body?.spec ?? confirmed.spec;
+            if (!spec?.package) throw new Error('D6 确认未返回页面快照');
+            const snapshot = clone(spec.package);
+            const page = {
+              ...state.current,
+              ...spec,
+              package: snapshot,
+              savedPackage: clone(snapshot),
+              dirty: false,
+              history: [...state.current.history, { version: spec.version, title: spec.title, at: now(), package: clone(snapshot) }],
+            };
+            bound.assets.put(page);
+            refreshList();
+            emit({ current: page, preview: null, overlay: null, confirmationUncertain: false, liveStatus: `D6 补丁已确认 · v${page.version}` });
+            return;
+          }
           const applied = bound.edit.confirmPatch(preview.preview_id, { idempotency_key: state.lastIdempotencyKey });
           const nextVersion = state.current.version + 1;
           const snapshot = clone(applied.snapshot);
@@ -304,13 +394,48 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
     },
     async cancelPreview() {
       await perform(async () => {
-        if (state.preview) bound.edit.cancelPatch(state.preview.preview_id);
+        if (state.preview) {
+          bound.edit.cancelPatch(state.preview.preview_id);
+          if (isLive(bound) && bound.documents?.cancelPreview) {
+            try { await bound.documents.cancelPreview(state.preview.preview_id); } catch { /* local cancel still stands */ }
+          }
+        }
         emit({ preview: null, overlay: state.mode === 'edit' ? 'selection' : null, liveStatus: '已取消补丁，未提交版本' });
       });
     },
     async saveDraft() {
       await perform(async () => {
         if (!state.current) throw new Error('没有可保存的页面');
+        if (isLive(bound) && bound.documents?.savePreview) {
+          const remote = await bound.documents.savePreview({
+            page_id: state.current.page_id,
+            base_version: state.current.version,
+            title: state.current.title,
+            package: state.current.package,
+            binding_manifest: state.current.binding_manifest,
+          });
+          if (!remote.ok) {
+            const error = new Error('页面保存库尚未配置隔离 HTTP');
+            error.code = remote.reason || 'http_not_configured';
+            throw error;
+          }
+          const confirmed = await bound.documents.confirmPreview(remote.body.preview_id, bound.nextId('idem'));
+          const spec = confirmed.body?.spec ?? confirmed.spec;
+          if (!spec?.package) throw new Error('D9 保存未返回页面快照');
+          const snapshot = clone(spec.package);
+          const page = {
+            ...state.current,
+            ...spec,
+            package: snapshot,
+            savedPackage: clone(snapshot),
+            dirty: false,
+            history: [...state.current.history, { version: spec.version, title: spec.title, at: now(), package: clone(snapshot) }],
+          };
+          bound.assets.put(page);
+          refreshList();
+          emit({ current: page, liveStatus: `D9 已显式保存 · v${page.version}`, message: '退出编辑或关面板不会走这条保存' });
+          return;
+        }
         const nextVersion = state.current.version + 1;
         const snapshot = clone(state.current.package);
         const page = {
@@ -332,6 +457,34 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
     },
     async rollback(version) {
       await perform(async () => {
+        if (isLive(bound) && bound.documents?.rollbackPreview) {
+          const remote = await bound.documents.rollbackPreview({
+            page_id: state.current.page_id,
+            base_version: state.current.version,
+            to_version: version,
+          });
+          if (!remote.ok) {
+            const error = new Error('页面保存库尚未配置隔离 HTTP');
+            error.code = remote.reason || 'http_not_configured';
+            throw error;
+          }
+          const confirmed = await bound.documents.confirmPreview(remote.body.preview_id, bound.nextId('idem'));
+          const spec = confirmed.body?.spec ?? confirmed.spec;
+          if (!spec?.package) throw new Error('回滚未返回页面快照');
+          const restored = clone(spec.package);
+          const page = {
+            ...state.current,
+            ...spec,
+            package: restored,
+            savedPackage: clone(restored),
+            dirty: false,
+            history: [...state.current.history, { version: spec.version, title: spec.title, at: now(), package: clone(restored) }],
+          };
+          bound.assets.put(page);
+          refreshList();
+          emit({ current: page, mode: 'browse', selection: null, preview: null, liveStatus: `已回退到 v${version}，请重核授权` });
+          return;
+        }
         const entry = state.current?.history.find(item => item.version === version);
         if (!entry?.package) throw new Error('没有该历史版本');
         const restored = clone(entry.package);

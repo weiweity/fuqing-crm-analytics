@@ -19,6 +19,8 @@ from backend.board_spec_routes import board_spec_router
 from backend.services.analytics.board_documents import BoardDocumentStore
 from backend.services.analytics.page_documents import PageDocumentStore
 from backend.services.analytics.page_documents_routes import page_documents_router
+from backend.services.analytics.page_result_access import PageResultAccess
+from backend.services.analytics.page_result_access_routes import page_result_access_router
 from backend.services.analytics.board_result_adapter import computed_board_resolver
 from backend.middleware.query_router import (
     competition_error_response,
@@ -74,6 +76,7 @@ def create_competition_app(
     diagnosis_state_dir: Path | None = None,
     board_state_dir: Path | None = None,
     page_state_dir: Path | None = None,
+    page_result_access: PageResultAccess | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Competition Assets", version="competition-c0/v1",
                   docs_url=None, redoc_url=None, openapi_url=None)
@@ -100,6 +103,8 @@ def create_competition_app(
     if page_state_dir is not None:
         pages = PageDocumentStore(page_state_dir)
         app.include_router(page_documents_router(pages, principal))
+    if page_result_access is not None:
+        app.include_router(page_result_access_router(page_result_access, principal))
 
     def require_assets() -> CompetitionAssetService:
         if assets is None:

@@ -1,8 +1,12 @@
 import type { FreeHtmlLibraryStore } from './store.d.mts';
+import type { PageHttpOptions } from './page-http.d.mts';
+import type { PagePackage } from './native-generate.d.mts';
 
 export function createHostPageStore(options?: {
   now?: () => number;
   actorId?: string;
   viewportWidth?: number;
-  documentsHttp?: { base: string; token?: string; fetchImpl: (url: string, init?: object) => Promise<{ ok: boolean; status?: number; json(): Promise<unknown> }> } | null;
+  documentsHttp?: PageHttpOptions | null;
+  resultHttp?: PageHttpOptions | null;
+  nativeGenerate?: (prompt: string, extras?: object) => Promise<PagePackage> | PagePackage;
 }): FreeHtmlLibraryStore;

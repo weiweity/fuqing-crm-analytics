@@ -1,27 +1,67 @@
 /**
- * P12 live adapters: owner modules from A/B/C/D, not E's in-process mocks.
- * Persistence here uses D's memory store until HTTP page_documents is called.
- * C's createSyntheticAccess is still a fixture result store (declared mock).
+ * P12 live adapters: A/B/C/D owner modules.
+ * Generate consumes a native Agent page package. Persist and result reads
+ * go through isolated HTTP; they do not stay on the in-memory store or
+ * C's synthetic fixture when HTTP is configured.
  */
 import { buildSourceIndex, locateSelection } from '../../free-page/source-index/index.mjs';
 import { applyInnerText, createPatchPreview, createMemoryPageStore } from '../../free-page/patch/index.mjs';
 import { buildSrcdoc } from '../../free-page/preview/srcdoc-builder.mjs';
 import { FREE_PAGE_SANDBOX } from '../../free-page/runtime/isolation-policy.mjs';
-import { createSyntheticAccess, defaultSyntheticSnapshot, FORBIDDEN_OPS } from '../../free-page/bridge/index.mjs';
+import { FORBIDDEN_OPS } from '../../free-page/bridge/index.mjs';
 import { SAMPLE_PACKAGE, escapeHtml } from './mock-adapters.mjs';
 import { buildGenerateContext } from './generate-context.mjs';
+import { PAGE_DOCUMENTS_PREFIX, PAGE_RESULT_PREFIX, refuseLivePort } from './page-http.mjs';
+import { nativeGenerateUnavailable, normalizePagePackage } from './native-generate.mjs';
 
 function clone(value) {
   return structuredClone(value);
 }
 
-export const PAGE_DOCUMENTS_PREFIX = '/api/v1/analytics/page-documents';
+function unwrapSpec(body) {
+  if (body?.spec?.page_id) return body.spec;
+  if (body?.snapshot?.spec?.page_id) return body.snapshot.spec;
+  if (body?.page_id) return body;
+  return null;
+}
 
-export function createLivePageAdapters({ now = () => Date.now(), actorId = 'actor_alice', documentsHttp = null } = {}) {
+function hydrateSpec(spec, prev, now) {
+  const pkg = spec.package
+    ? clone(spec.package)
+    : clone(prev?.package ?? { html: '<html></html>', css: '', js: '', resources: [], node_map: [] });
+  const entry = { version: spec.version, title: spec.title, at: now(), package: clone(pkg) };
+  const history = [...(prev?.history ?? [])];
+  if (spec.page_id && prev?.page_id === spec.page_id && !history.some(item => item.version === spec.version)) {
+    history.push(entry);
+  }
+  const nextHistory = history.length ? history : [entry];
+  return {
+    page_id: spec.page_id,
+    session_id: spec.session_id,
+    title: spec.title,
+    version: spec.version,
+    base_version: spec.version,
+    binding_state: spec.binding_state,
+    binding_manifest: spec.binding_manifest ?? { bindings: [], result_refs: [] },
+    package: pkg,
+    savedPackage: clone(pkg),
+    dirty: false,
+    updated_at: now(),
+    history: nextHistory,
+  };
+}
+
+export { PAGE_DOCUMENTS_PREFIX, PAGE_RESULT_PREFIX };
+
+export function createLivePageAdapters({
+  now = () => Date.now(),
+  actorId = 'actor_alice',
+  documentsHttp = null,
+  resultHttp = null,
+  nativeGenerate = null,
+} = {}) {
   const pages = new Map();
   const store = createMemoryPageStore({ now });
-  const access = createSyntheticAccess({ actor: { actor_id: actorId } });
-  access.putSnapshot(defaultSyntheticSnapshot());
   const nativePrompts = [];
   let seq = 0;
   const nextId = prefix => {
@@ -49,12 +89,62 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     },
   });
 
+  async function httpCall(http, prefix, method, path, { body, idempotencyKey } = {}) {
+    if (!http?.fetchImpl || !http.base) {
+      return { ok: false, reason: 'http_not_configured' };
+    }
+    const url = refuseLivePort(`${String(http.base).replace(/\/$/, '')}${prefix}${path}`);
+    const headers = {};
+    if (http.token) headers.Authorization = `Bearer ${http.token}`;
+    if (body != null) headers['content-type'] = 'application/json';
+    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+    const res = await http.fetchImpl(url, {
+      method,
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+    });
+    let json = {};
+    try { json = await res.json(); } catch { json = {}; }
+    if (!res.ok) {
+      const error = new Error(json?.error?.message || 'PAGE_HTTP');
+      error.code = json?.error?.code || 'PAGE_HTTP';
+      error.status = res.status;
+      throw error;
+    }
+    return { ok: true, body: json, status: res.status };
+  }
+
+  async function documentsRequest(method, path, opts = {}) {
+    return httpCall(documentsHttp, PAGE_DOCUMENTS_PREFIX, method, path, opts);
+  }
+
+  async function resultRequest(method, path, opts = {}) {
+    const got = await httpCall(resultHttp, PAGE_RESULT_PREFIX, method, path, opts);
+    if (!got.ok) {
+      const error = new Error('授权结果桥尚未配置隔离 HTTP');
+      error.code = 'RESULT_HTTP_NOT_CONFIGURED';
+      throw error;
+    }
+    return got;
+  }
+
   const bridge = Object.freeze({
     kind: 'live-c-bridge',
     forbidden: [...FORBIDDEN_OPS],
     async readBinding(page) {
       const state = page?.binding_state ?? 'UNBOUND_SAMPLE';
       const bindings = page?.binding_manifest?.bindings ?? [];
+      if (resultHttp?.fetchImpl && resultHttp.base) {
+        const got = await resultRequest('POST', '/binding-state', {
+          body: { manifest: page?.binding_manifest ?? { bindings: [], result_refs: [] } },
+        });
+        return {
+          binding_state: got.body?.binding_state ?? state,
+          partial: state === 'BOUND_VERIFIED' && bindings.some(item => item.status !== 'verified'),
+          source: page?.binding_manifest?.result_refs?.[0] ?? null,
+          forbidden: [...FORBIDDEN_OPS],
+        };
+      }
       return {
         binding_state: state,
         partial: state === 'BOUND_VERIFIED' && bindings.some(item => item.status !== 'verified'),
@@ -68,12 +158,22 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
         error.code = 'BRIDGE_UNKNOWN_OP';
         throw error;
       }
-      return access.read({
-        op: 'data.read',
-        request_id: request?.request_id ?? nextId('req'),
-        result_ref: request?.result_ref ?? 'result_fixture_1',
-        mode: request?.mode ?? 'summary',
-      }, { actor: { actor_id: actorId } });
+      const got = await resultRequest('POST', '/read', {
+        body: {
+          request: {
+            op: 'data.read',
+            request_id: request?.request_id ?? nextId('req'),
+            result_ref: request?.result_ref ?? 'result_fixture_1',
+            mode: request?.mode ?? 'summary',
+            instance_id: request?.instance_id,
+          },
+          manifest: request?.manifest ?? {
+            result_refs: [request?.result_ref ?? 'result_fixture_1'],
+            bindings: [],
+          },
+        },
+      });
+      return got.body;
     },
   });
 
@@ -176,9 +276,24 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     },
   });
 
+  function remember(spec, prev) {
+    const page = hydrateSpec(spec, prev, now);
+    pages.set(page.page_id, page);
+    if (!store.getPage(page.page_id)) {
+      store.seedPage({
+        page_id: page.page_id,
+        session_id: page.session_id ?? 'native_session_fixture',
+        version: page.version ?? 1,
+        package: page.package,
+        binding_manifest: page.binding_manifest ?? { bindings: [], result_refs: [] },
+      });
+    }
+    return page;
+  }
+
   const assets = Object.freeze({
     kind: 'live-a-assets',
-    note: 'JS index plus D memory store. Server SSOT is page_documents HTTP.',
+    note: 'Local cache. Server SSOT is page_documents HTTP.',
     list() {
       return [...pages.values()].map(page => ({
         page_id: page.page_id, title: page.title, version: page.version,
@@ -203,32 +318,10 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     },
   });
 
-  async function documentsGet(path) {
-    if (!documentsHttp?.fetchImpl || !documentsHttp.base) {
-      return { ok: false, reason: 'http_not_configured' };
-    }
-    const url = `${String(documentsHttp.base).replace(/\/$/, '')}${PAGE_DOCUMENTS_PREFIX}${path}`;
-    if (url.includes(':6677')) {
-      const error = new Error('PAGE_DOCUMENTS_HTTP');
-      error.code = 'REFUSED_LIVE_PORT';
-      throw error;
-    }
-    const res = await documentsHttp.fetchImpl(url, {
-      headers: documentsHttp.token ? { Authorization: `Bearer ${documentsHttp.token}` } : {},
-    });
-    if (!res.ok) {
-      const error = new Error('PAGE_DOCUMENTS_HTTP');
-      error.code = 'PAGE_DOCUMENTS_HTTP';
-      error.status = res.status;
-      throw error;
-    }
-    return { ok: true, body: await res.json() };
-  }
-
   const documents = Object.freeze({
     prefix: PAGE_DOCUMENTS_PREFIX,
     async pullList() {
-      const got = await documentsGet('/pages');
+      const got = await documentsRequest('GET', '/pages');
       if (!got.ok) return got;
       const items = Array.isArray(got.body?.items) ? got.body.items : [];
       for (const item of items) {
@@ -240,12 +333,62 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
       if (typeof pageId !== 'string' || !pageId) {
         return { ok: false, reason: 'invalid_page_id' };
       }
-      const got = await documentsGet(`/pages/${encodeURIComponent(pageId)}`);
+      const got = await documentsRequest('GET', `/pages/${encodeURIComponent(pageId)}`);
       if (!got.ok) return got;
-      const item = got.body;
-      if (!item?.page_id) return { ok: false, reason: 'empty_snapshot' };
-      pages.set(item.page_id, { ...(pages.get(item.page_id) ?? {}), ...item });
-      return { ok: true, page_id: item.page_id };
+      const spec = unwrapSpec(got.body);
+      if (!spec?.page_id) return { ok: false, reason: 'empty_snapshot' };
+      remember(spec, pages.get(spec.page_id));
+      return { ok: true, page_id: spec.page_id };
+    },
+    async pullHistory(pageId) {
+      const got = await documentsRequest('GET', `/pages/${encodeURIComponent(pageId)}/versions`);
+      if (!got.ok) return got;
+      return { ok: true, items: Array.isArray(got.body) ? got.body : got.body?.items ?? [] };
+    },
+    async generatePreview(draft) {
+      return documentsRequest('POST', '/previews', {
+        body: {
+          title: draft.title,
+          session_id: draft.session_id,
+          package: draft.package,
+          binding_manifest: draft.binding_manifest ?? { bindings: [], result_refs: [] },
+        },
+      });
+    },
+    async confirmPreview(previewId, idempotencyKey) {
+      return documentsRequest('POST', `/previews/${encodeURIComponent(previewId)}/confirm`, { idempotencyKey });
+    },
+    async cancelPreview(previewId) {
+      return documentsRequest('POST', `/previews/${encodeURIComponent(previewId)}/cancel`);
+    },
+    async patchPreview({ page_id, base_version, package: pagePackage, title }) {
+      const body = { base_version, package: pagePackage };
+      if (title != null) body.title = title;
+      return documentsRequest('POST', `/pages/${encodeURIComponent(page_id)}/patch-preview`, { body });
+    },
+    async savePreview({ page_id, base_version, title, package: pagePackage, binding_manifest }) {
+      return documentsRequest('POST', `/pages/${encodeURIComponent(page_id)}/save-preview`, {
+        body: {
+          base_version,
+          title,
+          package: pagePackage,
+          binding_manifest: binding_manifest ?? { bindings: [], result_refs: [] },
+        },
+      });
+    },
+    async rollbackPreview({ page_id, base_version, to_version }) {
+      return documentsRequest('POST', `/pages/${encodeURIComponent(page_id)}/rollback-preview`, {
+        body: { base_version, to_version },
+      });
+    },
+    async generateAndConfirm(draft) {
+      const made = await documents.generatePreview(draft);
+      if (!made.ok) return made;
+      const confirmed = await documents.confirmPreview(made.body.preview_id, draft.idempotency_key);
+      const spec = unwrapSpec(confirmed.body);
+      if (!spec) return { ok: false, reason: 'empty_snapshot' };
+      const page = remember(spec, null);
+      return { ok: true, spec, page, preview_id: made.body.preview_id };
     },
   });
 
@@ -259,9 +402,12 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     nativeChat: Object.freeze({
       kind: 'native-dsh-session',
       prompts: nativePrompts,
-      submitGeneratePrompt(prompt, extras = {}) {
+      async submitGeneratePrompt(prompt, extras = {}) {
         nativePrompts.push({ prompt, context: buildGenerateContext({ prompt, ...extras }), at: now() });
-        return { accepted: true, runtime: 'dsh-native-agent-only' };
+        if (typeof nativeGenerate !== 'function') throw nativeGenerateUnavailable();
+        const pkg = normalizePagePackage(await nativeGenerate(prompt, extras));
+        if (!pkg) throw nativeGenerateUnavailable();
+        return { accepted: true, runtime: 'dsh-native-agent-only', package: pkg };
       },
       open() { return { reachable: true }; },
     }),

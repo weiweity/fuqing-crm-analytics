@@ -19,6 +19,8 @@ from backend.contracts.page_documents import (
 )
 from backend.services.analytics.access import AnalyticsError, B0IdentityRegistry
 from backend.services.analytics.page_documents import PageDocumentStore, ResolvedPageBinding
+from backend.services.analytics.page_result_access import PageResultAccess
+from backend.services.analytics.page_result_access_routes import page_result_access_router
 
 PREFIX = "/api/v1/analytics/page-documents"
 
@@ -125,6 +127,7 @@ def create_page_app(
     *,
     page_state_dir: Path | None = None,
     resolve_binding: Callable[..., ResolvedPageBinding] | None = None,
+    result_access: PageResultAccess | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Free Page Documents", version=SCHEMA_VERSION,
                   docs_url=None, redoc_url=None, openapi_url=None)
@@ -136,6 +139,8 @@ def create_page_app(
         return registry.resolve(_single_header(request, "authorization"))
 
     app.include_router(page_documents_router(store, principal))
+    if result_access is not None:
+        app.include_router(page_result_access_router(result_access, principal))
 
     @app.exception_handler(AnalyticsError)
     async def analytics_error(request: Request, error: AnalyticsError):
