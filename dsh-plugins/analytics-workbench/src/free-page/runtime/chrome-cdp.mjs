@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -7,6 +8,14 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 export function chromePath() {
   return process.env.FREE_PAGE_CHROME || CHROME;
+}
+
+export function chromeAvailable() {
+  try {
+    return existsSync(chromePath());
+  } catch {
+    return false;
+  }
 }
 
 class Cdp {

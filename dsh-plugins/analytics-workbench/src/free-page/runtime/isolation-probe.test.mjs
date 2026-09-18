@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runIsolationProbe } from './isolation-probe.mjs';
+import { chromeAvailable } from './chrome-cdp.mjs';
 
-test('T0 Chrome fixture: host operable, close/restart, saved restore; no CPU claim from sandbox', { timeout: 120_000 }, async () => {
+test('T0 Chrome fixture: host operable, close/restart, saved restore; no CPU claim from sandbox', {
+  timeout: 120_000,
+  skip: chromeAvailable() ? false : 'Google Chrome is not installed',
+}, async () => {
   const evidence = await runIsolationProbe();
   assert.ok(evidence.browser.version);
   assert.equal(evidence.sandbox, 'allow-scripts');

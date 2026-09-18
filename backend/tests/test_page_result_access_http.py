@@ -1,7 +1,13 @@
-"""Isolated HTTP for PageResultAccess. Not mounted on live 6677 by default."""
+"""Isolated HTTP for PageResultAccess. Not mounted unless explicitly configured.
+
+Do not import analytics_competition_app here: that module pulls archived CRM
+dotenv, which the B0 interpreter does not install.
+"""
+import ast
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
-from backend.analytics_competition_app import create_competition_app
 from backend.contracts.competition_computed import DATA_SCOPE as PAGE_SCOPE
 from backend.services.analytics.access import AnalyticsPrincipal, B0IdentityRegistry
 from backend.services.analytics.page_result_access import (
@@ -9,6 +15,8 @@ from backend.services.analytics.page_result_access import (
 )
 from backend.services.analytics.page_result_access_routes import PREFIX, create_result_access_app
 from backend.services.analytics.page_documents_routes import PREFIX as PAGE_PREFIX, create_page_app
+
+ROOT = Path(__file__).resolve().parents[2]
 
 CAPS = frozenset({"dashboard:read", "dashboard:update", "analysis:read", "analysis:save"})
 TOKEN = "library-page-isolated-test-token-32chars"
@@ -58,10 +66,20 @@ def test_result_http_read_cancel_and_forbidden_sql():
 
 
 def test_result_routes_absent_on_competition_app_by_default():
-    app = create_competition_app()
-    paths = {getattr(route, "path", "") for route in app.routes}
-    assert not any(PREFIX in path for path in paths)
-    assert not any(path.startswith(PAGE_PREFIX) for path in paths)
+    source = ast.parse((ROOT / "backend/analytics_competition_app.py").read_text(encoding="utf-8"))
+    dumped = ast.dump(source)
+    assert "page_result_access_router" in dumped
+    gated = False
+    for node in ast.walk(source):
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if not (isinstance(test, ast.Compare) and isinstance(test.left, ast.Name)
+                and test.left.id == "page_result_access"):
+            continue
+        if "page_result_access_router" in ast.unparse(node):
+            gated = True
+    assert gated is True
 
 
 def test_result_routes_present_when_explicit(tmp_path):
@@ -71,9 +89,7 @@ def test_result_routes_present_when_explicit(tmp_path):
     access.put_snapshot(default_synthetic_snapshot())
     directory = tmp_path / "pages"
     directory.mkdir(mode=0o700)
-    app = create_competition_app(
-        identities=registry, page_state_dir=directory, page_result_access=access,
-    )
+    app = create_page_app(identities=registry, page_state_dir=directory, result_access=access)
     paths = {getattr(route, "path", "") for route in app.routes}
     assert any(PREFIX in path for path in paths)
     client = TestClient(app)

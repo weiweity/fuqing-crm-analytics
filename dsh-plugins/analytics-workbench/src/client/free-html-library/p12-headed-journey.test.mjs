@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, launchChrome } from '../../free-page/runtime/chrome-cdp.mjs';
+import { chromeAvailable, evaluate, launchChrome } from '../../free-page/runtime/chrome-cdp.mjs';
 import { AGENT_PACKAGE, createIsolatedFetch } from './p12-http-fakes.mjs';
 import { PAGE_DOCUMENTS_PREFIX, PAGE_RESULT_PREFIX } from './page-http.mjs';
 
@@ -165,7 +165,10 @@ async function click(session, testId) {
   await evaluate(session, `document.querySelector('[data-testid="${testId}"]').click(); true`);
 }
 
-test('headed Chrome: generate-preview-bind-select-D6-D9-reopen-rollback-leave on an isolated port', { timeout: 180_000 }, async () => {
+test('headed Chrome: generate-preview-bind-select-D6-D9-reopen-rollback-leave on an isolated port', {
+  timeout: 180_000,
+  skip: chromeAvailable() ? false : 'Google Chrome is not installed',
+}, async () => {
   const originHolder = { origin: '' };
   const server = createServer(originHolder);
   const userDataDir = await mkdtemp(join(tmpdir(), 'free-html-p12-headed-'));
