@@ -1,5 +1,5 @@
 /** Diff a proposed package against the selected scope. Shared CSS/JS is expansion; HTML outside the selection is not silently accepted. */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../hash.mjs';
 import { partitionCss, proposedKeepsUnowned } from '../source-index/parse.mjs';
 import { buildSourceIndex, isSelectorUniqueToNode } from '../source-index/index.mjs';
 
@@ -161,7 +161,7 @@ export function analyzeImpact(index, located, proposedPackage) {
     canvas_html_unchanged: canvas_nodes.every(id => !html_changed_nodes.includes(id)),
     js_bytes_unchanged: index.js === proposedJs,
     css_bytes_unchanged: index.css === proposedCss,
-    impact_hash: createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 32),
+    impact_hash: sha256Hex(JSON.stringify(payload)).slice(0, 32),
   });
 }
 

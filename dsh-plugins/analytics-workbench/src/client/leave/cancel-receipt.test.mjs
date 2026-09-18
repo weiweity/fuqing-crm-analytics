@@ -32,6 +32,27 @@ test('the target precedence is the one the workspace shows', () => {
   assert.equal(cancelTarget({}), null);
 });
 
+test('leaving never targets a clean selection, but the workspace cancel still does', () => {
+  // D42: a bare edit context is not an obstacle to leaving, so the leave path
+  // must not cancel it. The workspace's own Cancel button still may.
+  const clean = { editContext: { edit_context_id: 'e1' }, preview: null, confirmationUncertain: false };
+  assert.equal(cancelTarget(clean, { forLeave: true }), null, 'a clean selection is not a leave target');
+  assert.deepEqual(cancelTarget(clean), { kind: 'edit', id: 'e1', idField: 'edit_context_id' });
+  // An edit context that owns a pending patch is real unsaved work either way.
+  const dirty = { editContext: { edit_context_id: 'e1' }, preview: { preview_id: 'p1' }, confirmationUncertain: false };
+  assert.deepEqual(cancelTarget(dirty, { forLeave: true }), { kind: 'edit', id: 'e1', idField: 'edit_context_id' });
+});
+
+test('a layout target clears locally and never posts a cancel', async () => {
+  const emitted = [];
+  const posted = [];
+  const result = await cancelDraft({ kind: 'layout', id: null, idField: null, emit: p => emitted.push(p),
+    request: async (op, payload) => { posted.push([op, payload]); return ok({ preview_id: null, status: 'CANCELLED' }); } });
+  assert.equal(result, null);
+  assert.deepEqual(posted, [], 'a layout draft has no server object, so no request may be sent');
+  assert.deepEqual(emitted, [{ layoutDraft: null, incoming: null, message: CANCEL_MESSAGES.layout }]);
+});
+
 test('each kind clears exactly its own local state', () => {
   assert.deepEqual(cancelledPatch('edit'), { editContext: null, preview: null, confirmationUncertain: false, incoming: null });
   assert.deepEqual(cancelledPatch('preview'), { preview: null, incoming: null, confirmationUncertain: false });
@@ -109,6 +130,30 @@ test('all three entries share one receipt semantics through the client', async t
   await navigator.discardAndNavigate();
   assert.deepEqual(navigator.getSnapshot().saved, other);
   assert.equal(navigator.getSnapshot().preview, null);
+});
+
+test('discarding for a leave never cancels a clean selection (D42)', async t => {
+  const saved = snap();
+  const context = { schema_version: 'board-edit-context/v1', edit_context_id: 'edit_' + 'e'.repeat(32),
+    board_id: saved.spec.board_id, base_version: 1, block_id: 'note', session_id: saved.spec.session_id,
+    status: 'OPEN', preview_id: null, expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: {} };
+  const ops = [];
+  const instance = createLibraryBoardClient(async (_channel, operation) => {
+    ops.push(operation);
+    if (operation === 'get') return ok(saved);
+    if (operation === 'current_edit') return ok(context);
+    if (operation === 'cancel_edit') return ok({ edit_context_id: context.edit_context_id, status: 'CANCELLED' });
+    throw new Error(`unexpected ${operation}`);
+  }, { editNative: async () => {} });
+  t.after(() => instance.dispose());
+  await instance.openBoard(saved.spec.board_id);
+  await instance.beginEdit('note');
+  assert.equal(instance.hasUnsavedChanges(), false, 'a fresh selection is clean');
+  ops.length = 0;
+  const dropped = await instance.discardDraft();
+  assert.deepEqual(dropped, { ok: true }, 'there is nothing to discard');
+  assert.deepEqual(ops, [], 'leaving must not call cancel_edit on a clean selection');
+  assert.equal(instance.hasActiveEditContext(), true, 'the selection survives, to resume editing');
 });
 
 test('a version conflict on cancel is explained as an already-applied draft, not a plain failure', async t => {

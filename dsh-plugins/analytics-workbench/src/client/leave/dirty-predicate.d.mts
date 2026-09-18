@@ -7,4 +7,4 @@ export function unsavedReasons(state: LeavePredicateState | null | undefined): U
 export function hasUnsavedChanges(state: LeavePredicateState | null | undefined): boolean;
 export function hasActiveEditContext(state: LeavePredicateState | null | undefined): boolean;
 export function discardableDraft(state: LeavePredicateState | null | undefined): boolean;
-export const DISCARD_CLEARED_KEYS: readonly ['preview', 'layoutDraft', 'confirmationUncertain', 'incoming'];
+export const DISCARD_CLEARED_KEYS: readonly ['preview', 'layoutDraft', 'incoming'];

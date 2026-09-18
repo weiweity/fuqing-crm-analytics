@@ -8,5 +8,5 @@ export function cancelDraft(options: {
   request(operation: string, payload: unknown): Promise<unknown>;
   emit(patch: Record<string, unknown>): void; message?: string;
 }): Promise<unknown>;
-export function cancelTarget(state: { editContext?: { edit_context_id: string } | null; layoutDraft?: unknown; preview?: { preview_id: string } | null } | null | undefined):
-  { kind: CancelKind; id: string | null; idField: string | null } | null;
+export function cancelTarget(state: { editContext?: { edit_context_id: string } | null; layoutDraft?: unknown; preview?: { preview_id: string } | null; confirmationUncertain?: boolean } | null | undefined,
+  options?: { forLeave?: boolean }): { kind: CancelKind; id: string | null; idField: string | null } | null;

@@ -53,26 +53,58 @@ export function createHostLeaveAdapter({ coordinator, layout, onPanelChange, rea
     const stop = onPanelChange(panelId => {
       if (disposed) return;
       const current = typeof readPanelId === 'function' ? readPanelId() : undefined;
-      coordinator.request({ kind: 'panel', id: panelId ?? null, external: true, previous: current ?? null })
-        .then(result => { if (result === 'prompt') coordinator.stay(); })
-        .catch(() => {});
+      observe(panelId ?? null, current ?? null);
     });
     return typeof stop === 'function' ? stop : () => {};
+  }
+
+  /**
+   * A panel selection the plugin did not initiate (the sidebar row writes
+   * straight to the host setter). The host has already committed that write and
+   * the plugin cannot veto it, so this must NOT submit a leave intent — doing so
+   * would re-issue a navigation for the panel the user just left. The only
+   * correct action is to advance the epoch, so a read issued for the previous
+   * panel discards itself instead of publishing over the new one.
+   */
+  function observe(panelId, previous = null) {
+    if (disposed) return 'stayed';
+    coordinator.observeExternal?.('panel');
+    return 'stayed';
   }
 
   unsubscribe = observePanel();
   return Object.freeze({
     request,
+    observe,
     /** Bind the host controller once it is reachable; returns false if the seam is absent. */
     useLayout(controller) { host = controller; return typeof host?.selectPanel === 'function'; },
-    /** Perform the original navigation for a resolved intent, exactly once. */
+    /**
+     * Perform the original navigation for a resolved intent. Each entry maps to
+     * the host call that entry actually means; a `library` switch keeps the
+     * cockpit selected (the asset is opened by the library client), while
+     * conversation/panel/session/close all return to the conversation.
+     */
     async perform(intent) {
       if (disposed) return;
-      if (intent.kind === 'conversation' || intent.kind === 'panel') host?.selectPanel?.(null);
-      else if (intent.kind === 'library' && intent.id) host?.selectPanel?.('cockpit');
+      if (!host || typeof host.selectPanel !== 'function') {
+        throw new Error('宿主导航入口不可用，已留在当前页。');
+      }
+      // Every owned entry must actually hit the host setter. A library switch
+      // stays on the cockpit; a panel switch with an id goes to that panel;
+      // conversation / session / close return to the conversation.
+      if (intent.kind === 'library') {
+        host.selectPanel('cockpit');
+        return;
+      }
+      if (intent.kind === 'panel' && intent.id) {
+        host.selectPanel(intent.id);
+        return;
+      }
+      host.selectPanel(null);
     },
     /** True when the host exposes the synchronous setter the adapter relies on. */
     seamAvailable: () => typeof host?.selectPanel === 'function',
     dispose() { disposed = true; unsubscribe?.(); },
   });
 }
+

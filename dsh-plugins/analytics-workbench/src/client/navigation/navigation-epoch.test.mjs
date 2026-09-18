@@ -13,9 +13,13 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createLibraryBoardClient } from '../library-board-client.mjs';
-import { createNavigationEpoch, isEpochDiscarded, isSupersededRead, SupersededRead } from './navigation-epoch.mjs';
+import { createNavigationEpoch, isEpochDiscarded, isSupersededRead, SupersededRead, EPOCH_DISCARDED_OPERATIONS, EPOCH_PRESERVED_OPERATIONS } from './navigation-epoch.mjs';
 import { librarySnapshot as snap, libraryPreview as draft, ok, failed, listOf } from '../../../test/helpers/library-board-fixtures.mjs';
+
+/** The frozen contract, loaded rather than restated, so drift fails the suite. */
+const frozen = JSON.parse(await readFile(new URL('../../../../../docs/hackathon/free-html-cockpit/fixtures/leave-epoch.fixture.json', import.meta.url), 'utf8'));
 
 /** A hand-operated gate: `open()` releases the pending response. */
 function gate() {
@@ -38,11 +42,20 @@ function client(t, dispatch) {
 }
 
 test('the frozen fixture is the source of truth for what an intent discards', () => {
-  assert.deepEqual(['get', 'list', 'preview'].filter(isEpochDiscarded), ['get', 'list', 'preview']);
-  // A save receipt is evidence, not a page read: never discarded as one.
-  for (const operation of ['confirm', 'cancel', 'cancel_edit']) {
+  // Asserted against the fixture file, not against a restated copy of it.
+  assert.deepEqual([...EPOCH_DISCARDED_OPERATIONS], frozen.epoch.discard);
+  assert.deepEqual(EPOCH_DISCARDED_OPERATIONS.filter(isEpochDiscarded), frozen.epoch.discard,
+    'every operation the fixture says to discard must be discarded');
+  // `never_discard_as_read` names the *concept* (a save receipt); these are the
+  // concrete operations that carry one, and each must survive a navigation.
+  assert.deepEqual([...frozen.epoch.never_discard_as_read], ['save_receipt']);
+  assert.deepEqual([...EPOCH_PRESERVED_OPERATIONS].sort(), ['cancel', 'cancel_edit', 'confirm'],
+    'the operations carrying a save/cancel receipt');
+  for (const operation of EPOCH_PRESERVED_OPERATIONS) {
     assert.equal(isEpochDiscarded(operation), false, `${operation} must survive a navigation`);
   }
+  // The receipt check the fixture names is the one the client performs.
+  assert.deepEqual([...frozen.epoch.save_receipt_check], ['idempotency_key', 'CAS', 'page_id', 'base_version']);
 });
 
 test('a slow get cannot overwrite the page after a newer intent took ownership', async t => {
@@ -214,4 +227,26 @@ test('the epoch advances per intent and a superseded read is recognisable', () =
   assert.equal(first.signal.reason instanceof SupersededRead, true);
   epoch.dispose();
   assert.equal(epoch.isCurrent(second.epoch), false);
+});
+
+test('a ticket aborted late still reports the epoch it was issued for', () => {
+  const epoch = createNavigationEpoch();
+  const first = epoch.begin('board');
+  epoch.settle(first.epoch);
+  const second = epoch.begin('panel');
+  // The first intent's own abort runs after a newer one exists.
+  first.abort();
+  assert.equal(first.signal.reason.epoch, first.epoch,
+    'the abort reason must name the ticket that was aborted, not the current intent');
+  assert.equal(epoch.isCurrent(first.epoch), false);
+  assert.equal(epoch.isCurrent(second.epoch), true, 'aborting a retired ticket does not disturb the live one');
+});
+
+test('a settled ticket no longer owns a signal, so its reads cannot be gated by it', () => {
+  const epoch = createNavigationEpoch();
+  const first = epoch.begin('board');
+  epoch.settle(first.epoch);
+  assert.equal(epoch.ticket(), null, 'a retired intent hands out no ticket');
+  const second = epoch.begin('panel');
+  assert.equal(epoch.ticket().epoch, second.epoch);
 });

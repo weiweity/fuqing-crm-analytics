@@ -10,14 +10,7 @@ export type LeaveState = {
   message: string;
 };
 export const LEAVE_CHOICES: readonly LeaveChoice[];
-export function createLeaveCoordinator(deps: {
-  snapshot(): { layoutDraft?: unknown; preview?: unknown; confirmationUncertain?: boolean; editContext?: unknown } | null | undefined;
-  beginEpoch(kind: string): NavigationTicket;
-  save(): Promise<{ ok: boolean; reason?: string }>;
-  discard(): Promise<{ ok: boolean; message?: string }>;
-  navigate(intent: PendingLeaveIntent, context: { epoch: number }): void | Promise<void>;
-  onLeaveRequest?(intent: PendingLeaveIntent, reasons: UnsavedReason[]): void;
-}): {
+export type LeaveCoordinator = {
   getSnapshot(): LeaveState;
   subscribe(listener: () => void): () => void;
   request(intent: LeaveIntent): Promise<'navigated' | 'prompt' | 'busy' | 'stayed'>;
@@ -25,3 +18,11 @@ export function createLeaveCoordinator(deps: {
   stay(): void;
   dispose(): void;
 };
+export function createLeaveCoordinator(deps: {
+  snapshot(): { layoutDraft?: unknown; saved?: unknown; preview?: unknown; confirmationUncertain?: boolean; editContext?: unknown } | null | undefined;
+  beginEpoch(kind: string): NavigationTicket;
+  save(): Promise<{ ok: boolean; reason?: string }>;
+  discard(): Promise<{ ok: boolean; message?: string }>;
+  navigate(intent: PendingLeaveIntent, context: { epoch: number }): void | Promise<void>;
+  onLeaveRequest?(intent: PendingLeaveIntent, reasons: UnsavedReason[]): void;
+}): LeaveCoordinator;

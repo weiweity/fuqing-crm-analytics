@@ -133,6 +133,40 @@ test('optional DESIGN.md click does not claim the guide was followed', async t =
   assert.match(ui.doc.querySelector('[data-testid="fhl-optional-hint"]').textContent, /未读到 DESIGN.md/);
 });
 
+test('dirty native-chat leave shows three choices and stay keeps the page', async t => {
+  const ui = await domFixture(t);
+  let native = 0;
+  const store = createFreeHtmlLibraryStore();
+  await ui.render(React.createElement(FreeHtmlLibraryApp, { store, themeSource: theme, goConversation() { native += 1; } }));
+  await act(async () => { store.setPrompt('页'); await store.generate(); });
+  await act(async () => { store.markLocalDraft({ ...store.getSnapshot().current.package, html: '<p>draft</p>' }); });
+  await ui.click('[data-testid="fhl-native-chat"]');
+  assert.equal(native, 0);
+  assert.ok(ui.doc.querySelector('[data-testid="fhl-leave-prompt"]'));
+  await ui.click('[data-testid="fhl-leave-stay"]');
+  assert.equal(store.getSnapshot().view, 'workspace');
+  assert.equal(native, 0);
+  await ui.click('[data-testid="fhl-native-chat"]');
+  await ui.click('[data-testid="fhl-leave-save"]');
+  assert.equal(native, 1);
+  assert.equal(store.getSnapshot().pendingLeaveIntent, null);
+});
+
+test('when the host owns conversation leave, dirty native-chat does not open a second prompt', async t => {
+  const ui = await domFixture(t);
+  let native = 0;
+  const store = createFreeHtmlLibraryStore();
+  await ui.render(React.createElement(FreeHtmlLibraryApp, {
+    store, themeSource: theme, hostOwnsConversationLeave: true,
+    goConversation() { native += 1; },
+  }));
+  await act(async () => { store.setPrompt('页'); await store.generate(); });
+  await act(async () => { store.markLocalDraft({ ...store.getSnapshot().current.package, html: '<p>draft</p>' }); });
+  await ui.click('[data-testid="fhl-native-chat"]');
+  assert.equal(native, 1);
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-leave-prompt"]'), null);
+});
+
 test('permission failure surfaces host recovery copy', async t => {
   const ui = await domFixture(t);
   const store = createFreeHtmlLibraryStore({ adapters: createMockPageAdapters({ fail: { generate: 'FORBIDDEN' } }) });

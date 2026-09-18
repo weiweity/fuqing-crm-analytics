@@ -35,6 +35,7 @@ export type BoardLive = {
 export type CockpitMainPanelProps = PropsRuntime<'main'> & {
   library?: LibraryBoardClient;
   composition?: CockpitComposition;
+  pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
   goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   useStore?(selector: (state: BoardStoreSlice) => unknown): unknown;
@@ -91,8 +92,8 @@ export function CockpitPanelIcon({ size, active }: PropsRuntime<'sidebar.panelli
 
 export function CockpitMainPanel(props: CockpitMainPanelProps) {
   if (props.library && props.composition) return <ActivateCockpitComposition composition={props.composition}
-    library={props.library} themeSource={props.themeSource} goConversation={props.goConversation} />;
-  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} initialSurface="pages" />;
+    library={props.library} themeSource={props.themeSource} goConversation={props.goConversation} pageStore={props.pageStore} />;
+  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} initialSurface="pages" pageStore={props.pageStore} />;
   return <LegacyCockpitMainPanel {...props} />;
 }
 

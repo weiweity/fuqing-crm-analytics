@@ -43,10 +43,11 @@ function EditDiff({ state }: { state: LibraryState }) {
   </div>;
 }
 
-export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board' }: {
+export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board', pageStore }: {
   library: LibraryBoardClient; goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   initialSurface?: 'pages' | 'board';
+  pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
 }) {
   const state = useSyncExternalStore(library.subscribe, library.getSnapshot);
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
@@ -77,11 +78,11 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     else heading.current?.focus();
   }, [state.busy]);
   useEffect(() => {
-    if (!state.layoutDraft && !state.preview && !state.editContext) return;
+    if (!library.hasUnsavedChanges()) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [Boolean(state.layoutDraft), Boolean(state.preview), Boolean(state.editContext)]);
+  }, [library, state.layoutDraft, state.preview, state.confirmationUncertain, state.editContext]);
   const shown = state.preview?.snapshot ?? state.layoutDraft ?? state.saved;
   const actionsEnabled = crowdActionPackEnabled();
   const boardChrome = panel !== 'pages';
@@ -141,7 +142,8 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         </div>
       </div> : null}
       <section hidden={panel !== 'pages'} data-testid="library-pages-view">
-        {panel === 'pages' ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource} /> : null}
+        {panel === 'pages' ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
+          store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} /> : null}
       </section>
       <section hidden={panel !== 'board'} data-testid="library-board-view">
       <div className="sm-library-toolbar">

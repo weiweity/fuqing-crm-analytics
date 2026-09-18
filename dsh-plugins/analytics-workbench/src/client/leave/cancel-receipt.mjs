@@ -50,6 +50,13 @@ export const CANCEL_MESSAGES = Object.freeze({
  * collapsing it into the generic message would hide the recovery step.
  */
 export async function cancelDraft({ kind, id, idField, request, emit, message = CANCEL_MESSAGES.retained }) {
+  // A layout draft is local-only: there is no server object to cancel, so it is
+  // cleared without a request. Handling it here keeps every caller from having
+  // to special-case it (and from POSTing a cancel for a null preview id).
+  if (kind === 'layout') {
+    emit({ ...cancelledPatch('layout'), message: CANCEL_MESSAGES.layout });
+    return null;
+  }
   let reply;
   try {
     reply = await request(kind === 'edit' ? 'cancel_edit' : 'cancel', kind === 'edit' ? { edit_context_id: id } : { preview_id: id });
@@ -66,9 +73,17 @@ export async function cancelDraft({ kind, id, idField, request, emit, message = 
 /**
  * Which cancellation the current state calls for, in the same precedence the
  * workspace shows: an edit context owns its pending preview.
+ *
+ * `forLeave` changes one thing: a *clean* selection is not a leave obstacle
+ * (D42), so leaving must not cancel it. The workspace's own Cancel button still
+ * drops a bare selection, which is why the flag exists rather than the rule
+ * being global.
  */
-export function cancelTarget(state) {
-  if (state?.editContext) return { kind: 'edit', id: state.editContext.edit_context_id, idField: 'edit_context_id' };
+export function cancelTarget(state, { forLeave = false } = {}) {
+  const dirtyEdit = state?.editContext && (state.preview || state.confirmationUncertain);
+  if (state?.editContext && (!forLeave || dirtyEdit)) {
+    return { kind: 'edit', id: state.editContext.edit_context_id, idField: 'edit_context_id' };
+  }
   if (state?.layoutDraft) return { kind: 'layout', id: null, idField: null };
   if (state?.preview) return { kind: 'preview', id: state.preview.preview_id, idField: 'preview_id' };
   return null;

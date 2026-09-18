@@ -647,3 +647,61 @@ test('crowd-action pack off hides the native 人群行动 entry', async t => {
   assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions-view"]'), null);
   assert.equal(ui.doc.querySelector('[data-testid="library-panel-board"]')?.textContent, '我的驾驶舱');
 });
+
+test('beforeunload follows hasUnsavedChanges and ignores a clean editContext', async t => {
+  const ui = await domFixture(t);
+  const saved = librarySnapshot();
+  const pending = libraryPreview(librarySnapshot({ version: 2 }));
+  let edit = null;
+  const client = createLibraryBoardClient(async (_channel, operation, payload) => {
+    if (operation === 'list') return ok(listOf(saved));
+    if (operation === 'get') return ok(saved);
+    if (operation === 'preview') return ok(pending);
+    if (operation === 'current_edit') return ok(edit);
+    if (operation === 'select_edit') {
+      const block = saved.spec.blocks[0];
+      edit = {
+        schema_version: 'board-edit-context/v1', edit_context_id: 'edit_' + 'a'.repeat(32),
+        board_id: saved.spec.board_id, base_version: 1, block_id: block.block_id,
+        session_id: saved.spec.session_id, status: 'OPEN', preview_id: null,
+        expires_at_ms: Date.now() + 10_000, block, facts_by_result_id: saved.facts_by_result_id,
+      };
+      return ok(edit);
+    }
+    if (operation === 'cancel_edit') { edit = null; return ok({ status: 'CANCELLED', edit_context_id: payload.edit_context_id }); }
+    throw new Error(`unexpected ${operation}`);
+  }, { editNative: async () => {} });
+  t.after(() => client.dispose());
+  const armed = [];
+  const add = window.addEventListener.bind(window);
+  const remove = window.removeEventListener.bind(window);
+  window.addEventListener = (type, fn, opts) => {
+    if (type === 'beforeunload') armed.push(fn);
+    return add(type, fn, opts);
+  };
+  window.removeEventListener = (type, fn, opts) => {
+    if (type === 'beforeunload') {
+      const index = armed.indexOf(fn);
+      if (index >= 0) armed.splice(index, 1);
+    }
+    return remove(type, fn, opts);
+  };
+  t.after(() => {
+    if (typeof window === 'undefined') return;
+    window.addEventListener = add;
+    window.removeEventListener = remove;
+  });
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openBoard(saved.spec.board_id));
+  assert.equal(client.hasUnsavedChanges(), false);
+  assert.equal(armed.length, 0, 'saved page does not arm beforeunload');
+  await act(async () => client.beginEdit(saved.spec.blocks[0].block_id));
+  assert.equal(client.hasActiveEditContext(), true);
+  assert.equal(client.hasUnsavedChanges(), false);
+  assert.equal(armed.length, 0, 'clean selection must not arm the browser leave warning');
+  await act(async () => client.cancel());
+  await act(async () => client.openPreview(pending.preview_id));
+  assert.equal(client.hasUnsavedChanges(), true);
+  assert.ok(armed.length > 0, 'a pending preview arms beforeunload');
+});

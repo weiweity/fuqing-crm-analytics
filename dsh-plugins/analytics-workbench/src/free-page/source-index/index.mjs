@@ -1,5 +1,5 @@
 /** Source index for free-page packages. Locate failure never widens to whole page. */
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../hash.mjs';
 import { jsMentions, parseCssRules, scanShineMarkers } from './parse.mjs';
 
 export const SCHEMA_VERSION = 'free-page-source-index/v1';
@@ -30,11 +30,11 @@ function packageHash(pagePackage) {
   const html = pagePackage?.html ?? '';
   const css = pagePackage?.css ?? '';
   const js = pagePackage?.js ?? '';
-  return createHash('sha256').update(`html:${html}\0css:${css}\0js:${js}`).digest('hex');
+  return sha256Hex(`html:${html}\0css:${css}\0js:${js}`);
 }
 
 function tokenFor(version_hash, node_id, start, end) {
-  return createHash('sha256').update(`${version_hash}:${node_id}:${start}:${end}`).digest('hex').slice(0, 32);
+  return sha256Hex(`${version_hash}:${node_id}:${start}:${end}`).slice(0, 32);
 }
 
 function uniqueSelector(selector, node_id, kind) {

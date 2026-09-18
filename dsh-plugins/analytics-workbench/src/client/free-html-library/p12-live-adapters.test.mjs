@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLivePageAdapters } from './live-adapters.mjs';
+import { createHostPageStore } from './create-host-page-store.mjs';
 import { createFreeHtmlLibraryStore } from './store.mjs';
 import { SAMPLE_PACKAGE } from './mock-adapters.mjs';
 import { FREE_PAGE_SANDBOX } from '../../free-page/runtime/isolation-policy.mjs';
@@ -33,6 +34,12 @@ test('P12 live adapters: unbound generate, sandbox srcdoc, D locate, C forbids S
     () => adapters.bridge.readResult({ op: 'sql' }),
     error => error.code === 'BRIDGE_UNKNOWN_OP',
   );
+});
+
+test('P12 host page store uses live adapters, not E mocks', async () => {
+  const store = createHostPageStore();
+  assert.equal(store.getSnapshot().adapterKind, 'p12-live');
+  assert.equal(createLivePageAdapters().preview.sandbox.includes('allow-same-origin'), false);
 });
 
 test('P12 store with live adapters: dirty predicate is not clean selection', async () => {

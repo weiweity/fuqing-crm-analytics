@@ -48,6 +48,10 @@ const extraCss = `
 .sm-fhl-assets { margin-top:var(--sm-space-3); }
 .sm-fhl-context h2 { margin:0 0 var(--sm-space-2); font:600 16px/24px var(--sm-font-body); }
 .sm-fhl-patch { border:1px solid var(--sm-line-strong); padding:var(--sm-space-3); border-radius:var(--sm-radius-control); }
+.sm-leave-prompt { margin:var(--sm-space-3) 0; display:flex; flex-direction:column; gap:var(--sm-space-2); padding:var(--sm-space-3); border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control); }
+.sm-leave-prompt h2 { margin:0; font:600 16px/24px var(--sm-font-body); }
+.sm-leave-prompt p { margin:0; }
+.sm-leave-prompt-actions { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); }
 @media (max-width: 1280px) {
   .sm-fhl-workspace { grid-template-columns:minmax(0,1fr); }
 }
@@ -198,13 +202,18 @@ function Workspace({ store, goConversation }: { store: Store; goConversation(): 
 
 export function FreeHtmlLibraryApp({
   goConversation, themeSource, store: provided, viewportWidth = 1440,
+  hostOwnsConversationLeave = false,
 }: {
   goConversation(): void;
   themeSource: ThemeSource;
   store?: Store;
   viewportWidth?: number;
+  hostOwnsConversationLeave?: boolean;
 }) {
-  const store = useMemo(() => provided ?? createFreeHtmlLibraryStore({ viewportWidth }), [provided, viewportWidth]);
+  const store = useMemo(
+    () => provided ?? createFreeHtmlLibraryStore({ viewportWidth }),
+    [provided, viewportWidth],
+  );
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -235,7 +244,14 @@ export function FreeHtmlLibraryApp({
         data-panel={state.contextPanel ? 'open' : 'closed'} data-band={widthBand(state.viewportWidth)} data-adapter={state.adapterKind}>
         <a className="sm-fhl-skip" href="#fhl-main" data-testid="fhl-skip-iframe">跳过预览，回到宿主</a>
         <header className="sm-fhl-toolbar">
-          <button type="button" data-testid="fhl-native-chat" onClick={goConversation}>返回原生对话</button>
+          <button type="button" data-testid="fhl-native-chat" onClick={() => {
+            if (hostOwnsConversationLeave) {
+              goConversation();
+              return;
+            }
+            const leave = store.requestLeave('conversation');
+            if (!leave.blocked) goConversation();
+          }}>返回原生对话</button>
           <button type="button" data-testid="fhl-toggle-rail" onClick={() => store.toggleRail()}>{state.railCollapsed ? '展开资料导轨' : '折叠资料导轨'}</button>
           <span data-testid="fhl-width">{width.iframeContentWidth}</span>
         </header>
@@ -246,7 +262,23 @@ export function FreeHtmlLibraryApp({
         {state.message ? <p role="status" aria-live="polite" data-testid="fhl-message">{state.message}</p> : null}
         {state.liveStatus ? <p role="status" aria-live="polite" data-testid="fhl-live">{state.liveStatus}</p> : null}
         {state.hostError ? <p role="alert" data-testid="fhl-host-error">{state.hostError}</p> : null}
-        {state.pendingLeaveIntent ? <p data-testid="fhl-leave-seam">存在未保存修改；离开三选由 Lane F 协调器处理，本宿主不弹出三选。</p> : null}
+        {state.pendingLeaveIntent ? <div className="sm-leave-prompt" data-testid="fhl-leave-prompt" role="group" aria-label="未保存的离开保护">
+          <h2>离开前，先处理未保存的修改</h2>
+          <p data-testid="fhl-leave-seam">这份页面有未保存的修改。请选择如何处理，再继续原来的操作。</p>
+          <div className="sm-leave-prompt-actions">
+            <button type="button" data-testid="fhl-leave-save" disabled={state.busy} onClick={() => {
+              void store.saveAndLeave().then(result => {
+                if (result.navigated && result.intent === 'conversation') goConversation();
+              });
+            }}>{state.busy ? '正在保存…' : '保存并离开'}</button>
+            <button type="button" data-testid="fhl-leave-discard" disabled={state.busy} onClick={() => {
+              void store.discardAndLeave().then(result => {
+                if (result.navigated && result.intent === 'conversation') goConversation();
+              });
+            }}>放弃修改</button>
+            <button type="button" data-testid="fhl-leave-stay" disabled={state.busy} onClick={() => store.stayLeave()}>留在当前页</button>
+          </div>
+        </div> : null}
         <main id="fhl-main" tabIndex={-1} ref={heading}>
           {state.view === 'home' ? <LibraryHome store={store} /> : <Workspace store={store} goConversation={goConversation} />}
         </main>

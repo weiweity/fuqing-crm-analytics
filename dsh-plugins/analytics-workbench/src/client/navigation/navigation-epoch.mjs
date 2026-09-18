@@ -56,11 +56,16 @@ export function createNavigationEpoch() {
     begin(kind = 'navigation') {
       if (disposed) throw new Error('导航生命周期已结束，不能再提交意图。');
       take(active)?.abort(new SupersededRead(active));
-      active = ++issued;
+      const epoch = ++issued;
+      active = epoch;
       activeKind = kind;
       const controller = new AbortController();
-      controllers.set(active, controller);
-      return Object.freeze({ epoch: active, kind: activeKind, signal: controller.signal, abort: () => controller.abort(new SupersededRead(active)) });
+      controllers.set(epoch, controller);
+      // The ticket carries its own epoch: `abort()` must report the epoch it
+      // was issued for, not whatever intent happens to be current when a late
+      // caller gets around to aborting it.
+      return Object.freeze({ epoch, kind: activeKind, signal: controller.signal,
+        abort: () => controller.abort(new SupersededRead(epoch)) });
     },
     /** The ticket a read issued right now belongs to; null once disposed. */
     ticket() {

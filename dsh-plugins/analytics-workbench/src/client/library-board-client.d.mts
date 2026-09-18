@@ -10,10 +10,20 @@ export type LibraryState = { busy: boolean; message: string; confirmationUncerta
   incoming: { kind: 'board' | 'preview' | 'edit'; id: string; contextId?: string } | null;
   history: components['schemas']['BoardRevision'][];
 };
+/** The outcome of a leave-driven save or discard; a failure keeps the draft. */
+export type LeaveReceipt = { ok: true } | { ok: false; reason?: string; message?: string };
 export type LibraryBoardClient = {
   getSnapshot(): LibraryState;
   subscribe(listener: () => void): () => void;
   dispose(): void;
+  /** Dirty-draft predicate (D42): only real unsaved work blocks leaving. */
+  hasUnsavedChanges(): boolean;
+  /** Selection/focus context (D42): never a reason to block leaving. */
+  hasActiveEditContext(): boolean;
+  unsavedReasons(): ('layout_changed' | 'pending_patch_preview' | 'confirmationUncertain')[];
+  /** Advance navigation ownership for a leave intent (D43). */
+  beginNavigation(kind: string): { epoch: number; kind: string; signal: AbortSignal; abort(): void };
+  navigationEpoch(): number;
   refresh(): Promise<void>;
   openBoard(id: string): Promise<void>;
   openPreview(id: string, contextId?: string): Promise<void>;
@@ -21,6 +31,10 @@ export type LibraryBoardClient = {
   resumeEdit(): Promise<void>;
   inspectEdit(): Promise<void>;
   keepDraft(): void;
+  /** Save the pending draft for a leave; never throws. */
+  saveForLeave(): Promise<LeaveReceipt>;
+  /** Drop the draft without navigating; never throws. */
+  discardDraft(): Promise<LeaveReceipt>;
   discardAndNavigate(): Promise<void>;
   cancel(): Promise<void>;
   confirm(): Promise<void>;

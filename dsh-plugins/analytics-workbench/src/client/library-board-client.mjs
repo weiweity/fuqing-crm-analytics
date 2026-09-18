@@ -2,9 +2,9 @@
 import { boardSnapshot as snapshot, boardPreview, boardIdentity, boardEditContext } from '../board-spec/receipt.mjs';
 import { changedLayouts, validatePlacement } from '../board-spec/grid-layout.mjs';
 import { createNavigationEpoch, isEpochDiscarded, isSupersededRead, SupersededRead } from './navigation/navigation-epoch.mjs';
-import { cancelDraft, cancelTarget, cancelledPatch, CANCEL_MESSAGES } from './leave/cancel-receipt.mjs';
+import { cancelDraft, cancelTarget } from './leave/cancel-receipt.mjs';
 import { verifySaveReceipt, confirmIdempotencyKey } from './leave/save-receipt.mjs';
-import { hasUnsavedChanges, hasActiveEditContext, unsavedReasons } from './leave/dirty-predicate.mjs';
+import { hasUnsavedChanges, hasActiveEditContext, unsavedReasons, layoutChanged } from './leave/dirty-predicate.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -167,19 +167,10 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
   /**
    * One cancellation path for all three entries (D45/T26). The receipt is
    * checked before any local state is cleared, so a missing, mismatched or
-   * conflicting reply keeps the draft and the recovery prompt.
-   *
-   * A layout draft is local-only: it has no server object to cancel, so it is
-   * cleared without a request. That asymmetry is the existing contract, not a
-   * new one.
+   * conflicting reply keeps the draft and the recovery prompt. The layout
+   * special case lives in the helper, not here, so every caller shares it.
    */
-  const cancelCurrent = async target => {
-    if (target.kind === 'layout') {
-      emit({ ...cancelledPatch('layout'), message: CANCEL_MESSAGES.layout });
-      return null;
-    }
-    return cancelDraft({ ...target, request, emit });
-  };
+  const cancelCurrent = target => cancelDraft({ ...target, request, emit });
   async function cancelEdit() {
     return cancelCurrent(cancelTarget({ editContext: state.editContext }));
   }
@@ -223,9 +214,13 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
      * Drop the draft without navigating. Used by the leave coordinator's
      * "discard" choice; returns the receipt result instead of throwing so the
      * coordinator can stay on the page with the draft intact.
+     *
+     * `forLeave` keeps a clean selection out of the cancel targets: D42 says a
+     * bare edit context is not an obstacle to leaving, so leaving must not
+     * cancel it.
      */
     discardDraft: () => perform(async () => {
-      const target = cancelTarget(state);
+      const target = cancelTarget(state, { forLeave: true });
       if (!target) return { ok: true };
       try {
         await cancelCurrent(target);
@@ -240,20 +235,31 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
      * throws, so the coordinator can apply the stay-on-failure rule. The receipt
      * is matched here, where the draft is in hand, and the idempotency key is
      * reused verbatim on a retry.
+     *
+     * A local layout draft has no saved receipt to match: it is only durable
+     * once `previewLayout()` has produced a server-side preview. Saving one
+     * directly would report success for a write that never happened, so it is
+     * reported as unsaved instead of navigating away from the change.
      */
     saveForLeave: () => perform(async () => {
       const draft = state.preview;
-      if (!draft) return { ok: true };
+      if (!draft) {
+        if (layoutChanged(state)) return { ok: false, reason: 'layout_unsaved' };
+        return { ok: true };
+      }
       emit({ confirmationUncertain: true });
+      const key = confirmIdempotencyKey(draft.preview_id);
       let saved;
       try {
-        saved = snapshot(await request('confirm', { preview_id: draft.preview_id, key: confirmIdempotencyKey(draft.preview_id) }));
+        saved = snapshot(await request('confirm', { preview_id: draft.preview_id, key }));
       } catch (error) {
         // The write may or may not have landed; that is exactly what
         // `uncertain` means, and the coordinator must not navigate on it.
         return { ok: false, reason: 'uncertain', message: error instanceof Error ? error.message : undefined };
       }
-      const receipt = verifySaveReceipt({ draft, saved });
+      // The receipt is matched on the key that was actually sent: a snapshot
+      // that merely shares board/session/version is not proof of this save.
+      const receipt = verifySaveReceipt({ draft, saved, key });
       if (!receipt.ok) return receipt;
       const current = state.saved;
       emit({ saved: current?.spec.board_id === saved.spec.board_id && current.spec.version > saved.spec.version ? current : saved,

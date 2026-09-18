@@ -37,10 +37,24 @@ const plugin = fileURLToPath(new URL('../../..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
 const pin = JSON.parse(await readFile(join(plugin, 'toolchain.json'), 'utf8'));
 
+function git(args) {
+  const bins = ['/usr/bin/git', '/opt/homebrew/bin/git', 'git'];
+  let last;
+  for (const bin of bins) {
+    try {
+      return execFileSync(bin, args, { cwd: upstream, encoding: 'utf8' }).trim();
+    } catch (error) {
+      last = error;
+      if (error && error.code !== 'ENOENT') throw error;
+    }
+  }
+  throw last;
+}
+
 /** The pinned checkout must be the one the toolchain declares, unmodified. */
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: upstream, encoding: 'utf8' }).trim(), pin.upstream_sha,
+assert.equal(git(['rev-parse', 'HEAD']), pin.upstream_sha,
   'the host seam must be exercised against the pinned upstream');
-assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: upstream, encoding: 'utf8' }).trim(), '',
+assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '',
   'the pinned upstream must not carry local edits');
 
 const { LayoutController } = await import(pathToFileURL(join(upstream, 'packages/client/ui-layout/lib/types/client/service.js')).href);
@@ -82,6 +96,13 @@ function wiring(t, { dispatch, host: seam } = {}) {
   t.after(() => adapter.dispose());
   t.after(() => coordinator.dispose());
   return { library, coordinator, adapter, calls, performed };
+}
+
+/** An adapter bound to a coordinator, disposed with the test. */
+function adapterFor(t, coordinator, layout) {
+  const adapter = createHostLeaveAdapter({ coordinator, layout });
+  t.after(() => adapter.dispose());
+  return adapter;
 }
 
 test('the pinned host exposes a synchronous panel setter and a navigation signal, and no approval hook', () => {
@@ -197,21 +218,67 @@ test('every owned entry is covered, and a repeated click navigates at most once'
   assert.equal(performed.length, OWNED_ENTRIES.length, 'one navigation per entry, never two');
 });
 
-test('a host-originated panel switch still advances the epoch, so stale reads cannot commit', async t => {
+test('a host-originated panel switch advances the epoch and nothing else', async t => {
+  // The host already committed this switch; the plugin can only observe. It
+  // must NOT submit a leave intent, which would re-issue a navigation for the
+  // panel the user just left.
   const saved = snap(), h = host();
   const { library, coordinator } = wiring(t, { host: h, dispatch: () => ok(saved) });
-  let panelListener;
-  const observer = createHostLeaveAdapter({
-    coordinator,
-    // The sidebar row calls selectPanel directly; the plugin can only observe.
-    onPanelChange: listener => { panelListener = listener; return () => { panelListener = undefined; }; },
-  });
-  t.after(() => observer.dispose());
   const before = library.navigationEpoch();
   h.controller.selectPanel('cockpit');
-  panelListener('cockpit');
-  await new Promise(resolve => setImmediate(resolve));
-  assert.ok(library.navigationEpoch() > before, 'the host switch advanced the epoch');
+  await adapterFor(t, coordinator).observe('cockpit', null);
+  assert.ok(library.navigationEpoch() > before, 'the epoch advanced');
+  assert.deepEqual(h.selections, ['cockpit'], 'the host switch is not repeated by the plugin');
+  assert.equal(coordinator.getSnapshot().status, 'idle', 'an observed switch never opens the leave prompt');
+});
+
+test('an observed switch takes the epoch even while a leave intent is in flight', async t => {
+  const saved = snap(), h = host();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const library = createLibraryBoardClient(async (_c, operation) => operation === 'get' ? ok(saved) : ok(listOf(saved)));
+  t.after(() => library.dispose());
+  const coordinator = createLeaveCoordinator({
+    snapshot: () => library.getSnapshot(),
+    beginEpoch: kind => library.beginNavigation(kind),
+    save: async () => { await gate; return { ok: true }; },
+    discard: async () => ({ ok: true }),
+    navigate: async () => {},
+  });
+  t.after(() => coordinator.dispose());
+  await library.openBoard(saved.spec.board_id);
+  await library.openPreview(draft(snap({ version: 2 })).preview_id).catch(() => {});
+  const adapter = createHostLeaveAdapter({ coordinator, layout: h.controller });
+  t.after(() => adapter.dispose());
+  const before = library.navigationEpoch();
+  await adapter.observe('conversation', 'cockpit');
+  assert.ok(library.navigationEpoch() > before,
+    'a host switch must advance the epoch even when no leave intent is pending');
+  void release;
+});
+
+test('perform() actually performs the intent instead of silently no-opping', async t => {
+  const h = host();
+  const { adapter } = wiring(t, { host: h, dispatch: () => ok(snap()) });
+  for (const kind of ['session', 'close', 'conversation']) {
+    h.selections.length = 0;
+    await adapter.perform({ kind, id: 'asset_x', sessionId: 's2' });
+    assert.deepEqual(h.selections, [null], `${kind} must return to the conversation`);
+  }
+  h.selections.length = 0;
+  await adapter.perform({ kind: 'panel', id: 'staff' });
+  assert.deepEqual(h.selections, ['staff'], 'a panel switch with an id must select that panel');
+  h.selections.length = 0;
+  await adapter.perform({ kind: 'panel' });
+  assert.deepEqual(h.selections, [null], 'a panel switch without an id returns to the conversation');
+  h.selections.length = 0;
+  await adapter.perform({ kind: 'library', id: 'asset_x' });
+  assert.deepEqual(h.selections, ['cockpit'], 'a library switch keeps the cockpit selected');
+});
+
+test('perform() refuses rather than reporting a navigation that never happened', async t => {
+  const { adapter } = wiring(t, { dispatch: () => ok(snap()) });
+  await assert.rejects(() => adapter.perform({ kind: 'close' }), /宿主导航入口不可用/);
 });
 
 test('the native sidebar row cannot be vetoed — the recorded seam limit', async () => {

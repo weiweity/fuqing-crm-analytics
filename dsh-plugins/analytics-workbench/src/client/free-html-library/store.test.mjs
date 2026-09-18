@@ -75,7 +75,7 @@ test('partial binding label requires unverified bindings, not merely a non-empty
   assert.equal(bindingLabel('BOUND_VERIFIED', { partial: true }), '部分已绑定');
 });
 
-test('stale mapping requires reselect; leave seam does not implement three-choice', async () => {
+test('stale mapping requires reselect; dirty leave offers three choices', async () => {
   const store = createFreeHtmlLibraryStore();
   store.setPrompt('x');
   await store.generate();
@@ -87,6 +87,56 @@ test('stale mapping requires reselect; leave seam does not implement three-choic
   const leave = store.requestLeave('home');
   assert.equal(leave.blocked, true);
   assert.equal(store.getSnapshot().view, 'workspace');
-  assert.match(store.getSnapshot().liveStatus, /离开保护/);
   assert.equal(store.getSnapshot().pendingLeaveIntent, 'home');
+  store.stayLeave();
+  assert.equal(store.getSnapshot().view, 'workspace');
+  assert.equal(store.getSnapshot().pendingLeaveIntent, null);
+  store.requestLeave('home');
+  const discarded = await store.discardAndLeave();
+  assert.equal(discarded.navigated, true);
+  assert.equal(store.getSnapshot().view, 'home');
+  assert.equal(store.hasUnsavedChanges(), false);
+});
+
+test('save-and-leave creates one D9 version then navigates', async () => {
+  const store = createFreeHtmlLibraryStore();
+  store.setPrompt('x');
+  await store.generate();
+  const version = store.getSnapshot().current.version;
+  store.markLocalDraft({ ...store.getSnapshot().current.package, html: '<p>draft</p>' });
+  store.requestLeave('home');
+  const saved = await store.saveAndLeave();
+  assert.equal(saved.navigated, true);
+  assert.equal(store.getSnapshot().view, 'home');
+  const listed = store.getSnapshot().pages[0];
+  assert.equal(listed.version, version + 1);
+  assert.equal(store.hasUnsavedChanges(), false);
+});
+
+test('persistForLeave saves without navigating away from the workspace', async () => {
+  const store = createFreeHtmlLibraryStore();
+  store.setPrompt('x');
+  await store.generate();
+  store.markLocalDraft({ ...store.getSnapshot().current.package, html: '<p>draft</p>' });
+  const persisted = await store.persistForLeave();
+  assert.equal(persisted.ok, true);
+  assert.equal(store.getSnapshot().view, 'workspace');
+  assert.equal(store.hasUnsavedChanges(), false);
+});
+
+test('save-and-leave with a pending PATCH confirms D6 once, not a second D9', async () => {
+  const store = createFreeHtmlLibraryStore();
+  store.setPrompt('x');
+  await store.generate();
+  const version = store.getSnapshot().current.version;
+  store.enterEdit();
+  store.selectLocatable({ kind: 'static_element', node_id: 'n_title', mapping: 'valid' });
+  await store.previewPatch('把标题改得更清楚');
+  assert.equal(store.getSnapshot().preview.status, 'PENDING');
+  store.requestLeave('home');
+  const saved = await store.saveAndLeave();
+  assert.equal(saved.navigated, true);
+  assert.equal(store.getSnapshot().view, 'home');
+  assert.equal(store.getSnapshot().pages[0].version, version + 1);
+  assert.equal(store.hasUnsavedChanges(), false);
 });

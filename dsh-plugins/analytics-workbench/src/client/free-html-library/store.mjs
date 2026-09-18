@@ -1,4 +1,4 @@
-/** Free-HTML library state. Dirty ≠ active edit context. No leave three-choice UI. */
+/** Free-HTML library state. Dirty ≠ active edit context. Leave three-choice is host-owned. */
 import { SAMPLE_PROMPTS } from './generate-context.mjs';
 import { applyTextToShineNode, createMockPageAdapters } from './mock-adapters.mjs';
 import { bindingLabel, defaultRailCollapsed, inspectPage, panelPresentation, widthBand } from './host-visual.mjs';
@@ -90,6 +90,21 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
 
   refreshList();
 
+  function finishLeave(intent) {
+    if (intent === 'home') {
+      emit({
+        view: 'home', current: null, mode: 'browse', selection: null, overlay: null,
+        contextPanel: null, preview: null, pendingLeaveIntent: null,
+        liveStatus: '已离开到资料库',
+      });
+      return;
+    }
+    emit({
+      pendingLeaveIntent: null,
+      liveStatus: intent === 'conversation' ? '可返回原生对话' : '已处理离开',
+    });
+  }
+
   return {
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     getSnapshot: snapshot,
@@ -168,8 +183,55 @@ export function createFreeHtmlLibraryStore({ adapters, now = () => Date.now(), v
         else emit({ pendingLeaveIntent: null });
         return { blocked: false, hasUnsavedChanges: false, hasActiveEditContext: hasActiveEditContext() };
       }
-      emit({ pendingLeaveIntent: intent, liveStatus: '存在未保存修改；离开保护由宿主协调器处理' });
+      emit({ pendingLeaveIntent: intent, liveStatus: '存在未保存修改；请选择保存、放弃或留在当前页' });
       return { blocked: true, hasUnsavedChanges: true, hasActiveEditContext: hasActiveEditContext() };
+    },
+    stayLeave() {
+      emit({ pendingLeaveIntent: null, liveStatus: '已留在当前页，未保存也未放弃' });
+      return { navigated: false, intent: null };
+    },
+    async persistForLeave() {
+      if (!hasUnsavedChanges()) return { ok: true };
+      if (state.confirmationUncertain) {
+        emit({ message: '保存结果待核对，请先核对', liveStatus: '保存结果待核对' });
+        return { ok: false, reason: 'confirmation_uncertain' };
+      }
+      if (state.preview?.status === 'PENDING') await this.confirmPatch();
+      else if (state.current?.dirty) await this.saveDraft();
+      if (hasUnsavedChanges()) return { ok: false, reason: 'save_failed' };
+      return { ok: true };
+    },
+    async discardForLeave() {
+      if (!hasUnsavedChanges()) return { ok: true };
+      if (state.confirmationUncertain) {
+        emit({ message: '保存结果待核对，不能放弃后离开', liveStatus: '保存结果待核对' });
+        return { ok: false, reason: 'confirmation_uncertain' };
+      }
+      await perform(async () => {
+        if (state.preview) bound.edit.cancelPatch(state.preview.preview_id);
+        const restored = state.current
+          ? { ...state.current, package: clone(state.current.savedPackage ?? state.current.package), dirty: false }
+          : null;
+        if (restored) bound.assets.put(restored);
+        emit({ current: restored, preview: null, overlay: null, pendingLeaveIntent: null });
+      });
+      return { ok: !hasUnsavedChanges() };
+    },
+    async saveAndLeave() {
+      const intent = state.pendingLeaveIntent;
+      if (!intent) return { navigated: false, intent: null };
+      const persisted = await this.persistForLeave();
+      if (!persisted.ok) return { navigated: false, intent, reason: persisted.reason };
+      finishLeave(intent);
+      return { navigated: true, intent };
+    },
+    async discardAndLeave() {
+      const intent = state.pendingLeaveIntent;
+      if (!intent) return { navigated: false, intent: null };
+      const dropped = await this.discardForLeave();
+      if (!dropped.ok) return { navigated: false, intent, reason: 'save_failed' };
+      finishLeave(intent);
+      return { navigated: true, intent };
     },
     enterEdit() { emit({ mode: 'edit', liveStatus: '编辑中', overlay: 'selection' }); },
     exitEdit() {

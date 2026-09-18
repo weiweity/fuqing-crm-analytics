@@ -23,7 +23,7 @@ export function layoutChanged(state) {
   if (!draft) return false;
   // Without a saved head to compare against, a draft is the only copy of the
   // user's work: treat it as a change rather than silently dropping it.
-  if (!saved) return true;
+  if (!saved?.spec || !draft.spec) return true;
   return changedLayouts(saved.spec, draft.spec).length > 0;
 }
 
@@ -33,6 +33,7 @@ export function unsavedReasons(state) {
   if (layoutChanged(state)) reasons.push('layout_changed');
   if (state?.preview) reasons.push('pending_patch_preview');
   if (state?.confirmationUncertain) reasons.push('confirmationUncertain');
+  if (state?.htmlUnsaved) reasons.push('html_unsaved');
   return reasons;
 }
 
@@ -46,13 +47,17 @@ export function hasActiveEditContext(state) {
 }
 
 /**
- * What a discard must clear, and what must survive it. An uncertain receipt is
- * deliberately kept: it is the only evidence that a write may have landed, and
- * `discard` must not silently turn an unknown result into a clean page.
+ * What a discard must clear, and what must survive it.
+ *
+ * `confirmationUncertain` is deliberately NOT part of the cleared set: it is
+ * the only evidence that a write may have landed, and a discard must not turn
+ * an unknown result into a clean page. It is cleared only where a *verified*
+ * cancel receipt proves the draft did not land — a `CANCELLED` status, since an
+ * already-applied draft is refused with `VERSION_CONFLICT` instead.
  */
 export function discardableDraft(state) {
-  return Boolean(state?.preview || layoutChanged(state));
+  return Boolean(state?.preview || layoutChanged(state) || state?.htmlUnsaved);
 }
 
-/** Local state a successful discard clears. Never touches a verified receipt. */
-export const DISCARD_CLEARED_KEYS = Object.freeze(['preview', 'layoutDraft', 'confirmationUncertain', 'incoming']);
+/** Local state a verified discard clears. `confirmationUncertain` is cleared separately, on proof. */
+export const DISCARD_CLEARED_KEYS = Object.freeze(['preview', 'layoutDraft', 'incoming']);
