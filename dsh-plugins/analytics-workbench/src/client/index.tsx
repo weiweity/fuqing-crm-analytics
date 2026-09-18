@@ -7,6 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client';
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client';
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client';
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client';
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client';
 import type {} from '@deepseek-ai/dsh-api-session-controller/client';
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client';
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client';
@@ -16,7 +17,7 @@ import {
 } from '../model.mjs';
 import { css, markCss } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
-import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, retainMainView } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
@@ -31,22 +32,19 @@ import { nativeBrandTokens, type CompetitionColorScheme } from './competition-sh
 const PRODUCT_NAME = '伸美 AI 增长董事会';
 import { COCKPIT_PANEL_ID, CockpitMainPanel, CockpitPanelIcon } from './cockpit-main-panel.tsx';
 import { STAFF_PANEL_ID, StaffMainPanel, StaffPanelIcon } from './staff-main-panel.tsx';
-import { applyGenerate, generateBoard, specFromGsvFacts, specWithLink } from '../board-spec/generate.mjs';
+import { applyGenerate, generateBoard, specFromGsvFacts } from '../board-spec/generate.mjs';
 import { catalogFromGsvItems } from '../board-spec/facts-from-result.mjs';
 import { refreshFacts } from '../board-spec/refresh.mjs';
 
-import { BOARD_SPEC_FACTS, BOARD_SPEC_FIXTURE } from '../board-spec/fixture.mjs';
 import { DEMO_BOARD } from '../board-spec/demo-board.mjs';
 import { createLibraryBoardClient, type LibraryBoardClient } from './library-board-client.mjs';
-import { LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
+import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { createCockpitComposition } from './cockpit-composition.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
-
-/** Competition board address: `start-stack.sh` default `FQ_FRONTEND_PORT` (dsh-dev COMPETITION_VITE_PORT 15173). Not generic Vite 5173. */
-const LEGACY_BOARD_URL = 'http://127.0.0.1:15173/';
+import { AccountMenu, LoginFooter, ThemeFooter, createAccountStore } from './account-chrome.tsx';
 
 function initialState() {
   try {
@@ -153,11 +151,6 @@ function createWorkbenchStore(seedBoard: { spec: object; facts: object | null } 
 }
 
 type StoreProps = PropsStore<ReturnType<typeof createWorkbenchStore>>;
-type FooterProps = PropsRuntime<'sidebar.footer.action'> & StoreProps & {
-  openCockpit?(): boolean;
-  library?: LibraryBoardClient;
-};
-type LegacyBoardActionProps = PropsRuntime<'sidebar.footer.action'>;
 type OverlayProps = PropsRuntime<'shell.overlay'> & StoreProps & {
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   detachSelection(): void;
@@ -192,7 +185,7 @@ function BrandMark({ size, className }: { size?: number; className?: string }) {
 
 type BoardLive = ReturnType<ReturnType<typeof createWorkbenchStore>['create']>;
 
-type DockProps = PropsRuntime<'conversation.input.dock'> & {
+type GenerateDockInject = {
   library?: LibraryBoardClient;
   generateNative?(sessionId: string): Promise<void>;
   openCockpit?(): boolean;
@@ -200,82 +193,47 @@ type DockProps = PropsRuntime<'conversation.input.dock'> & {
   fetchResults?(): Promise<unknown[]>;
 };
 
-function GenerateCockpitDock(props: DockProps) {
-  const id = props.session.sessionId;
-  if (props.library && props.generateNative) return <LibraryGenerateDock sessionId={id} generate={props.generateNative} />;
+type GenerateDockProps = PropsRuntime<'conversation.composer.dock'> & GenerateDockInject & {
+  session?: { sessionId: string };
+};
+
+function dockSessionId(props: GenerateDockProps): string {
+  if (props.session?.sessionId) return props.session.sessionId;
+  const value = 'sessionId' in props ? props.sessionId : undefined;
+  return typeof value === 'string' ? value : '';
+}
+
+function GenerateCockpitDock(props: GenerateDockProps) {
+  const id = dockSessionId(props);
+  if (!id) return null;
+  if (props.library && props.generateNative) {
+    return <><style>{css}</style><LibraryGenerateDock sessionId={id} generate={props.generateNative} /></>;
+  }
   if (id !== B0_PRIMARY_SESSION_ID && !QUERY_SESSION_IDS.some(value => value === id)) return null;
   const proposeBoard = () => {
     void (async () => {
-      const items = props.fetchResults ? await props.fetchResults() : [];
-      const catalog = catalogFromGsvItems(items);
-      const spec = specFromGsvFacts(catalog, { session_id: props.session.sessionId });
-      if (!spec.ok) props.board.actions.proposeGenerate();
-      else props.board.actions.proposeGenerate({ spec: spec.value, facts: catalog });
+      try {
+        const items = props.fetchResults ? await props.fetchResults() : [];
+        const catalog = catalogFromGsvItems(items);
+        const spec = specFromGsvFacts(catalog, { session_id: id });
+        if (!spec.ok) props.board.actions.proposeGenerate();
+        else props.board.actions.proposeGenerate({ spec: spec.value, facts: catalog });
+      } catch {
+        props.board.actions.proposeGenerate();
+      }
       props.openCockpit?.();
     })();
   };
-  const proposeLink = (blockId: string) => {
-    const link = BOARD_SPEC_FIXTURE.blocks.find((block: { block_id?: string }) => block.block_id === blockId);
-    if (!link) return;
-    const snap = props.board.getSnapshot();
-    const next = specWithLink(snap.boardSpec, link);
-    if (!next.ok) return;
-    props.board.actions.proposeGenerate({ spec: next.value, facts: snap.boardFacts });
-    props.openCockpit?.();
-  };
   return <><style>{css}</style>
     <div className="analytics-b0-artifacts" data-testid="analytics-b0-artifacts">
-      <span>聊完后生成产物，进入驾驶舱：</span>
       <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-cockpit"
         title="用这次认可的分析结果生成驾驶舱"
         aria-label="生成驾驶舱"
-        onClick={proposeBoard}>生成驾驶舱</button>
-      <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-feishu"
-        title="写入飞书文档链接，不接飞书 token"
-        aria-label="生成飞书文档"
-        onClick={() => proposeLink('b7')}>生成飞书文档</button>
-      <button type="button" className="analytics-b0-generate-dock" data-testid="analytics-b0-generate-bitable"
-        title="写入多维表链接，不接飞书 token"
-        aria-label="生成多维表"
-        onClick={() => proposeLink('b8')}>生成多维表</button>
+        onClick={proposeBoard}>
+        <GenerateChipIcon />
+        生成驾驶舱
+      </button>
     </div></>;
-}
-
-function Footer(props: FooterProps) {
-  const live = Boolean(props.library || competitionHttpOptions());
-  return <><style>{css}</style><button className="analytics-b0-trigger" type="button"
-    title={live ? '我的驾驶舱' : '我的驾驶舱 · 合成样例'}
-    aria-label={live ? '打开我的驾驶舱' : '打开我的驾驶舱，合成样例'}
-    data-testid="analytics-b0-open" onClick={() => {
-      const opened = props.openCockpit?.();
-      if (opened) props.actions.close();
-      if (!opened) props.actions.open();
-    }}>
-    {props.wide ? '我的驾驶舱' : '驾驶舱'}
-  </button></>;
-}
-
-/**
- * Sidebar entry that opens the competition board's own front end — a separate
- * application on its own port, not a panel inside this shell.
- *
- * The loopback address is the front end `scripts/ops/start-stack.sh` serves; it
- * starts that server with `--strictPort`, so a conflicting process makes the
- * launcher fail rather than silently serving a different app on the port.
- *
- * Rendered as a real anchor rather than a `window.open` call: a click that the
- * browser's popup policy blocks would leave `window.open` returning null and
- * the button silently doing nothing, and an anchor also keeps middle-click and
- * the status-bar preview working. `rel` mirrors `openHttpsLink`'s hand-off.
- */
-function LegacyBoardAction(props: LegacyBoardActionProps) {
-  return <><style>{css}</style><a className="analytics-b0-trigger" href={LEGACY_BOARD_URL}
-    target="_blank" rel="noopener noreferrer"
-    title="在新的浏览器标签页打开比赛看板"
-    aria-label="打开比赛看板"
-    data-testid="legacy-board-open">
-    {props.wide ? '比赛看板' : '看板'}
-  </a></>;
 }
 
 function AssetOverlay(props: OverlayProps) {
@@ -284,7 +242,7 @@ function AssetOverlay(props: OverlayProps) {
   const editor = props.useStore(state => state.editor);
   const message = props.useStore(state => state.message);
   const confirmClose = props.useStore(state => state.confirmClose);
-  const selectedSession = props.useSessions(state => state.current);
+  const selectedSession = props.useSessions(state => mainViewSessionId(state));
   const dialogRef = useRef<HTMLDialogElement>(null);
   const focusFrame = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -391,6 +349,7 @@ export function apply(ctx: Context): void {
     console.warn('analytics-b0: the configured primary session could not be selected; no fallback attempted');
   }), 'analytics-b0: select exact Host-listed primary once');
   const chromeStore = createWorkbenchStore();
+  const accountStore = createAccountStore();
   const boardLive = createWorkbenchStore(DEMO_BOARD).create();
   const connection = ctx.get?.('connection') as ConnectionHandle | undefined;
   const composition = connection?.rpc?.call && typeof ctx.layout?.selectPanel === 'function'
@@ -401,7 +360,7 @@ export function apply(ctx: Context): void {
         const sessionId = ctx.sessions.list.getSnapshot().ids.find(id => id === context.session_id);
         if (!sessionId) throw new Error('此看板的原生会话当前不可用；已保存内容仍可查看，请恢复原会话后编辑。');
         if (composition) { composition.open(sessionId); composition.revealChat(); }
-        else { ctx.sessions.open(sessionId); ctx.layout?.selectPanel(null); }
+        else { retainMainView(ctx.sessions, sessionId); ctx.layout?.selectPanel(null); }
         const reply = await ctx.remote.session.prompt({
           sessionId, requestId: `board-edit-${crypto.randomUUID()}` as never,
           mode: 'queue', clientTimeZone: 'Asia/Shanghai',
@@ -453,25 +412,49 @@ export function apply(ctx: Context): void {
     name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
     inject: () => ({ composition, library, themeSource }),
   }, CockpitCompositionOverlay));
-  if (boardPackEnabled()) ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.footer', order: 10, store: chromeStore,
-    inject: () => ({ openCockpit: openCockpitPanel, library }),
-  }, Footer));
-  // The competition board stays its own application: this row is only a link
-  // that opens it in a tab of its own.
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action', id: 'shine-mage.analytics-b0.legacy-board', order: 20,
-  }, LegacyBoardAction));
+    name: 'sidebar.footer.action', id: 'shine-mage.account.login', order: 10, store: accountStore,
+  }, LoginFooter));
+  const themeChrome = () => ({
+    setTheme: (id: string) => { try { ctx.theme.setTheme(id); } catch { /* host without theme writes */ } },
+    themeSource: {
+      subscribe: (listener: () => void) => {
+        try {
+          const dispose = ctx.on('theme/change', listener);
+          return () => { dispose(); };
+        } catch { return () => {}; }
+      },
+      getSnapshot: () => {
+        try { return ctx.theme.getTheme().preference; }
+        catch { return 'system'; }
+      },
+    },
+  });
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action', id: 'shine-mage.account.theme', order: 11, store: accountStore,
+    inject: themeChrome,
+  }, ThemeFooter));
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'shine-mage.account.menu', store: accountStore,
+    inject: themeChrome,
+  }, AccountMenu));
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.analytics-b0.overlay', store: chromeStore,
     inject: () => {
-      let prior: ReturnType<typeof ctx.sessions.list.getSnapshot>['current'];
+      let prior: ReturnType<typeof mainViewSessionId>;
+      let held: { release(): void } | undefined;
       return {
         themeSource,
-        detachSelection() { prior = ctx.sessions.list.getSnapshot().current; ctx.sessions.clear(); },
+        detachSelection() {
+          prior = mainViewSessionId(ctx.sessions.list.getSnapshot());
+          held?.release();
+          held = undefined;
+        },
         restoreSelection() {
           const list = ctx.sessions.list.getSnapshot();
-          if (prior !== undefined && list.current === undefined && list.ids.includes(prior)) ctx.sessions.open(prior);
+          if (prior !== undefined && mainViewSessionId(list) === undefined && list.ids.includes(prior)) {
+            held = retainMainView(ctx.sessions, prior);
+          }
           prior = undefined;
         },
       };
@@ -495,8 +478,8 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));
-  if (boardPackEnabled()) ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
-    name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20,
+  if (boardPackEnabled()) ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+    name: 'conversation.composer.dock', id: 'shine-mage.analytics-b0.generate-cockpit', order: 20,
     inject: () => ({
       openCockpit: openCockpitPanel,
       board: boardLive,
@@ -558,7 +541,7 @@ export function apply(ctx: Context): void {
         void (async () => {
           try {
             const created = await ctx.sessions.create();
-            ctx.sessions.open(created);
+            retainMainView(ctx.sessions, created);
             ctx.layout?.selectPanel(null);
           } catch {
             goConversation();

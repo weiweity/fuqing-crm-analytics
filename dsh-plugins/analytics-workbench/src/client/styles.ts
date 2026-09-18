@@ -95,21 +95,22 @@ a.analytics-b0-trigger { text-decoration:none; }
 .analytics-query-card button { margin:8px 8px 0 0; }
 .analytics-query-card abbr { text-decoration:underline dotted; font-variant-numeric:tabular-nums; }
 .analytics-b0-artifacts {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px; box-sizing:border-box;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px; box-sizing:border-box;
   width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px) - 4 * var(--dsh-composer-dock-inset,8px));
   max-width:calc(var(--dsh-composer-card-max-width,780px) - 4 * var(--dsh-composer-dock-inset,8px));
-  margin:0 auto 8px; padding:0 4px;
+  margin:10px auto 0; padding:0;
   color:var(--dsw-alias-label-secondary,inherit);
-  font:var(--dsw-font-xxs-12,12px/18px inherit);
+  font:var(--dsw-font-xxs-12,13px/16px inherit);
 }
 .analytics-b0-generate-dock {
-  display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
-  height:26px; min-height:26px; padding:0 12px; border:0; border-radius:8px;
-  background:var(--dsw-alias-interactive-bg-hover,transparent);
-  color:var(--dsw-alias-brand-primary,inherit);
-  font:var(--dsw-font-s-14,14px/22px inherit); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px; box-sizing:border-box;
+  height:28px; min-height:28px; padding:6px 12px; border:0; border-radius:16px;
+  background:color-mix(in srgb, CanvasText 4%, Canvas);
+  color:var(--dsw-alias-label-secondary,#8a8f98);
+  font:13px/16px var(--dsw-font-family,inherit); font-weight:400; cursor:pointer;
 }
-.analytics-b0-generate-dock:hover { background:var(--dsw-alias-interactive-bg-active,transparent); }
+.analytics-b0-generate-dock:hover { background:var(--dsw-alias-interactive-bg-hover,color-mix(in srgb, CanvasText 6%, Canvas)); }
+.analytics-b0-generate-dock:disabled { opacity:.5; cursor:not-allowed; }
 .analytics-b0-generate-dock:focus-visible {
   outline:2px solid var(--dsw-alias-brand-primary,currentColor); outline-offset:2px;
 }

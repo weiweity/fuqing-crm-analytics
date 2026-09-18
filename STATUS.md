@@ -5,8 +5,8 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.8**。origin/main **`33da77ce`**（#205）。loopback。**不上公网**。产品仍 PARTIAL。 |
-| DSH 钉 | **0.1.6-alpha.1**（`0a15e36e`）。6677 PID **81447** remainder start（shine-brand `inject=['slots']`，未 `--fresh`，非官方 reload）。15173 PID **85899**。 |
+| VERSION / main | VERSION **0.9.0.8**。origin/main **`f766e5d2`**（#206）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| DSH 钉 | **0.1.6-alpha.2**（`ddefc45f`）。6677 PID **72243** remainder 无 `--fresh`。alpha.1 上游备份在 `.context/dsh-b0/upstream-0.1.6-alpha.1`。 |
 | 产品 | 仍 PARTIAL。M2 其余缺口也算关（触控矩阵／下拉不是通过）。Goal 仍 PAUSED。验收账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED。131GB 已只读打开元数据，禁止复制／改写／全表扫描 |
 | T15 / T16 / T17 | T15 本人「通过」。T16 本候选收口：合成 c1/c5 基线已记（用户确认基线也算关），**不是 SLO 通过**。T17 缺口也算关 |

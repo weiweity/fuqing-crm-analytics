@@ -56,7 +56,38 @@ test('ordinary native chat has no synthetic run status; registered B0 still has 
   }
 });
 
-function loadClient() {
+function memoryStorage() {
+  const data = new Map();
+  return {
+    getItem(key) { return data.has(key) ? data.get(key) : null; },
+    setItem(key, value) { data.set(String(key), String(value)); },
+    removeItem(key) { data.delete(String(key)); },
+  };
+}
+
+function fakePluginWindow(storage) {
+  const listeners = new Map();
+  return {
+    localStorage: storage,
+    addEventListener(type, fn) {
+      const list = listeners.get(type) ?? [];
+      list.push(fn);
+      listeners.set(type, list);
+    },
+    removeEventListener(type, fn) {
+      listeners.set(type, (listeners.get(type) ?? []).filter(row => row !== fn));
+    },
+    dispatchEvent(event) {
+      for (const fn of listeners.get(event?.type) ?? []) fn(event);
+      return true;
+    },
+    open() { assert.fail('lifecycle test opened a tab'); },
+  };
+}
+
+function loadClient(hostWindow) {
+  const storage = hostWindow?.localStorage ?? memoryStorage();
+  const view = hostWindow ?? fakePluginWindow(storage);
   const seed = new Map([
     ['react', webRequire('react')],
     ['react-dom', webRequire('react-dom')],
@@ -64,12 +95,18 @@ function loadClient() {
     ['@deepseek-ai/dsh-client-store', stores],
   ]);
   let factoryRow;
+  view.__ModuleLoader__ = { load: row => { factoryRow = row; } };
   vm.runInNewContext(source, {
-    window: {
-      localStorage: { getItem: () => null },
-      open: () => { assert.fail('lifecycle test opened a tab'); },
-      __ModuleLoader__: { load: row => { factoryRow = row; } },
-    },
+    window: view,
+    localStorage: storage,
+    document: view.document,
+    Event: view.Event,
+    KeyboardEvent: view.KeyboardEvent,
+    HTMLElement: view.HTMLElement,
+    HTMLButtonElement: view.HTMLButtonElement,
+    Node: view.Node,
+    ResizeObserver: view.ResizeObserver,
+    FormData: view.FormData,
     __SHINE_QUERY__: true,
     __SHINE_BOARD__: true,
     __SHINE_CROWD_ACTION__: true,
@@ -88,8 +125,7 @@ function mount(client, extra = {}) {
     theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
-      open() { assert.fail('lifecycle test opened a session'); },
-      clear() {},
+      retain() { assert.fail('lifecycle test opened a session'); },
       create() { assert.fail('lifecycle test created a session'); },
     },
     slots: {
@@ -111,9 +147,10 @@ test('apply registers business slots; dispose removes them without touching nati
   const client = loadClient();
   const { entries, effects } = mount(client);
   assert.deepEqual(entries.map(row => row.options.name), [
-    'sidebar.brand.mark', 'conversation.hero.brand.mark', 'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay',
+    'sidebar.brand.mark', 'conversation.hero.brand.mark',
+    'sidebar.footer.action', 'sidebar.footer.action', 'shell.overlay', 'shell.overlay',
     'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview',
-    'conversation.input.dock', 'conversation.input.dock',
+    'conversation.input.dock', 'conversation.composer.dock',
     'sidebar.panellist', 'main',
     'sidebar.panellist', 'main',
   ]);
@@ -124,9 +161,9 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(entries.some(row => row.options.name === 'conversation.view'), false);
   const footers = entries.filter(row => row.options.name === 'sidebar.footer.action');
   assert.deepEqual(footers.map(row => row.options.id),
-    ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board']);
-  assert.deepEqual(footers.map(row => row.options.order), [10, 20]);
-  assert.equal(footers[0].options.inject().openCockpit(), false);
+    ['shine-mage.account.login', 'shine-mage.account.theme']);
+  assert.deepEqual(footers.map(row => row.options.order), [10, 11]);
+  assert.equal(typeof footers[0].component, 'function');
   assert.equal(typeof footers[1].component, 'function');
   assert.deepEqual(entries.filter(row => row.options.name === 'tool.call.toolview').map(row => row.options.key), [
     'analytics_b0_query', 'analytics_channel_followup_query', 'analytics_first_purchase_query', 'competition_board_generate', 'competition_board_edit',
@@ -135,34 +172,156 @@ test('apply registers business slots; dispose removes them without touching nati
   assert.equal(entries.length, 0);
 });
 
-test('footer openCockpit selects sidebar.panellist id cockpit on the main slot', () => {
+test('generate dock openCockpit selects sidebar.panellist id cockpit on the main slot', () => {
   const selected = [];
   const { entries, effects } = mount(loadClient(), {
     layout: { selectPanel: id => { selected.push(id); } },
   });
-  assert.equal(entries.find(row => row.options.id === 'shine-mage.analytics-b0.footer').options.inject().openCockpit(), true);
+  const generate = entries.find(row => row.options.id === 'shine-mage.analytics-b0.generate-cockpit');
+  assert.equal(generate.options.name, 'conversation.composer.dock');
+  assert.equal(generate.options.inject().openCockpit(), true);
   assert.deepEqual(selected, ['cockpit']);
   assert.equal(entries.find(row => row.options.name === 'sidebar.panellist').options.id,
     entries.find(row => row.options.name === 'main').options.key);
   for (const dispose of effects) if (typeof dispose === 'function') dispose();
 });
 
-test('legacy board entry renders wide and rail copy and links to the board in a new tab', () => {
+test('account menu lists the competition board as a new-tab link', () => {
   const { entries, effects } = mount(loadClient());
   const React = webRequire('react');
   const { renderToStaticMarkup } = webRequire('react-dom/server');
   try {
-    const row = entries.find(item => item.options.id === 'shine-mage.analytics-b0.legacy-board');
-    const wide = renderToStaticMarkup(React.createElement(row.component, { wide: true }));
-    const rail = renderToStaticMarkup(React.createElement(row.component, { wide: false }));
-    assert.match(wide, /比赛看板/);
-    assert.match(rail, />看板</);
-    assert.match(wide, /aria-label="打开比赛看板"/);
-    assert.match(wide, /data-testid="legacy-board-open"/);
-    // The address, the new-tab target, and the opener severance are the behavior.
-    assert.match(wide, /href="http:\/\/127\.0\.0\.1:15173\/"/);
-    assert.match(wide, /target="_blank"/);
-    assert.match(wide, /rel="noopener noreferrer"/);
+    const row = entries.find(item => item.options.id === 'shine-mage.account.menu');
+    const html = renderToStaticMarkup(React.createElement(row.component, {
+      useStore: selector => selector({ menuOpen: true, themeOpen: false }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+      themeSource: { subscribe: () => () => {}, getSnapshot: () => 'system' },
+      setTheme() {},
+    }));
+    assert.match(html, /比赛看板/);
+    assert.match(html, /data-testid="legacy-board-open"/);
+    assert.match(html, /href="http:\/\/127\.0\.0\.1:15173\/"/);
+    assert.match(html, /target="_blank"/);
+    assert.match(html, /rel="noopener noreferrer"/);
+    assert.match(html, />设置</);
+    assert.match(html, /<svg /);
+    assert.match(html, />未登录</);
+    assert.match(html, /data-testid="shine-account-signin"/);
+    assert.match(html, /data-testid="shine-account-name-input"/);
+    assert.doesNotMatch(html, /data-testid="shine-account-signout"/);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
+});
+
+test('login footer shows 未登录 when wide and hides the label on the rail', () => {
+  const { entries, effects } = mount(loadClient());
+  const React = webRequire('react');
+  const { renderToStaticMarkup } = webRequire('react-dom/server');
+  try {
+    const row = entries.find(item => item.options.id === 'shine-mage.account.login');
+    const wide = renderToStaticMarkup(React.createElement(row.component, {
+      wide: true,
+      useStore: selector => selector({ menuOpen: false, themeOpen: false }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+    }));
+    const rail = renderToStaticMarkup(React.createElement(row.component, {
+      wide: false,
+      useStore: selector => selector({ menuOpen: false, themeOpen: false }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+    }));
+    assert.match(wide, /未登录/);
+    assert.match(wide, /data-wide="1"/);
+    assert.match(wide, /<svg /);
+    assert.match(rail, /data-wide="0"/);
+    assert.match(rail, /aria-label="未登录"/);
+    assert.match(rail, /<svg /);
+    const theme = entries.find(item => item.options.id === 'shine-mage.account.theme');
+    const themeRail = renderToStaticMarkup(React.createElement(theme.component, {
+      wide: false,
+      useStore: selector => selector({ menuOpen: false, themeOpen: false }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+      themeSource: { subscribe: () => () => {}, getSnapshot: () => 'system' },
+      setTheme() {},
+    }));
+    assert.match(themeRail, /data-wide="0"/);
+    assert.match(themeRail, /<svg /);
+  } finally {
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+  }
+});
+
+test('signing in writes identity on this tab and the footer shows the name', async () => {
+  const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'))('jsdom');
+  const React = webRequire('react');
+  const { createRoot } = webRequire('react-dom/client');
+  const act = typeof React.act === 'function' ? React.act : webRequire('react-dom/test-utils').act;
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:4318/' });
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    act: globalThis.IS_REACT_ACT_ENVIRONMENT,
+  };
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const { entries, effects } = mount(loadClient(dom.window));
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const actions = { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} };
+  const useStore = selector => selector({ menuOpen: true, themeOpen: false });
+  try {
+    const login = entries.find(item => item.options.id === 'shine-mage.account.login');
+    const menu = entries.find(item => item.options.id === 'shine-mage.account.menu');
+    await act(() => {
+      root.render(React.createElement(React.Fragment, null,
+        React.createElement(login.component, { wide: true, useStore, actions }),
+        React.createElement(menu.component, {
+          useStore, actions, setTheme() {},
+          themeSource: { subscribe: () => () => {}, getSnapshot: () => 'system' },
+        }),
+      ));
+    });
+    const input = dom.window.document.querySelector('[data-testid="shine-account-name-input"]');
+    assert.ok(input);
+    input.value = '王敏';
+    await act(() => { dom.window.document.querySelector('[data-testid="shine-account-signin"]').click(); });
+    const footer = dom.window.document.querySelector('[data-testid="shine-account-login"]');
+    assert.match(footer.textContent, /王敏/);
+    assert.match(dom.window.document.querySelector('[data-testid="shine-account-menu"]').textContent, /飞书/);
+    assert.ok(dom.window.document.querySelector('[data-testid="shine-account-signout"]'));
+    await act(() => { dom.window.document.querySelector('[data-testid="shine-account-signout"]').click(); });
+    assert.match(footer.textContent, /未登录/);
+    assert.ok(dom.window.document.querySelector('[data-testid="shine-account-signin"]'));
+  } finally {
+    await act(() => root.unmount());
+    for (const dispose of effects) if (typeof dispose === 'function') dispose();
+    if (previous.window === undefined) delete globalThis.window; else globalThis.window = previous.window;
+    if (previous.document === undefined) delete globalThis.document; else globalThis.document = previous.document;
+    if (previous.act === undefined) delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+    else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
+  }
+});
+
+test('theme menu offers day night and system icons', () => {
+  const { entries, effects } = mount(loadClient());
+  const React = webRequire('react');
+  const { renderToStaticMarkup } = webRequire('react-dom/server');
+  try {
+    const row = entries.find(item => item.options.id === 'shine-mage.account.menu');
+    const html = renderToStaticMarkup(React.createElement(row.component, {
+      useStore: selector => selector({ menuOpen: false, themeOpen: true }),
+      actions: { closeMenu() {}, toggleMenu() {}, openMenu() {}, closeTheme() {}, toggleTheme() {}, closeAll() {} },
+      themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
+      setTheme() {},
+    }));
+    assert.match(html, /data-testid="shine-theme-menu"/);
+    assert.match(html, /data-testid="shine-theme-light"/);
+    assert.match(html, /data-testid="shine-theme-dark"/);
+    assert.match(html, /data-testid="shine-theme-system"/);
+    assert.match(html, /日间/);
+    assert.match(html, /夜晚/);
+    assert.match(html, /跟随系统/);
+    assert.match(html, /aria-pressed="true"/);
   } finally {
     for (const dispose of effects) if (typeof dispose === 'function') dispose();
   }
@@ -176,7 +335,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
     theme: { overrideTokens: () => () => {} },
     sessions: {
       list: { getSnapshot: () => ({ phase: 'ready', ids: [], byId: {} }), subscribe: () => () => {} },
-      open() {}, clear() {}, create() { assert.fail('lifecycle test created a session'); },
+      retain() { return { sessionId: '', release() {} }; }, create() { assert.fail('lifecycle test created a session'); },
     },
     slots: {
       inject: (_name, callback) => callback(),
@@ -187,7 +346,7 @@ test('a second apply on the same fake ctx duplicates registrations; Host must no
   client.apply(ctx);
   // A second apply duplicates every registration; no identity is added or lost.
   const ids = entries.filter(row => row.options.id !== undefined).map(row => row.options.id);
-  for (const id of ['shine-mage.analytics-b0.footer', 'shine-mage.analytics-b0.legacy-board',
+  for (const id of ['shine-mage.account.login', 'shine-mage.account.theme',
     'shine-mage.analytics-b0.generate-cockpit', 'shine-mage.analytics-b0.overlay']) {
     assert.equal(entries.filter(row => row.options.id === id).length, 2, `${id} registered twice`);
     assert.equal(ids.filter(value => value === id).length, 2, `${id} counted twice`);
@@ -265,12 +424,6 @@ test('generate dock proposes a bound board from results and appends a LINK witho
     assert.equal(pending.spec.blocks[0].source_result_id, 'result_c0');
     assert.equal(pending.facts.result_c0.current_gsv, 410);
     assert.equal(opened, 1);
-    board.actions.cancelGenerate();
-    await act(() => { dom.window.document.querySelector('[data-testid="analytics-b0-generate-feishu"]').click(); });
-    const linked = board.getSnapshot().pendingGenerate;
-    assert.ok(linked);
-    assert.ok(linked.spec.blocks.some(block => block.kind === 'LINK' && block.block_id === 'b7'));
-    assert.equal(opened, 2);
   } finally {
     await act(() => root.unmount());
     for (const dispose of effects) if (typeof dispose === 'function') dispose();

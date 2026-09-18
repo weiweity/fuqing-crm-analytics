@@ -1,0 +1,10 @@
+export type AccountIdentity = { name: string; source: string };
+export const ACCOUNT_NAME_KEY: 'shine-account-name';
+export const ACCOUNT_SOURCE_KEY: 'shine-account-source';
+export const ACCOUNT_CHANGE_EVENT: 'shine-account-change';
+export function readAccountIdentity(): AccountIdentity | null;
+export function getServerAccountIdentity(): null;
+export function writeAccountIdentity(input: { name: string; source?: string }): AccountIdentity | null;
+export function clearAccountIdentity(): void;
+export function subscribeAccountIdentity(listener: () => void): () => void;
+export function accountSourceLabel(identity: AccountIdentity | null): string;

@@ -2,14 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { B0_PRIMARY_SESSION_ID as primary, QUERY_SESSION_IDS, configuredSession, bindInitialSession } from '../src/initial-session.mjs';
 
-const ready = { phase: 'ready', ids: [primary], byId: { [primary]: { id: primary } }, current: undefined };
+function row(id, mainView = 0) {
+  return { id, retainedBy: mainView ? { mainView } : {} };
+}
+const ready = { phase: 'ready', ids: [primary], byId: { [primary]: row(primary) } };
 function fixture(initial) {
   let snapshot = initial;
   const listeners = new Set();
   const opened = [];
   const sessions = {
     list: { getSnapshot: () => snapshot, subscribe: listener => { listeners.add(listener); return () => listeners.delete(listener); } },
-    open(id) { opened.push(id); snapshot = { ...snapshot, current: id }; for (const listener of listeners) listener(); },
+    retain(id) {
+      opened.push(id);
+      snapshot = { ...snapshot, byId: { ...snapshot.byId, [id]: row(id, 1) } };
+      for (const listener of listeners) listener();
+      return { sessionId: id, release() {} };
+    },
     create() { assert.fail('B0 automatic selection must never create'); },
   };
   return { sessions, opened, listeners, publish(next) { snapshot = next; for (const listener of listeners) listener(); } };
@@ -30,16 +38,16 @@ test('pending and unrelated ready lists do not select; arriving exact primary se
   f.publish(ready);
   assert.deepEqual(f.opened, [primary]);
   // Reentrant notification and subsequent user navigation must not reopen it.
-  f.publish({ ...ready, current: 'another' });
+  f.publish({ ...ready, byId: { [primary]: row(primary), another: row('another', 1) }, ids: [primary, 'another'] });
   f.publish(ready);
   assert.deepEqual(f.opened, [primary]);
   dispose();
   assert.equal(f.listeners.size, 0);
 });
 test('already restored exact primary consumes the initial choice without another open', () => {
-  const f = fixture({ ...ready, current: primary });
+  const f = fixture({ ...ready, byId: { [primary]: row(primary, 1) } });
   const dispose = bindInitialSession(f.sessions, () => assert.fail('unexpected failure'));
-  f.publish({ ...ready, current: 'another' });
+  f.publish({ ...ready, byId: { [primary]: row(primary), another: row('another', 1) }, ids: [primary, 'another'] });
   assert.deepEqual(f.opened, []);
   dispose();
 });
@@ -59,7 +67,7 @@ test('query pair selects the first registered session once; later user switch is
   const f = fixture(queryReady);
   const dispose = bindInitialSession(f.sessions, () => assert.fail('unexpected selection failure'));
   assert.deepEqual(f.opened, [first]);
-  f.publish({ ...queryReady, current: second });
+  f.publish({ ...queryReady, byId: { [first]: row(first), [second]: row(second, 1) } });
   f.publish(queryReady);
   assert.deepEqual(f.opened, [first]);
   dispose();
@@ -68,7 +76,7 @@ test('query pair selects the first registered session once; later user switch is
 test('open failure is reported once, never retried or replaced with another session', () => {
   const f = fixture(ready);
   let failures = 0, attempts = 0;
-  f.sessions.open = id => { assert.equal(id, primary); attempts++; throw new Error('no longer available'); };
+  f.sessions.retain = id => { assert.equal(id, primary); attempts++; throw new Error('no longer available'); };
   const dispose = bindInitialSession(f.sessions, () => { failures++; });
   f.publish(ready);
   assert.equal(attempts, 1);

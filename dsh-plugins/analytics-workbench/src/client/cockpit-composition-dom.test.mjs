@@ -34,7 +34,7 @@ test('compiled overlay measures official slot wrappers, preserves draft/identity
   dom.window.HTMLElement.prototype.releasePointerCapture = function () { captured.delete(this); };
   input.value = '保留原生草稿'; doc.querySelector('#opener').focus();
   const saved = librarySnapshot();
-  const composition = createCockpitComposition({ sessions: { list: { getSnapshot: () => ({ current: saved.spec.session_id, ids: [saved.spec.session_id] }), subscribe: () => () => {} }, open() { assert.fail('unexpected session switch'); } }, layout: { selectPanel() {}, toggleSidebar() { sidebarToggles++; doc.querySelector('#frame').toggleAttribute('data-sidebar-collapsed'); } } });
+  const composition = createCockpitComposition({ sessions: { list: { getSnapshot: () => ({ ids: [saved.spec.session_id], byId: { [saved.spec.session_id]: { id: saved.spec.session_id, retainedBy: { mainView: 1 } } } }), subscribe: () => () => {} }, retain() { assert.fail('unexpected session switch'); } }, layout: { selectPanel() {}, toggleSidebar() { sidebarToggles++; doc.querySelector('#frame').toggleAttribute('data-sidebar-collapsed'); } } });
   const library = createLibraryBoardClient(async (_c, operation) => operation === 'list' ? ok(listOf(saved)) : ok(saved));
   const root = createRoot(doc.querySelector('#root'));
   const frame = async callback => act(async () => { callback?.(); await new Promise(resolve => dom.window.requestAnimationFrame(() => dom.window.requestAnimationFrame(resolve))); });

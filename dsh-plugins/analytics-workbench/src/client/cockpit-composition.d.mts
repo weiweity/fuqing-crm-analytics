@@ -1,3 +1,4 @@
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client';
 export const COMPOSITION_PIN: string;
 export const CHAT_MIN: 400;
 export const CANVAS_MIN: 560;
@@ -17,7 +18,7 @@ export function compositionGeometry(width: number, preferred?: number, showChat?
   mode: string; canvas: number; chat: number;
 };
 export function createCockpitComposition(options: {
-  sessions: { list: { getSnapshot(): { current?: string; ids: readonly string[] }; subscribe(listener: () => void): () => void }; open(id: never): unknown };
+  sessions: Pick<ISessions, 'list' | 'retain'>;
   layout: { selectPanel(id: never): void; toggleSidebar?(): void };
 }): CockpitComposition;
 export function nativeCompositionTarget(anchor: HTMLElement): { frame: HTMLElement; center: HTMLElement; native: HTMLElement } | null;

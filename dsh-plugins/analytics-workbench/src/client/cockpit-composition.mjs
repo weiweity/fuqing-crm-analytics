@@ -1,5 +1,6 @@
 /** UI composition only. The native session/composer/Agent remain owned by DSH. */
-export const COMPOSITION_PIN = '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d';
+import { mainViewSessionId, retainMainView } from '../initial-session.mjs';
+export const COMPOSITION_PIN = 'ddefc45fbc7f8e46dd73185e68295696d1297887';
 export const CHAT_MIN = 400;
 export const CANVAS_MIN = 560;
 export const SPLIT_GAP = 8;
@@ -21,7 +22,8 @@ export function createCockpitComposition({ sessions, layout }) {
     sessionId: null, sessionAvailable: true });
   const listeners = new Set();
   let disposed = false;
-  let lastCurrent = sessions.list.getSnapshot().current ?? null;
+  let held;
+  let lastCurrent = mainViewSessionId(sessions.list.getSnapshot()) ?? null;
   const update = changes => {
     if (disposed) return;
     const next = { ...state, ...changes };
@@ -33,11 +35,14 @@ export function createCockpitComposition({ sessions, layout }) {
     const list = sessions.list.getSnapshot();
     const available = sessionId == null || list.ids.includes(sessionId);
     update({ sessionId: sessionId ?? null, sessionAvailable: available });
-    if (available && sessionId != null && list.current !== sessionId) sessions.open(sessionId);
+    if (available && sessionId != null && mainViewSessionId(list) !== sessionId) {
+      held?.release();
+      held = retainMainView(sessions, sessionId);
+    }
   };
   const off = sessions.list.subscribe(() => {
     const list = sessions.list.getSnapshot();
-    const current = list.current ?? null, changed = current !== lastCurrent;
+    const current = mainViewSessionId(list) ?? null, changed = current !== lastCurrent;
     lastCurrent = current;
     if (!state.open) return;
     if (changed && current !== null && current !== state.sessionId) { update({ open: false }); return; }
@@ -52,7 +57,7 @@ export function createCockpitComposition({ sessions, layout }) {
     open(sessionId) {
       if (disposed) return;
       layout.selectPanel(null);
-      bind(sessionId ?? sessions.list.getSnapshot().current ?? null);
+      bind(sessionId ?? mainViewSessionId(sessions.list.getSnapshot()) ?? null);
       update({ open: true, fallback: false });
     },
     bindSession: bind,
@@ -63,7 +68,7 @@ export function createCockpitComposition({ sessions, layout }) {
     setWidth(width) { if (Number.isFinite(width)) update({ width: Math.max(CHAT_MIN, Math.round(width)) }); },
     close() { update({ open: false, fallback: false }); },
     fallback() { if (!disposed) { update({ open: false, fallback: true }); layout.selectPanel('cockpit'); } },
-    dispose() { if (disposed) return; disposed = true; off(); listeners.clear(); },
+    dispose() { if (disposed) return; disposed = true; held?.release(); off(); listeners.clear(); },
   };
 }
 

@@ -34,9 +34,7 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /key: COCKPIT_PANEL_ID/);
   assert.match(indexSource, /boardLive/);
   assert.match(indexSource, /proposeGenerate/);
-  assert.match(indexSource, /生成飞书文档/);
-  assert.match(indexSource, /生成多维表/);
-  assert.match(indexSource, /specWithLink/);
+  assert.match(indexSource, /生成驾驶舱/);
   assert.match(indexSource, /\/api\/v1\/analytics\/board-spec\/ask/);
   assert.match(panelSource, /catalogFromGsvItems/);
   assert.doesNotMatch(panelSource, /factsFromGsvResult/);
@@ -50,10 +48,8 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /seedBoard\.spec/);
   assert.match(indexSource, /seedBoard\.facts/);
   assert.doesNotMatch(indexSource, /onClick=\{\(\) => props\.actions\.openGenerate\(\)\}/);
-  assert.match(indexSource, /const opened = props\.openCockpit\?\.\(\);/);
-  assert.match(indexSource, /if \(opened\) props\.actions\.close\(\);/);
-  assert.match(indexSource, /if \(!opened\) props\.actions\.open\(\);/);
-  assert.doesNotMatch(indexSource, /else props\.actions\.open\(\);/);
+  assert.match(indexSource, /props\.openCockpit\?\.\(\);/);
+  assert.match(indexSource, /name: 'conversation.composer.dock'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });
 

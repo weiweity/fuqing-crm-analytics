@@ -106,7 +106,7 @@ function restoreDom(previous) {
   else globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
 }
 
-function Shell({ Overlay, Footer, actionsRef, QueryCard, themeSource }) {
+function Shell({ Overlay, actionsRef, QueryCard, themeSource }) {
   const [snap, setSnap] = React.useState({
     open: true, openTick: 1, confirmClose: false, editor: createEditor(), message: '',
   });
@@ -120,12 +120,16 @@ function Shell({ Overlay, Footer, actionsRef, QueryCard, themeSource }) {
     })),
   };
   return React.createElement(React.Fragment, null,
-    React.createElement(Footer, { wide: true, useStore: selector => selector(snap), actions }),
+    React.createElement('button', {
+      type: 'button',
+      'data-testid': 'analytics-b0-open',
+      onClick: () => actions.open(),
+    }, '我的驾驶舱'),
     React.createElement(Overlay, {
       themeSource: themeSource ?? { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
       actions,
-      useSessions: selector => selector({ current: undefined }),
+      useSessions: selector => selector({ ids: [], byId: {} }),
       detachSelection() {},
       restoreSelection() {},
     }),
@@ -168,15 +172,14 @@ async function mountShell(fetchImpl, options = {}) {
   });
   const registrations = [];
   api.apply({ effect: () => {}, sessions: {
-    list: { getSnapshot: () => ({ current: undefined, ids: [] }), subscribe: () => () => {} },
-    open() {}, clear() {},
+    list: { getSnapshot: () => ({ ids: [], byId: {} }), subscribe: () => () => {} },
+    retain() { return { sessionId: '', release() {} }; },
   }, slots: { inject: (_, fn) => fn(), register: (options, component) => {
     registrations.push({ options, component }); return () => {};
   } } });
-  const Overlay = registrations.find(row => row.options.name === 'shell.overlay')?.component;
-  const Footer = registrations.find(row => row.options.id === 'shine-mage.analytics-b0.footer')?.component;
+  const Overlay = registrations.find(row => row.options.id === 'shine-mage.analytics-b0.overlay')?.component;
   const QueryCard = registrations.find(row => row.options.key === QUERY_TOOL_NAME)?.component;
-  assert.ok(Overlay && Footer);
+  assert.ok(Overlay);
   if (options.withQueryCard) assert.ok(QueryCard);
   globalThis.fetch = fetchImpl;
   const actionsRef = { close: 0, requestClose: 0, keepEditing: 0, discard: 0 };
@@ -184,7 +187,7 @@ async function mountShell(fetchImpl, options = {}) {
   const root = createRoot(rootEl);
   await act(() => {
     root.render(React.createElement(Shell, {
-      Overlay, Footer, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null, themeSource: options.themeSource,
+      Overlay, actionsRef, QueryCard: options.withQueryCard ? QueryCard : null, themeSource: options.themeSource,
     }));
   });
   return { actionsRef, Overlay, QueryCard, unmount: () => act(() => root.unmount()) };
@@ -303,13 +306,10 @@ test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds'
   const { previous } = installDom();
   const fetchImpl = async () => jsonResponse(404, { error: { code: 'NOT_FOUND', message: 'no assets' } });
   const mounted = await mountShell(fetchImpl);
-  await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-open"]'));
   if (competitionLive) {
-    assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').textContent, /我的驾驶舱/);
     await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]'));
     assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), 'CONNECTED');
   } else {
-    assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').getAttribute('aria-label'), /合成样例/);
     await waitFor(() => globalThis.document.querySelector('[data-testid="analytics-b0-title-input"]'));
     assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), null);
   }
@@ -321,8 +321,7 @@ test('RoutedOverlay stays on the B0 stub until CONNECTED cockpit probe succeeds'
   const httpMounted = await mountShell(okFetch);
   await waitFor(() => globalThis.document.querySelector('[data-http="CONNECTED"]'));
   assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-title-input"]'), null);
-  assert.match(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').textContent, /我的驾驶舱/);
-  assert.doesNotMatch(globalThis.document.querySelector('[data-testid="analytics-b0-open"]').textContent, /B0/);
+  assert.equal(globalThis.document.querySelector('[data-testid="analytics-b0-dialog"]')?.getAttribute('data-http'), 'CONNECTED');
   httpMounted.unmount();
   restoreDom(connected.previous);
 });
@@ -746,12 +745,12 @@ async function mountDualOverlays(fetchImpl) {
   });
   const registrations = [];
   api.apply({ effect: () => {}, sessions: {
-    list: { getSnapshot: () => ({ current: undefined, ids: [] }), subscribe: () => () => {} },
-    open() {}, clear() {},
+    list: { getSnapshot: () => ({ ids: [], byId: {} }), subscribe: () => () => {} },
+    retain() { return { sessionId: '', release() {} }; },
   }, slots: { inject: (_, fn) => fn(), register: (options, component) => {
     registrations.push({ options, component }); return () => {};
   } } });
-  const Overlay = registrations.find(row => row.options.name === 'shell.overlay')?.component;
+  const Overlay = registrations.find(row => row.options.id === 'shine-mage.analytics-b0.overlay')?.component;
   assert.ok(Overlay);
   globalThis.fetch = fetchImpl;
   const host = { setCount: null };
@@ -771,7 +770,10 @@ async function mountDualOverlays(fetchImpl) {
           themeSource: { subscribe: () => () => {}, getSnapshot: () => 'dark' },
       useStore: selector => selector(snap),
           actions,
-          useSessions: selector => selector({ current: i === 0 ? 'session-a' : 'session-b' }),
+          useSessions: selector => selector({
+            ids: [i === 0 ? 'session-a' : 'session-b'],
+            byId: { [i === 0 ? 'session-a' : 'session-b']: { id: i === 0 ? 'session-a' : 'session-b', retainedBy: { mainView: 1 } } },
+          }),
           detachSelection() {},
           restoreSelection() {},
         })));
