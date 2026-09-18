@@ -36,6 +36,40 @@ test('P12 live adapters: unbound generate, sandbox srcdoc, D locate, C forbids S
   );
 });
 
+test('live adapters pull page list over isolated HTTP mock, never port 6677', async () => {
+  const calls = [];
+  const adapters = createLivePageAdapters({
+    documentsHttp: {
+      base: 'http://127.0.0.1:18091',
+      token: 'library-page-isolated-test-token-32chars',
+      fetchImpl: async (url, init) => {
+        calls.push({ url, auth: init.headers.Authorization });
+        return {
+          ok: true,
+          json: async () => ({ items: [{ page_id: 'page_http', title: 'HTTP 页', version: 2, binding_state: 'UNBOUND_SAMPLE' }] }),
+        };
+      },
+    },
+  });
+  const pulled = await adapters.documents.pullList();
+  assert.equal(pulled.ok, true);
+  assert.equal(pulled.count, 1);
+  assert.equal(adapters.assets.get('page_http').title, 'HTTP 页');
+  assert.match(calls[0].url, /18091\/api\/v1\/analytics\/page-documents\/pages/);
+  assert.doesNotMatch(calls[0].url, /:6677/);
+});
+
+test('live adapters refuse a 6677 documents base and skip fetch when HTTP is unset', async () => {
+  const unset = createLivePageAdapters();
+  const skipped = await unset.documents.pullList();
+  assert.equal(skipped.ok, false);
+  assert.equal(skipped.reason, 'http_not_configured');
+  const live = createLivePageAdapters({
+    documentsHttp: { base: 'http://127.0.0.1:6677', fetchImpl: async () => ({ ok: true, json: async () => ({ items: [] }) }) },
+  });
+  await assert.rejects(() => live.documents.pullList(), error => error.code === 'REFUSED_LIVE_PORT');
+});
+
 test('P12 host page store uses live adapters, not E mocks', async () => {
   const store = createHostPageStore();
   assert.equal(store.getSnapshot().adapterKind, 'p12-live');

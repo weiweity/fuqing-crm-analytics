@@ -7,7 +7,11 @@ import { createFreeHtmlLibraryStore } from './store.mjs';
 
 export function createHostPageStore(options = {}) {
   return createFreeHtmlLibraryStore({
-    adapters: createLivePageAdapters({ now: options.now, actorId: options.actorId }),
+    adapters: createLivePageAdapters({
+      now: options.now,
+      actorId: options.actorId,
+      documentsHttp: options.documentsHttp ?? null,
+    }),
     now: options.now,
     viewportWidth: options.viewportWidth,
   });

@@ -15,7 +15,9 @@ function clone(value) {
   return structuredClone(value);
 }
 
-export function createLivePageAdapters({ now = () => Date.now(), actorId = 'actor_alice' } = {}) {
+export const PAGE_DOCUMENTS_PREFIX = '/api/v1/analytics/page-documents';
+
+export function createLivePageAdapters({ now = () => Date.now(), actorId = 'actor_alice', documentsHttp = null } = {}) {
   const pages = new Map();
   const store = createMemoryPageStore({ now });
   const access = createSyntheticAccess({ actor: { actor_id: actorId } });
@@ -201,12 +203,43 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     },
   });
 
+  const documents = Object.freeze({
+    prefix: PAGE_DOCUMENTS_PREFIX,
+    async pullList() {
+      if (!documentsHttp?.fetchImpl || !documentsHttp.base) {
+        return { ok: false, reason: 'http_not_configured' };
+      }
+      const url = `${String(documentsHttp.base).replace(/\/$/, '')}${PAGE_DOCUMENTS_PREFIX}/pages`;
+      if (url.includes(':6677')) {
+        const error = new Error('PAGE_DOCUMENTS_HTTP');
+        error.code = 'REFUSED_LIVE_PORT';
+        throw error;
+      }
+      const res = await documentsHttp.fetchImpl(url, {
+        headers: documentsHttp.token ? { Authorization: `Bearer ${documentsHttp.token}` } : {},
+      });
+      if (!res.ok) {
+        const error = new Error('PAGE_DOCUMENTS_HTTP');
+        error.code = 'PAGE_DOCUMENTS_HTTP';
+        error.status = res.status;
+        throw error;
+      }
+      const body = await res.json();
+      const items = Array.isArray(body.items) ? body.items : [];
+      for (const item of items) {
+        if (item?.page_id) pages.set(item.page_id, { ...(pages.get(item.page_id) ?? {}), ...item });
+      }
+      return { ok: true, count: items.length };
+    },
+  });
+
   return Object.freeze({
     kind: 'p12-live',
     preview,
     bridge,
     edit,
     assets,
+    documents,
     nativeChat: Object.freeze({
       kind: 'native-dsh-session',
       prompts: nativePrompts,

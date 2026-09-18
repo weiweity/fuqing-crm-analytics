@@ -14,8 +14,7 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `c0ffc037` docs 回写 ← `4f076b37` 接缝（父提交 `ac70cd21`） |
-| SHA 回写 | `c0ffc037` `docs(free-page): record P12 closeout HEAD 4f076b37` |
+| 已提交 HEAD | `5b32e772` live 预览宿主 ← `3f353bf7` 类型 ← `c0ffc037` docs ← `4f076b37` 接缝 |
 
 未提交接缝指纹（SHA-256 前 16 位，收尾当时）：
 
@@ -52,7 +51,7 @@
 
 详见 `reports/P12.md`、`reports/P13.md`。
 
-- P12：**PARTIAL**。`4f076b37` 后：free-page 70、页面 pytest 30、离线合同 `86ad3cf4`。pipeline 扫描 67 文件先 454/458，编 `lib/` 且 `PYTHON=python3.14` 后原失败 3 文件 **39 passed**。Chrome T0 isolation-probe **1 passed**（避开 6677）。live 预览挂 `mountPreviewHost`（jsdom）。完整 `pipeline.mjs --check`、headed 旅程仍 **NOT_RUN**。
+- P12：**PARTIAL**。HEAD `5b32e772`：Chrome T0 **1 passed**；live 预览 `mountPreviewHost`；`documents.pullList` 可打隔离 HTTP（拒绝 6677）。完整 `pipeline.mjs --check`、headed 旅程、生产未配 documentsHttp 仍 **NOT_RUN / 未接线**。
 - P13：**BLOCKED**。无本轮真实模型授权；三场景全部 NOT_RUN；未用预制 HTML 代替。
 
 ## 方案覆盖（摘要）
