@@ -581,7 +581,7 @@
       "prompt": "prompts/P12-integrated-verification.md",
       "status": "PARTIAL",
       "report": "reports/P12.md",
-      "note": "Committed HEAD 348fad44. Uncommitted P12 seams: native Agent package generate, documents HTTP persist (D6/D9/history/rollback), result-access HTTP. Headed journey 1 passed on an isolated port. Full pipeline --check FAIL at dsh-dev git-lfs brand pointer. P12 slice 35 page pytest / 120 node / contract 86ad3cf4. PARTIAL, not READY_FOR_SHIP. Single PR path is p12 to main."
+      "note": "Local HEAD 9fb89a75. Seams 9c12eee6, headed/pipeline 7e135755, ledger 9fb89a75. Headed journey 1 passed on an isolated port. Full pipeline --check FAIL at dsh-dev git-lfs brand pointer. P12 slice 35 page pytest / 120 node / contract 86ad3cf4. PARTIAL, not READY_FOR_SHIP. Single PR path is p12 to main. Not pushed."
     },
     {
       "id": "P13",

@@ -3,8 +3,8 @@
 - 实际停点：**PARTIAL**
 - 日期：2026-09-18
 - 执行者：主协调 Agent
-- 已提交 HEAD：`348fad44`（相对 `origin/main` 9 个提交）
-- 本轮生产接缝尚未 commit。**未 push / 未开 PR / 未 merge / 未删树**
+- 已提交 HEAD：`9fb89a75`（相对 `origin/main` 12 个提交：`9c12eee6` 接缝、`7e135755` 验证、`9fb89a75` 账本；其前 `348fad44`）
+- **未 push / 未开 PR / 未 merge / 未删树**
 
 收尾主线：不再等 F、不再开六个 PR；以 P12 为唯一集成候选。技术候选 READY_FOR_SHIP 还差完整 `pipeline.mjs --check` 的当场记录、交接审查和授权后的单一 PR。完整产品完成还要 P13 三场景以及原生侧栏 veto（或正式接受该限制）。
 
@@ -15,7 +15,7 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `348fad44` |
+| 已提交 HEAD | `9fb89a75` ← `7e135755` ← `9c12eee6` ← `348fad44` |
 
 六路来源 HEAD（本地，未 push）：A `6a11fedf` · B `02af826c` · C `40e048ce` · D `fdb07749` · E `6271b43f` · F `a3a9b428`。
 
@@ -50,7 +50,7 @@
 | 动作 | 状态 |
 |---|---|
 | 六路本地 commit | 已有，HEAD 见上表 |
-| P12 账本 + 生产接缝 commit | **待授权** |
+| P12 账本 + 生产接缝 commit | 已本地提交 `9c12eee6` `7e135755` `9fb89a75` |
 | push / 单一 `codex/free-html/p12 → main` PR | **待授权**；六个 lane 不再单独开 PR |
 | 删除 worktree / 分支 | **待授权**；全部保留 |
 
