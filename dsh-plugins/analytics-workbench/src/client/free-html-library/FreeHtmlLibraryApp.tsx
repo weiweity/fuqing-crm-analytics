@@ -29,30 +29,47 @@ function contextTitle(panel: string) {
 }
 
 const extraCss = `
-.sm-fhl-home { display:flex; flex-direction:column; gap:var(--sm-space-5); max-width:920px; }
-.sm-fhl-home h1 { margin:0; font:var(--sm-type-title) var(--sm-font-display); }
-.sm-fhl-anchor { display:flex; flex-direction:column; gap:var(--sm-space-2); }
-.sm-fhl-anchor textarea { min-height:120px; resize:vertical; }
-.sm-fhl-examples { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); }
-.sm-fhl-examples button { min-height:var(--sm-touch); }
-.sm-fhl-recent { display:flex; flex-direction:column; gap:var(--sm-space-1); }
-.sm-fhl-recent li { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); align-items:center; list-style:none; }
+.sm-fhl > header.sm-fhl-toolbar { padding:8px 16px; border-bottom:1px solid var(--sm-line); background:var(--sm-nav); }
+.sm-fhl-rail { display:flex; gap:8px; padding:4px 16px; font-size:12px; }
+.sm-fhl-rail button { min-height:28px; border:0; padding:0 4px; color:var(--sm-muted); }
+.sm-fhl main { flex:1; min-height:0; display:flex; flex-direction:column; }
+.sm-fhl[data-view="home"] main { padding:32px 20px 40px; }
+.sm-fhl[data-view="workspace"] main { padding:0; }
+.sm-fhl-home { display:flex; flex-direction:column; gap:16px; width:min(520px, 100%); margin:0 auto; }
+.sm-fhl-home h1 { margin:0; font:500 22px/28px var(--sm-font-display); }
+.sm-fhl-home p { margin:0; color:var(--sm-muted); font-size:13px; }
+.sm-fhl-anchor { display:flex; flex-direction:column; gap:10px; }
+.sm-fhl-anchor textarea { min-height:72px; resize:vertical; }
+.sm-fhl-examples { display:flex; flex-wrap:wrap; gap:8px; }
+.sm-fhl-examples button { min-height:28px; min-width:unset; padding:4px 12px; border-radius:999px; font-size:12px; background:var(--sm-glass); }
+.sm-fhl-quiet { border:0 !important; min-height:28px !important; min-width:unset; padding:0 4px !important; color:var(--sm-lilac); background:transparent !important; }
+.sm-fhl-recent { display:flex; flex-direction:column; gap:8px; }
+.sm-fhl-recent h2 { margin:0; font:500 13px/18px var(--sm-font-body); color:var(--sm-muted); }
+.sm-fhl-recent li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; list-style:none; font-size:13px; }
 .sm-fhl-recent ul { margin:0; padding:0; }
-.sm-fhl-workspace-heading { margin:0 0 var(--sm-space-2); font:600 16px/24px var(--sm-font-body); }
-.sm-fhl-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,360px); gap:var(--sm-space-3); min-height:0; }
+.sm-fhl-recent li button { min-height:28px; }
+.sm-fhl-workspace-heading { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.sm-fhl-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,280px); grid-template-rows:auto minmax(520px,1fr) auto; gap:0; min-height:0; flex:1; }
 .sm-fhl[data-panel="closed"] .sm-fhl-workspace { grid-template-columns:minmax(0,1fr); }
-.sm-fhl-preview { min-width:0; border:1px solid var(--sm-line); border-radius:var(--sm-radius-control); position:relative; background:var(--sm-glass); }
-.sm-fhl-preview iframe { display:block; width:100%; min-height:480px; border:0; background:#fff; }
-.sm-fhl-hit { position:absolute; inset:0; display:flex; flex-wrap:wrap; gap:var(--sm-space-1); align-content:flex-start; padding:var(--sm-space-2); }
-.sm-fhl-float { position:absolute; bottom:var(--sm-space-3); left:var(--sm-space-3); display:flex; flex-wrap:wrap; gap:var(--sm-space-1); background:var(--sm-nav); padding:var(--sm-space-2); border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control); }
-.sm-fhl-toolbar { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); align-items:center; }
-.sm-fhl-assets { margin-top:var(--sm-space-3); }
-.sm-fhl-context h2 { margin:0 0 var(--sm-space-2); font:600 16px/24px var(--sm-font-body); }
-.sm-fhl-patch { border:1px solid var(--sm-line-strong); padding:var(--sm-space-3); border-radius:var(--sm-radius-control); }
-.sm-leave-prompt { margin:var(--sm-space-3) 0; display:flex; flex-direction:column; gap:var(--sm-space-2); padding:var(--sm-space-3); border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control); }
-.sm-leave-prompt h2 { margin:0; font:600 16px/24px var(--sm-font-body); }
-.sm-leave-prompt p { margin:0; }
-.sm-leave-prompt-actions { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); }
+.sm-fhl-workspace > .sm-fhl-toolbar { grid-column:1 / -1; padding:8px 12px; border-bottom:1px solid var(--sm-line); background:var(--sm-nav); }
+.sm-fhl-preview { min-width:0; min-height:520px; position:relative; background:#0a0711; display:flex; flex-direction:column; }
+.sm-fhl-preview iframe, .sm-fhl-preview [data-testid="fhl-live-preview"] { display:block; width:100%; flex:1; min-height:520px; border:0; background:#fff; }
+.sm-fhl-preview [data-testid="fhl-live-preview"] { height:100%; }
+.sm-fhl-hit { position:absolute; inset:0; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; padding:8px; }
+.sm-fhl-hit button { min-height:28px; font-size:12px; background:rgba(9,5,13,.72); }
+.sm-fhl-float { position:absolute; bottom:12px; left:12px; display:flex; flex-wrap:wrap; gap:6px; background:rgba(15,11,23,.92); padding:8px; border:1px solid var(--sm-line); border-radius:12px; max-width:min(720px, calc(100% - 24px)); }
+.sm-fhl-float button, .sm-fhl-float select { min-height:28px; font-size:12px; }
+.sm-fhl-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.sm-fhl-assets { margin-top:8px; font-size:13px; color:var(--sm-muted); }
+.sm-fhl-assets summary { min-height:28px; border:0; padding:0; }
+.sm-fhl-context { border-left:1px solid var(--sm-line); padding:12px; background:var(--sm-nav); overflow:auto; }
+.sm-fhl-context h2 { margin:0 0 8px; font:500 14px/20px var(--sm-font-body); }
+.sm-fhl-patch { border-top:1px solid var(--sm-line); padding:10px 12px; background:var(--sm-nav); grid-column:1 / -1; }
+.sm-leave-prompt { margin:12px 16px; display:flex; flex-direction:column; gap:8px; padding:12px 16px; border:1px solid var(--sm-line-strong); border-radius:12px; background:var(--sm-nav); }
+.sm-leave-prompt h2 { margin:0; font:500 16px/24px var(--sm-font-body); }
+.sm-leave-prompt p { margin:0; color:var(--sm-muted); }
+.sm-leave-prompt-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.sm-fhl [data-testid="fhl-message"], .sm-fhl [data-testid="fhl-live"] { margin:0; padding:6px 16px; font-size:12px; color:var(--sm-muted); }
 @media (max-width: 1280px) {
   .sm-fhl-workspace { grid-template-columns:minmax(0,1fr); }
 }
@@ -84,13 +101,13 @@ function LibraryHome({ store }: { store: Store }) {
         <textarea id="fhl-prompt" data-testid="fhl-prompt" value={state.prompt} onChange={event => store.setPrompt(event.target.value)} placeholder="描述想生成的页面……" />
         <div className="sm-fhl-toolbar">
           <button type="submit" className="sm-fhl-generate" data-testid="fhl-generate" disabled={state.busy}>{state.busy ? '生成中…' : '生成页面'}</button>
-          <button type="button" data-testid="fhl-add-data" onClick={() => store.setDataContext({ attached: true, label: '可选数据未绑定，仍可生成' })}>添加数据（可选）</button>
-          <button type="button" data-testid="fhl-add-design" onClick={() => {
+          <button type="button" className="sm-fhl-quiet" data-testid="fhl-add-data" onClick={() => store.setDataContext({ attached: true, label: '可选数据未绑定，仍可生成' })}>添加数据</button>
+          <button type="button" className="sm-fhl-quiet" data-testid="fhl-add-design" onClick={() => {
             store.setDesignGuide({ kind: 'design.md', loaded: false, error: '未读到 DESIGN.md 文件' });
             store.setSkill({ loaded: false, error: '未读到 skill' });
-          }}>DESIGN.md / skill（可选）</button>
+          }}>DESIGN.md / skill</button>
         </div>
-        <p data-testid="fhl-optional-hint">{state.dataContext?.label || '没有数据或设计指导也能生成。'}{state.designGuide?.loaded ? ' 已附加设计指导。' : state.designGuide?.error ? ` ${state.designGuide.error}` : ''}{state.skill?.loaded ? ' 已附加 skill。' : ''}</p>
+        <p data-testid="fhl-optional-hint">{state.dataContext?.label || '在对话里说要什么页也可以。没有数据或设计指导也能生成。'}{state.designGuide?.loaded ? ' 已附加设计指导。' : state.designGuide?.error ? ` ${state.designGuide.error}` : ''}{state.skill?.loaded ? ' 已附加 skill。' : ''}</p>
       </form>
       <div className="sm-fhl-examples" data-testid="fhl-examples">
         {SAMPLE_PROMPTS.map(text => <button type="button" key={text} onClick={() => store.applyExample(text)}>{text}</button>)}

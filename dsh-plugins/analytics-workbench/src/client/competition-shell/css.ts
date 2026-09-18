@@ -99,22 +99,23 @@ export const competitionShellCss = `
 }
 
 /* D39 free-HTML library host mapping. Generated pages in iframe do not inherit these selectors. */
-.sm-fhl { min-width:0; min-height:100%; display:flex; flex-direction:column; gap:var(--sm-space-3);
-  padding:var(--sm-space-4); color:var(--sm-ink); background:var(--sm-bg); font:var(--sm-type-body) var(--sm-font-body); }
+.sm-fhl { min-width:0; min-height:100%; display:flex; flex-direction:column; gap:0;
+  padding:0; color:var(--sm-ink); background:var(--sm-bg); font:var(--sm-type-body) var(--sm-font-body); }
 .sm-fhl a { color:var(--sm-lilac); }
 .sm-fhl button, .sm-fhl select, .sm-fhl summary {
-  font:inherit; color:inherit; background:transparent; border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control);
-  min-height:var(--sm-touch); min-width:var(--sm-touch); padding:0 var(--sm-space-3); cursor:pointer;
+  font:inherit; color:inherit; background:transparent; border:1px solid var(--sm-line);
+  border-radius:var(--sm-radius-control); min-height:36px; padding:0 12px; cursor:pointer;
 }
 .sm-fhl button:disabled { opacity:.5; cursor:not-allowed; }
 .sm-fhl textarea, .sm-fhl input[type="text"] {
-  font:inherit; color:var(--sm-ink); background:var(--sm-glass); border:1px solid var(--sm-line-strong);
-  border-radius:var(--sm-radius-control); padding:var(--sm-space-2) var(--sm-space-3); min-height:var(--sm-touch); width:100%;
+  font:inherit; color:var(--sm-ink); background:var(--sm-glass); border:1px solid var(--sm-line);
+  border-radius:var(--sm-radius-control); padding:10px 12px; min-height:36px; width:100%;
 }
 .sm-fhl :focus-visible { outline:2px solid var(--sm-focus); outline-offset:var(--sm-focus-offset); }
-.sm-fhl .sm-fhl-generate { background:var(--sm-purple); color:var(--sm-ink); }
-.sm-fhl-status { position:sticky; top:0; z-index:3; display:flex; flex-wrap:wrap; gap:var(--sm-space-2); align-items:center;
-  padding:var(--sm-space-2) 0; background:var(--sm-nav); border-bottom:1px solid var(--sm-line); }
+.sm-fhl .sm-fhl-generate { background:var(--sm-purple); color:#201426; border-color:transparent; font-weight:600; }
+.sm-fhl-status { position:sticky; top:0; z-index:3; display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  padding:8px 16px; background:var(--sm-nav); border-bottom:1px solid var(--sm-line); font-size:12px; color:var(--sm-muted); }
+.sm-fhl-status strong { color:var(--sm-ink); font-size:14px; font-weight:500; }
 .sm-fhl-status[data-binding="UNBOUND_SAMPLE"] { border-bottom-style:dashed; }
 .sm-fhl-status[data-binding="BOUND_STALE"], .sm-fhl-status[data-save="conflict"] { border-color:var(--sm-danger); }
 .sm-fhl-skip { position:absolute; left:var(--sm-space-3); top:var(--sm-space-3); z-index:4; }
