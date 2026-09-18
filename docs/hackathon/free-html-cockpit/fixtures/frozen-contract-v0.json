@@ -1,0 +1,78 @@
+{
+  "schema": "free-page-coordinator-fixture/v0",
+  "approved_plan_sha256": "47fa5bfe482cb9bd93f4f02a7c62c6933d0242b5204ea95f2b912edc603a6ffb",
+  "note": "Lane A freeze target. Other lanes may import this JSON in tests. Breaking field changes are BLOCKED for P12.",
+  "asset": {
+    "schema_version": "free-page/v1",
+    "identity_pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+    "page_id": "page_fixture_unbound",
+    "session_id": "native_session_fixture",
+    "title": "未绑定经营复盘夹具",
+    "version": 1,
+    "binding_state": "UNBOUND_SAMPLE",
+    "binding_states": ["UNBOUND_SAMPLE", "BOUND_VERIFIED", "BOUND_STALE"],
+    "package": {
+      "html": "<!doctype html><html><body><h1 data-shine-node=\"n_title\">示例标题</h1><canvas data-shine-region=\"r_chart\"></canvas></body></html>",
+      "css": "h1{font:600 28px/1.3 sans-serif}",
+      "js": "document.querySelector('canvas')?.getContext('2d')",
+      "resources": [],
+      "node_map": [
+        {"node_id": "n_title", "kind": "static_element", "selector": "[data-shine-node='n_title']"},
+        {"node_id": "r_chart", "kind": "dynamic_region", "selector": "[data-shine-region='r_chart']"}
+      ]
+    },
+    "binding_manifest": {
+      "bindings": [],
+      "result_refs": []
+    }
+  },
+  "operations": ["GENERATE", "PATCH", "SAVE", "ROLLBACK"],
+  "preview_status": ["PENDING", "APPLIED", "CANCELLED"],
+  "submit_paths": {
+    "D6_PATCH": "preview then confirm; one version; original idempotency_key",
+    "D9_SAVE": "explicit save of host draft; not exit-edit",
+    "not_save": ["cancel", "exit_edit", "close_panel", "clear_selection"]
+  },
+  "bridge": {
+    "protocol": "free-page-bridge/v1",
+    "transport": "MessageChannel",
+    "handshake": ["protocol", "instance_id", "page_id", "version", "nonce"],
+    "page_to_host_ops": ["data.read", "data.cancel"],
+    "host_to_page_events": ["data.chunk", "data.end", "data.error", "binding.state"],
+    "forbidden_ops": ["sql", "save", "http.fetch", "credential.read"]
+  },
+  "data_read": {
+    "request": {
+      "op": "data.read",
+      "result_ref": "result_fixture_1",
+      "mode": "summary",
+      "cursor": null,
+      "limit": 50
+    },
+    "response_summary_fields": ["unit", "time_range", "queried_at", "source", "row_count"],
+    "budget": {"max_response_bytes": 65536, "max_cumulative_rows": 2000}
+  },
+  "errors": {
+    "VERSION_CONFLICT": 409,
+    "NOT_FOUND": 404,
+    "FORBIDDEN": 403,
+    "PREVIEW_EXPIRED": 409,
+    "PREVIEW_CANCELLED": 409,
+    "IDEMPOTENCY_CONFLICT": 409,
+    "INVALID_PAGE": 422,
+    "RESULT_UNAVAILABLE": 409,
+    "RESULT_STALE": 409,
+    "RESULT_REVOKED": 403,
+    "MAPPING_STALE": 409,
+    "SCOPE_REQUIRES_CONFIRMATION": 409,
+    "RESOURCE_HASH_MISMATCH": 409,
+    "PACKAGE_TOO_LARGE": 413,
+    "BRIDGE_UNKNOWN_OP": 400,
+    "BRIDGE_NONCE": 409,
+    "BRIDGE_EXPIRED_INSTANCE": 409
+  },
+  "reuse_from_board_documents": {
+    "keep": ["actor/owner isolation", "preview/confirm", "CAS", "idempotency_key", "uncertain receipt", "rollback history"],
+    "do_not_reuse": ["BoardDocument blocks/layout codec", "INVALID_BOARD", "html-sandbox no-script runtime"]
+  }
+}

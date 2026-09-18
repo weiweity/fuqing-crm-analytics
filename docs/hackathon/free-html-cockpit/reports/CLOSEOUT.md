@@ -14,7 +14,7 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `d0cd6cb9` documents HTTP ← `5b32e772` live 预览；`pullPage` 随后续本地提交 |
+| 已提交 HEAD | `6e0a70fe` pullPage ← `d0cd6cb9` pullList ← `5b32e772` live 预览 |
 
 未提交接缝指纹（SHA-256 前 16 位，收尾当时）：
 
@@ -30,7 +30,7 @@
 | `backend/tests/test_p12_page_mount.py` | `b31c1fdc30949f92` |
 | `scripts/dsh-b0/pipeline.mjs` | `a0fe7d0ef4ba9d0f`（已含 page-contract 与 `src/free-page` 扫描） |
 
-接缝源码与 `hash.mjs` / `leave-prompt` / `test_p12_page_mount.py` 已在 `4f076b37`。施工包提示词、配图、`HANDOVER-CODEX.md`、凭据、运行目录未加入候选。
+接缝源码与 `hash.mjs` / `leave-prompt` / `test_p12_page_mount.py` 已在 `4f076b37`。施工包索引（README、PARALLEL-6、WORKTREES、fixtures）与协调审查 A–E 随文档提交进 P12。`approved-plan.md` 与 `prompts/P01–P13` 因 ground-truth 钩子含「缺失/不存在」未改写批准方案，仍未跟踪。主仓 `STATUS.md` 不在 main 上提交。`HANDOVER-CODEX.md` 未加入。
 
 ## 六路来源快照与导入
 
