@@ -1,6 +1,16 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { defineStore, type PropsStore } from '@deepseek-ai/dsh-client-store';
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
+import {
+  accountSourceLabel,
+  clearAccountIdentity,
+  getServerAccountIdentity,
+  readAccountIdentity,
+  subscribeAccountIdentity,
+  writeAccountIdentity,
+} from './account-identity.mjs';
+
+export { clearAccountIdentity, readAccountIdentity, writeAccountIdentity } from './account-identity.mjs';
 
 const LEGACY_BOARD_URL = 'http://127.0.0.1:15173/';
 const THEME_OPTIONS = [
@@ -41,6 +51,9 @@ const accountCss = `
   overflow:hidden !important; clip:rect(0,0,0,0) !important;
 }
 [class*="footerActions"] { display:flex; flex-direction:row; align-items:center; gap:8px; }
+[class*="footerActions"]:has(.sm-login[data-wide="0"]) {
+  flex-direction:column; align-items:center; justify-content:center; gap:6px; width:auto;
+}
 html, body { min-height: 100%; background: #DCDCE1; }
 :has(> [class*="sidebarCol"]) {
   background: rgba(255, 255, 255, 0.28) !important;
@@ -114,10 +127,11 @@ body[data-ds-dark-theme] [class*="sidebarCol"] {
   box-shadow:inset 0 0 0 0.75px color-mix(in srgb, Canvas 40%, transparent);
   font:var(--dsw-font-s-14,14px/22px inherit); cursor:pointer;
 }
-.sm-login-avatar {
-  width:22px; height:22px; border-radius:11px; flex:none;
-  background:var(--dsw-alias-brand-primary,CanvasText);
+.sm-login[data-wide="0"] {
+  width:36px; min-width:36px; flex:none; padding:0; justify-content:center; border-radius:18px; gap:0;
 }
+.sm-login-text { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.sm-login[data-wide="0"] .sm-login-text { display:none; }
 .sm-theme {
   display:flex; align-items:center; justify-content:center; box-sizing:border-box;
   width:36px; height:36px; min-width:36px; padding:0; border:0; border-radius:18px;
@@ -125,12 +139,13 @@ body[data-ds-dark-theme] [class*="sidebarCol"] {
   color:var(--dsw-alias-label-primary,CanvasText); cursor:pointer;
   box-shadow:inset 0 0 0 0.75px color-mix(in srgb, Canvas 45%, transparent);
 }
+.sm-theme[data-wide="0"] { width:36px; min-width:36px; }
 .sm-glass {
   pointer-events:auto; position:fixed; z-index:40; box-sizing:border-box;
-  background:color-mix(in srgb, Canvas 28%, transparent);
-  border:0.75px solid color-mix(in srgb, Canvas 50%, transparent);
-  box-shadow:0 8px 24px rgb(0 0 0 / 12%);
-  backdrop-filter:blur(28px) saturate(1.35);
+  background:color-mix(in srgb, Canvas 86%, transparent);
+  border:0.75px solid color-mix(in srgb, CanvasText 12%, transparent);
+  box-shadow:0 10px 28px rgb(0 0 0 / 16%);
+  backdrop-filter:blur(20px) saturate(1.2);
   color:var(--dsw-alias-label-primary,CanvasText);
   font:var(--dsw-font-s-14,14px/22px inherit);
 }
@@ -138,8 +153,9 @@ body[data-ds-dark-theme] [class*="sidebarCol"] {
 .sm-theme-menu { display:flex; gap:6px; padding:8px; border-radius:16px; }
 .sm-account-user { display:flex; align-items:center; gap:10px; padding:4px 8px 10px; }
 .sm-account-avatar {
+  display:flex; align-items:center; justify-content:center;
   width:28px; height:28px; border-radius:14px; flex:none;
-  background:var(--dsw-alias-brand-primary,CanvasText);
+  background:var(--dsw-alias-brand-primary,CanvasText); color:#fff;
 }
 .sm-account-user strong { display:block; font:var(--dsw-font-base-strong-14,600 14px/20px inherit); }
 .sm-account-user span { color:var(--dsw-alias-label-secondary,GrayText); font:var(--dsw-font-s-12,12px/18px inherit); }
@@ -163,7 +179,24 @@ body[data-ds-dark-theme] [class*="sidebarCol"] {
 .sm-theme-choice[aria-pressed="true"] {
   background:var(--dsw-alias-brand-primary,CanvasText); color:#fff;
 }
+.sm-account-signin { display:flex; gap:6px; align-items:center; padding:4px 8px 8px; }
+.sm-account-signin input {
+  flex:1; min-width:0; height:32px; box-sizing:border-box; padding:0 8px; border:0; border-radius:8px;
+  background:color-mix(in srgb, CanvasText 8%, transparent); color:inherit; font:inherit;
+}
+.sm-account-signin button {
+  flex:none; height:32px; padding:0 10px; border:0; border-radius:8px; cursor:pointer;
+  background:var(--dsw-alias-brand-primary,CanvasText); color:#fff; font:inherit;
+}
+.sm-account-signin button:disabled { opacity:.4; cursor:default; }
 `;
+
+function UserIcon({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <circle cx="8" cy="5.2" r="2.4" stroke="currentColor" strokeWidth="1.4" />
+    <path d="M3.2 13.2c.6-2.4 2.3-3.6 4.8-3.6s4.2 1.2 4.8 3.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>;
+}
 
 function SunIcon() {
   return <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -239,12 +272,15 @@ function GearIcon() {
 
 export function LoginFooter(props: LoginProps) {
   const open = props.useStore(state => state.menuOpen);
+  const identity = useSyncExternalStore(subscribeAccountIdentity, readAccountIdentity, getServerAccountIdentity);
+  const label = identity?.name ?? '未登录';
   return <><style>{accountCss}</style>
     <button type="button" className="sm-login" data-testid="shine-account-login"
+      data-wide={props.wide ? '1' : '0'}
       aria-haspopup="menu" aria-expanded={open}
-      aria-label="账户与设置" title="账户与设置" onClick={() => props.actions.toggleMenu()}>
-      <span className="sm-login-avatar" aria-hidden="true" />
-      {props.wide ? '登录' : null}
+      aria-label={label} title={label} onClick={() => props.actions.toggleMenu()}>
+      <UserIcon size={props.wide ? 16 : 18} />
+      <span className="sm-login-text">{label}</span>
     </button></>;
 }
 
@@ -256,6 +292,7 @@ export function ThemeFooter(props: ThemeProps) {
   const label = preference === 'light' ? '日间' : preference === 'dark' ? '夜晚' : '跟随系统';
   return <><style>{accountCss}</style>
     <button type="button" className="sm-theme" data-testid="shine-account-theme"
+      data-wide={props.wide ? '1' : '0'}
       aria-haspopup="menu" aria-expanded={open}
       aria-label={`外观：${label}`} title={`外观：${label}`} onClick={() => props.actions.toggleTheme()}>
       {preference === 'dark' ? <MoonIcon /> : preference === 'light' ? <SunIcon /> : <SystemIcon />}
@@ -304,6 +341,7 @@ export function AccountMenu(props: MenuProps) {
       : (fn: () => void) => { setTimeout(fn, 0); };
     later(() => { trigger.click(); });
   };
+  const identity = useSyncExternalStore(subscribeAccountIdentity, readAccountIdentity, getServerAccountIdentity);
   const accountStyle = accountBox
     ? { left: accountBox.left, width: accountBox.width, bottom: accountBox.bottom }
     : undefined;
@@ -314,13 +352,28 @@ export function AccountMenu(props: MenuProps) {
     {menuOpen ? <div className="sm-glass sm-account-menu" role="dialog" aria-label="账户"
       data-testid="shine-account-menu" style={accountStyle}>
       <div className="sm-account-user">
-        <span className="sm-account-avatar" aria-hidden="true" />
+        <span className="sm-account-avatar" aria-hidden="true"><UserIcon size={16} /></span>
         <div>
-          <strong>未登录</strong>
-          <span>登录后同步会话</span>
+          <strong>{identity?.name ?? '未登录'}</strong>
+          <span>{accountSourceLabel(identity)}</span>
         </div>
       </div>
       <div className="sm-account-rule" />
+      {identity ? (
+        <button type="button" className="sm-account-row" data-testid="shine-account-signout"
+          onClick={() => clearAccountIdentity()}>
+          退出</button>
+      ) : (
+        <form className="sm-account-signin" onSubmit={event => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          writeAccountIdentity({ name: String(new FormData(form).get('name') ?? ''), source: 'feishu' });
+          form.reset();
+        }}>
+          <input name="name" data-testid="shine-account-name-input" placeholder="显示名称" aria-label="显示名称" />
+          <button type="submit" data-testid="shine-account-signin">登录</button>
+        </form>
+      )}
       <a className="sm-account-row" href={LEGACY_BOARD_URL} target="_blank" rel="noopener noreferrer"
         data-testid="legacy-board-open" onClick={() => props.actions.closeMenu()}>
         <BoardIcon />比赛看板</a>

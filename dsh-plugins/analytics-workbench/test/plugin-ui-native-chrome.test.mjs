@@ -63,6 +63,12 @@ test('account chrome frosts the sidebar against a tinted frame and paints chat w
   assert.match(chromeSource, /停止生成/);
   assert.match(chromeSource, /Stop generating/);
   assert.match(chromeSource, /requestAnimationFrame/);
+  assert.match(chromeSource, /\[class\*="footerActions"\]:has\(\.sm-login\[data-wide="0"\]\)/);
+  assert.doesNotMatch(chromeSource, /\[class\*="collapsed"\] \[class\*="footerActions"\]/);
+  assert.match(chromeSource, /\.sm-login\[data-wide="0"\] \.sm-login-text \{ display:none; \}/);
+  assert.match(chromeSource, /writeAccountIdentity/);
+  assert.match(chromeSource, /Canvas 86%/);
+  assert.match(chromeSource, /未登录/);
   assert.doesNotMatch(css, /composerHero/);
   assert.doesNotMatch(css, /heroWorkspaceRow/);
 });
