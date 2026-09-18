@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { ALLOWED_WEB_PORTS, COMPETITION_VITE_PORT, COMPETITION_WEB_PORT, DEV_WEB_PORT, NATIVE_WEB_IDS, NODE_MAJOR, PLUGIN_UI_ID, SHINE_BRAND_UI_ID, SHINE_WATERFALL_UI_ID, SHINE_CROWD_ACTION_UI_ID, SHINE_QUERY_UI_ID, SHINE_BOARD_UI_ID, SHINE_FUNNEL_UI_ID } from './constants.mjs';
 import { pluginEnabled, pluginRowState } from './overlay.mjs';
 import { repoRoot, contextRoot, currentPath, defaultPluginPath, defaultShineBrandPath, defaultShineWaterfallPath, defaultShineCrowdActionPath, defaultShineQueryPath, defaultShineBoardPath, defaultShineFunnelPath, defaultRuntimeRoot } from './paths.mjs';
+import { PAGE_HTTP_DEFAULT_PORT, startPageHttp, writePageHttpState } from './page-http.mjs';
 import { ensurePersistentRuntime } from './persist-runtime.mjs';
 import { randomBytes } from 'node:crypto';
 import { bootHost, dumpConfig, installProfilePlugin, isolatedEnv, parseServeArgs, prepareRuntime, readCurrent, runOwnedSupervisor, stopOwned, watchOwnedStart } from './serve.mjs';
@@ -34,11 +35,14 @@ const USAGE = `Usage: node scripts/dsh-dev/cli.mjs <check|dump-config|start|stop
   --runtime /absolute/runtime
   --web-port ${ALLOWED_WEB_PORTS.join('|')}
   --host 127.0.0.1
+  --page-http on|off   start the isolated page-documents/result-access HTTP (default ${PAGE_HTTP_DEFAULT_PORT}, never 6677) and inject PAGE_* into the web host
+  --page-http-port N   custom loopback port for that listener
   --detach          start only
   --fresh           NEW empty runtime (wipes API keys and extra plugins). Daily plugin rebuilds must use reload, not --fresh.
 
 --plugin on installs workbench and the feature packs from repo paths (not siblings of --plugin-path). --query off / --board off drop session query tools or cockpit generate independently. --plugin off disables every shine UI id.
 reload  builds workbench and the enabled feature packs, restarts 6677 on the durable runtime, and opens the launch URL without printing the token.
+--page-http on boots an isolated page-documents/result-access HTTP on 127.0.0.1:${PAGE_HTTP_DEFAULT_PORT} (small SQLite, explicit page_state_dir, never 6677) and forwards PAGE_* env so the browser bundle configures its page store; without it generation/saves stay http_not_configured instead of silently targeting 6677.
 
 Node 24 required for check/start/reload. diagnose is read-only: it never binds ports or signals PIDs.
 User demo 127.0.0.1:4327 / 8000 / 5173 must not be stopped or reused.
@@ -163,6 +167,7 @@ async function runStart(options) {
   const onSignal = () => abort.abort();
   process.once('SIGTERM', onSignal);
   process.once('SIGINT', onSignal);
+  let pageHttp = null;
   try {
     await runOwnedSupervisor({
       contextDir: contextRoot(),
@@ -173,8 +178,28 @@ async function runStart(options) {
         const tls = isolatedEnv(prepared.runtime, prepared.home).NODE_EXTRA_CA_CERTS;
         console.log(tls ? `DSH_DEV_TLS ${tls}` : 'DSH_DEV_TLS missing; Node 24 cannot verify api.deepseek.com without a CA bundle');
         if (prepared.enabled) installProfilePlugin(prepared);
+        // The isolated page HTTP is supervisor-owned: it starts before the
+        // web host (so PAGE_* reach the host env through isolatedEnv) and
+        // stops with the supervisor. Default off; explicit --page-http on.
+        // A caller-configured PAGE_DOCUMENTS_HTTP_BASE is forwarded as-is.
+        if (options.pageHttp === 'on') {
+          assert.equal(process.env.PAGE_DOCUMENTS_HTTP_BASE, undefined,
+            'PAGE_DOCUMENTS_HTTP_BASE is already set in the caller env; dsh-dev forwards it as-is instead of spawning its own listener');
+          pageHttp = await startPageHttp({
+            port: options.pageHttpPort ?? PAGE_HTTP_DEFAULT_PORT,
+            stateDir: join(prepared.runtime, 'page-documents'),
+            signal,
+          });
+          await writePageHttpState(prepared.runtime, pageHttp);
+          process.env.PAGE_DOCUMENTS_HTTP_BASE = pageHttp.base;
+          process.env.PAGE_DOCUMENTS_HTTP_TOKEN = pageHttp.token;
+          delete process.env.PAGE_RESULT_HTTP_BASE;
+          delete process.env.PAGE_RESULT_HTTP_TOKEN;
+          console.log(`DSH_DEV_PAGE_HTTP ${pageHttp.base} (documents+result on one listener; token not printed)`);
+        }
         const booted = await bootHost(prepared, { signal });
-        return { ...prepared, ...booted };
+        return { ...prepared, ...booted, pageHttpBase: pageHttp?.base ?? null,
+          cleanup: async () => { await pageHttp?.stop(); } };
       },
     });
   } finally {
@@ -219,6 +244,8 @@ function reloadStartArgs(options, runtime) {
   if (options.shineBoardPath) args.push('--board-path', options.shineBoardPath);
   if (options.shineFunnel) args.push('--funnel', options.shineFunnel);
   if (options.shineFunnelPath) args.push('--funnel-path', options.shineFunnelPath);
+  if (options.pageHttp) args.push('--page-http', options.pageHttp);
+  if (options.pageHttpPort !== undefined) args.push('--page-http-port', String(options.pageHttpPort));
   return args;
 }
 
@@ -288,6 +315,7 @@ async function runStatus() {
   console.log(`DSH_DEV_QUERY ${current.shineQuery ?? 'off'}`);
   console.log(`DSH_DEV_BOARD ${current.shineBoard ?? 'off'}`);
   console.log(`DSH_DEV_FUNNEL ${current.shineFunnel ?? 'off'}`);
+  console.log(`DSH_DEV_PAGE_HTTP ${current.pageHttpBase ?? 'off'}`);
 }
 
 function isCliEntry() {

@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client';
 import type {} from '@deepseek-ai/dsh-api-session-controller/client';
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client';
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client';
+import type { PagePackageWaiter } from './free-html-library/native-generate.d.mts';
 import {
   TOOL_NAME, TITLE_STORAGE_KEY, FIXTURE, createEditor, changeDraft, previewTitle,
   applyTitle, serializeTitle, restoreTitle, decodeFixture,
@@ -40,11 +41,13 @@ import { DEMO_BOARD } from '../board-spec/demo-board.mjs';
 import { createLibraryBoardClient, type LibraryBoardClient } from './library-board-client.mjs';
 import { createLeaveCoordinator } from './leave/leave-coordinator.mjs';
 import { createHostLeaveAdapter, type HostLeaveAdapter } from './leave/host-leave-adapter.mjs';
+import { hasUnsavedChanges } from './leave/dirty-predicate.mjs';
 import { LeavePromptOverlay } from './leave/leave-prompt.tsx';
 import { createHostPageStore } from './free-html-library/create-host-page-store.mjs';
-import { createNativePageGenerate } from './free-html-library/native-generate.mjs';
+import { createNativePageGenerate, createPagePackageWaiter, extractPagePackage } from './free-html-library/native-generate.mjs';
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
+import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
 import { createCockpitComposition } from './cockpit-composition.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
@@ -346,6 +349,55 @@ function AnalyticsToolCard({ block }: ToolCallViewProps) {
   </div>;
 }
 
+/**
+ * Tool-card intake for the native delivery tool. The card is the only place
+ * the browser sees the package: it hands the receipt outcome to the waiter so
+ * the waiting generate continues into the isolated documents HTTP. It never
+ * persists the page and never renders the raw source.
+ */
+function PagePackageToolCard(props: ToolCallViewProps & { pagePackageWaiter?: PagePackageWaiter }) {
+  const { block, pagePackageWaiter } = props;
+  const delivered = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pagePackageWaiter || !('kind' in block) || block.kind !== 'tool-result') return;
+    if (block.isError || typeof block.callId !== 'string') return;
+    if (delivered.current === block.callId) return;
+    const meta = block.meta as Record<string, unknown> | undefined;
+    const requestId = typeof meta?.request_id === 'string' ? meta.request_id : '';
+    if (!PAGE_REQUEST_ID_PATTERN.test(requestId)) return;
+    delivered.current = block.callId;
+    if (meta?.schema_version !== PAGE_TOOL_RESULT_SCHEMA) {
+      pagePackageWaiter.deliver(requestId, new Error('页面交付回执格式无法识别；未取得页面源码包'));
+      return;
+    }
+    if (meta.status === 'PACKAGE_RECEIVED') {
+      const pkg = extractPagePackage(meta.package);
+      pagePackageWaiter.deliver(requestId, pkg ?? new Error('页面交付回执缺少有效源码包'));
+      return;
+    }
+    const error = meta?.error as { code?: unknown } | undefined;
+    const code = typeof error?.code === 'string' ? error.code : 'UNKNOWN';
+    pagePackageWaiter.deliver(requestId, new Error(`页面源码包被拒收（${code}）；请修正后重新生成`));
+  }, [block, pagePackageWaiter]);
+  if (!('kind' in block) || block.kind !== 'tool-result') {
+    return <div className="analytics-b0-card" role="status">正在等待原生 Agent 交付页面源码包…</div>;
+  }
+  if (block.isError) return <div className="analytics-b0-card" role="status">页面工具失败；未交付页面源码包。</div>;
+  const meta = block.meta as Record<string, unknown> | undefined;
+  if (meta?.schema_version !== PAGE_TOOL_RESULT_SCHEMA) {
+    return <div className="analytics-b0-card" role="status">页面交付回执格式无法识别或版本不支持；不推断页面已交付。</div>;
+  }
+  if (meta.status !== 'PACKAGE_RECEIVED') {
+    const refusedError = meta.error as { code?: unknown } | undefined;
+    const code = typeof refusedError?.code === 'string' ? refusedError.code : 'UNKNOWN';
+    return <div className="analytics-b0-card" role="status">页面源码包被拒收（{code}）；请按拒绝原因修正后重试。</div>;
+  }
+  return <div className="analytics-b0-card" data-testid="analytics-b0-page-card">
+    <strong>自由页面源码包已交付工作台</strong>
+    <p>request_id {String(meta.request_id)} · 请到工作台检查并保存；本工具不保存页面。</p>
+  </div>;
+}
+
 export const name = 'analytics-workbench-b0-client';
 export const inject = ['slots', 'sessions', 'theme', 'layout', 'remote', 'remote.session'];
 
@@ -376,9 +428,14 @@ export function apply(ctx: Context): void {
     })
     : undefined;
   ctx.effect(() => () => library?.dispose(), 'analytics-board: client lifetime');
+  // Intake seam for the native delivery tool: the tool card resolves the
+  // waiting generate through this waiter; disposal cancels everything pending.
+  const pagePackageWaiter = createPagePackageWaiter();
+  ctx.effect(() => () => pagePackageWaiter.cancelAll(), 'analytics-board: free-html page waiter');
   const pageStore = boardPackEnabled() ? createHostPageStore({
     nativeGenerate: createNativePageGenerate({
-      submitPrompt: async (prompt) => {
+      waiter: pagePackageWaiter,
+      submitPrompt: async (prompt, extras) => {
         const ids = ctx.sessions.list.getSnapshot().ids ?? [];
         const sessionId = ids.find(id => id === B0_PRIMARY_SESSION_ID) ?? ids[0];
         if (!sessionId || typeof ctx.remote?.session?.prompt !== 'function') {
@@ -393,7 +450,7 @@ export function apply(ctx: Context): void {
           clientTimeZone: 'Asia/Shanghai',
           content: [{
             type: 'text',
-            text: `请生成自由 HTML 页面源码包。只返回 JSON 对象，字段为 html、css、js、resources、node_map。不要使用 BoardSpec。提示：${prompt}`,
+            text: `请生成自由 HTML 页面。先用文本给出说明，然后必须调用 ${PAGE_GENERATE_TOOL_NAME} 工具交付页面源码包（字段 html、css、js、resources、node_map），并把这个标识逐字填入 request_id：${extras?.requestId}。不要使用 BoardSpec，不要回退到示例页面。提示：${prompt}`,
           }],
         });
       },
@@ -427,7 +484,17 @@ export function apply(ctx: Context): void {
     },
     // Deferred: the adapter owns the host setter, and it is constructed around
     // this coordinator. By the time any intent resolves, both exist.
-    navigate: (intent: { kind: string; id?: string | null }): Promise<void> => leaveAdapter!.perform(intent),
+    navigate: (intent: { kind: string; id?: string | null }): Promise<void> => {
+      if (intent.kind === 'panel' && intent.id === COCKPIT_PANEL_ID) {
+        if (composition) {
+          const state = library!.getSnapshot();
+          composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
+          return Promise.resolve();
+        }
+        return leaveAdapter!.perform({ ...intent, kind: 'panel', id: COCKPIT_PANEL_ID });
+      }
+      return leaveAdapter!.perform(intent);
+    },
   }) : undefined;
   const leaveAdapter: HostLeaveAdapter | undefined = leaveCoordinator
     ? createHostLeaveAdapter({ coordinator: leaveCoordinator, layout: ctx.layout }) : undefined;
@@ -440,9 +507,14 @@ export function apply(ctx: Context): void {
     name: 'conversation.hero.brand.mark', priority: -10,
   }, BrandMark));
   const openCockpitPanel = (): boolean => {
+    const layout = ctx.layout;
+    if (layout == null || typeof layout.selectPanel !== 'function') return false;
+    if (leaveAdapter && library && hasUnsavedChanges({ ...library.getSnapshot(), htmlUnsaved: Boolean(pageStore?.hasUnsavedChanges()) })) {
+      void leaveAdapter.request('panel', { kind: 'panel', id: COCKPIT_PANEL_ID })
+        .catch(() => { /* stay on the current panel */ });
+      return true;
+    }
     try {
-      const layout = ctx.layout;
-      if (layout == null || typeof layout.selectPanel !== 'function') return false;
       if (composition && library) {
         const state = library.getSnapshot();
         composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
@@ -501,7 +573,7 @@ export function apply(ctx: Context): void {
    */
   if (boardPackEnabled() && leaveCoordinator && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.leave-prompt',
-    inject: () => ({ coordinator: leaveCoordinator, library }),
+    inject: () => ({ coordinator: leaveCoordinator, library, pageStore }),
   }, LeavePromptOverlay));
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action', id: 'shine-mage.account.login', order: 10, store: accountStore,
@@ -562,10 +634,16 @@ export function apply(ctx: Context): void {
       name: 'tool.call.toolview', key: FIRST_PURCHASE_TOOL_NAME,
     }, FirstPurchaseQueryCard));
   }
-  if (boardPackEnabled()) for (const toolName of [BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
-    name: 'tool.call.toolview', key: toolName,
-    inject: () => ({ library, openCockpit: openCockpitPanel }),
-  }, LibraryPreviewToolCard));
+  if (boardPackEnabled()) {
+    for (const toolName of [BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME]) ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+      name: 'tool.call.toolview', key: toolName,
+      inject: () => ({ library, openCockpit: openCockpitPanel }),
+    }, LibraryPreviewToolCard));
+    ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
+      name: 'tool.call.toolview', key: PAGE_GENERATE_TOOL_NAME,
+      inject: () => ({ pagePackageWaiter }),
+    }, PagePackageToolCard));
+  }
   ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
     name: 'conversation.input.dock', id: 'shine-mage.analytics-b0.run-status', order: 10,
   }, RunStatus));

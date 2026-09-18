@@ -40,11 +40,13 @@ test('isolated launch accepts an explicit public CA bundle without forwarding ke
   }
 });
 
-test('plugin overlay carries only the brand-assets row and never copies B0 demo disables', () => {
+test('plugin overlay carries only the brand-assets and page-globals rows and never copies B0 demo disables', () => {
   const patch = buildPluginOverlay('/tmp/analytics-workbench');
   assert.equal(patch.length, 1);
-  assert.equal(patch[0].insert.length, 1);
-  assert.equal(patch[0].insert[0].id, 'analytics-dev-brand-assets');
+  assert.deepEqual(patch[0].insert.map(row => row.id),
+    ['analytics-dev-brand-assets', 'analytics-dev-page-globals']);
+  assert.equal(patch[0].insert[0].name.endsWith('/brand.mjs'), true);
+  assert.equal(patch[0].insert[1].name.endsWith('/page-globals.mjs'), true);
   // The business plugin installs as a profile bundle; a second
   // analytics-workbench-ui row here would shadow it with a stale copy.
   assert.equal(JSON.stringify(patch).includes(PLUGIN_UI_ID), false);
