@@ -20,6 +20,17 @@ export function mainViewSessionId(snapshot) {
   return undefined;
 }
 
+/** Visible conversation for free-HTML generate. Never ids[0] or the B0 fixture unless it is current. */
+export function resolvePageGenerateSession(list, compositionSessionId) {
+  const ids = Array.isArray(list?.ids) ? list.ids : [];
+  if (typeof compositionSessionId === 'string' && ids.includes(compositionSessionId)) {
+    return compositionSessionId;
+  }
+  const current = mainViewSessionId(list);
+  if (typeof current === 'string' && ids.includes(current)) return current;
+  return null;
+}
+
 export function retainMainView(sessions, id) {
   return sessions.retain(id, { source: 'mainView' });
 }

@@ -18,7 +18,7 @@ import {
 } from '../model.mjs';
 import { css, markCss } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
-import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, retainMainView } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, resolvePageGenerateSession, retainMainView } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
@@ -436,21 +436,23 @@ export function apply(ctx: Context): void {
     nativeGenerate: createNativePageGenerate({
       waiter: pagePackageWaiter,
       submitPrompt: async (prompt, extras) => {
-        const ids = ctx.sessions.list.getSnapshot().ids ?? [];
-        const sessionId = ids.find(id => id === B0_PRIMARY_SESSION_ID) ?? ids[0];
-        if (!sessionId || typeof ctx.remote?.session?.prompt !== 'function') {
+        const list = ctx.sessions.list.getSnapshot();
+        const sessionId = resolvePageGenerateSession(list, composition?.getSnapshot()?.sessionId);
+        const requestId = extras?.requestId;
+        if (!sessionId || typeof requestId !== 'string' || !PAGE_REQUEST_ID_PATTERN.test(requestId)
+          || typeof ctx.remote?.session?.prompt !== 'function') {
           const error = new Error('原生 Agent 未返回页面源码包');
           (error as Error & { code?: string }).code = 'NATIVE_GENERATE_UNAVAILABLE';
           throw error;
         }
         return ctx.remote.session.prompt({
           sessionId: sessionId as never,
-          requestId: `page-gen-${crypto.randomUUID()}` as never,
+          requestId: requestId as never,
           mode: 'queue',
           clientTimeZone: 'Asia/Shanghai',
           content: [{
             type: 'text',
-            text: `请生成自由 HTML 页面。先用文本给出说明，然后必须调用 ${PAGE_GENERATE_TOOL_NAME} 工具交付页面源码包（字段 html、css、js、resources、node_map），并把这个标识逐字填入 request_id：${extras?.requestId}。不要使用 BoardSpec，不要回退到示例页面。提示：${prompt}`,
+            text: `请生成自由 HTML 页面。先用文本给出说明，然后必须调用 ${PAGE_GENERATE_TOOL_NAME} 工具交付页面源码包（字段 html、css、js、resources、node_map），并把这个标识逐字填入 request_id：${requestId}。不要使用 BoardSpec，不要回退到示例页面。提示：${prompt}`,
           }],
         });
       },
