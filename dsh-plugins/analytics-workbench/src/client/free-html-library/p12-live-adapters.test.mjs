@@ -59,6 +59,26 @@ test('live adapters pull page list over isolated HTTP mock, never port 6677', as
   assert.doesNotMatch(calls[0].url, /:6677/);
 });
 
+test('live adapters pull one page snapshot over isolated HTTP', async () => {
+  const adapters = createLivePageAdapters({
+    documentsHttp: {
+      base: 'http://127.0.0.1:18091',
+      token: 'library-page-isolated-test-token-32chars',
+      fetchImpl: async (url) => {
+        assert.match(url, /\/pages\/page_http$/);
+        return {
+          ok: true,
+          json: async () => ({ page_id: 'page_http', title: '单页', version: 3, binding_state: 'BOUND_VERIFIED' }),
+        };
+      },
+    },
+  });
+  const pulled = await adapters.documents.pullPage('page_http');
+  assert.equal(pulled.ok, true);
+  assert.equal(adapters.assets.get('page_http').binding_state, 'BOUND_VERIFIED');
+  assert.equal(adapters.assets.get('page_http').version, 3);
+});
+
 test('live adapters refuse a 6677 documents base and skip fetch when HTTP is unset', async () => {
   const unset = createLivePageAdapters();
   const skipped = await unset.documents.pullList();

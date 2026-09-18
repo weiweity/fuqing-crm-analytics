@@ -203,33 +203,49 @@ export function createLivePageAdapters({ now = () => Date.now(), actorId = 'acto
     },
   });
 
+  async function documentsGet(path) {
+    if (!documentsHttp?.fetchImpl || !documentsHttp.base) {
+      return { ok: false, reason: 'http_not_configured' };
+    }
+    const url = `${String(documentsHttp.base).replace(/\/$/, '')}${PAGE_DOCUMENTS_PREFIX}${path}`;
+    if (url.includes(':6677')) {
+      const error = new Error('PAGE_DOCUMENTS_HTTP');
+      error.code = 'REFUSED_LIVE_PORT';
+      throw error;
+    }
+    const res = await documentsHttp.fetchImpl(url, {
+      headers: documentsHttp.token ? { Authorization: `Bearer ${documentsHttp.token}` } : {},
+    });
+    if (!res.ok) {
+      const error = new Error('PAGE_DOCUMENTS_HTTP');
+      error.code = 'PAGE_DOCUMENTS_HTTP';
+      error.status = res.status;
+      throw error;
+    }
+    return { ok: true, body: await res.json() };
+  }
+
   const documents = Object.freeze({
     prefix: PAGE_DOCUMENTS_PREFIX,
     async pullList() {
-      if (!documentsHttp?.fetchImpl || !documentsHttp.base) {
-        return { ok: false, reason: 'http_not_configured' };
-      }
-      const url = `${String(documentsHttp.base).replace(/\/$/, '')}${PAGE_DOCUMENTS_PREFIX}/pages`;
-      if (url.includes(':6677')) {
-        const error = new Error('PAGE_DOCUMENTS_HTTP');
-        error.code = 'REFUSED_LIVE_PORT';
-        throw error;
-      }
-      const res = await documentsHttp.fetchImpl(url, {
-        headers: documentsHttp.token ? { Authorization: `Bearer ${documentsHttp.token}` } : {},
-      });
-      if (!res.ok) {
-        const error = new Error('PAGE_DOCUMENTS_HTTP');
-        error.code = 'PAGE_DOCUMENTS_HTTP';
-        error.status = res.status;
-        throw error;
-      }
-      const body = await res.json();
-      const items = Array.isArray(body.items) ? body.items : [];
+      const got = await documentsGet('/pages');
+      if (!got.ok) return got;
+      const items = Array.isArray(got.body?.items) ? got.body.items : [];
       for (const item of items) {
         if (item?.page_id) pages.set(item.page_id, { ...(pages.get(item.page_id) ?? {}), ...item });
       }
       return { ok: true, count: items.length };
+    },
+    async pullPage(pageId) {
+      if (typeof pageId !== 'string' || !pageId) {
+        return { ok: false, reason: 'invalid_page_id' };
+      }
+      const got = await documentsGet(`/pages/${encodeURIComponent(pageId)}`);
+      if (!got.ok) return got;
+      const item = got.body;
+      if (!item?.page_id) return { ok: false, reason: 'empty_snapshot' };
+      pages.set(item.page_id, { ...(pages.get(item.page_id) ?? {}), ...item });
+      return { ok: true, page_id: item.page_id };
     },
   });
 

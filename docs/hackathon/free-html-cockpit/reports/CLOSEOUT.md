@@ -14,7 +14,7 @@
 | 路径 | `/Users/hutou/Desktop/ai-engineering/历史项目/fuqin-date/fuqing-crm-analytics-free-html-P12` |
 | 分支 | `codex/free-html/p12` |
 | base | `b45a27bb9022057ce37aa9123927e8b4663a2720`（== origin/main） |
-| 已提交 HEAD | `5b32e772` live 预览宿主 ← `3f353bf7` 类型 ← `c0ffc037` docs ← `4f076b37` 接缝 |
+| 已提交 HEAD | `d0cd6cb9` documents HTTP ← `5b32e772` live 预览；`pullPage` 随后续本地提交 |
 
 未提交接缝指纹（SHA-256 前 16 位，收尾当时）：
 
@@ -51,7 +51,7 @@
 
 详见 `reports/P12.md`、`reports/P13.md`。
 
-- P12：**PARTIAL**。HEAD `5b32e772`：Chrome T0 **1 passed**；live 预览 `mountPreviewHost`；`documents.pullList` 可打隔离 HTTP（拒绝 6677）。完整 `pipeline.mjs --check`、headed 旅程、生产未配 documentsHttp 仍 **NOT_RUN / 未接线**。
+- P12：**PARTIAL**。`documents.pullList` / `pullPage` 可打隔离 HTTP（拒绝 6677）。Chrome T0 **1 passed**；live 预览 `mountPreviewHost`。完整 `pipeline.mjs --check`、headed 旅程、生产 documentsHttp 仍 **NOT_RUN / 未接线**。C 无 HTTP 路由。
 - P13：**BLOCKED**。无本轮真实模型授权；三场景全部 NOT_RUN；未用预制 HTML 代替。
 
 ## 方案覆盖（摘要）
