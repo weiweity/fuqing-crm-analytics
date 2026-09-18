@@ -8,7 +8,7 @@
   "implementation_status": "IN_PROGRESS",
   "coordinator_status": "CLOSEOUT-PARTIAL",
   "coordinator_report": "reports/CLOSEOUT.md",
-  "coordinator_updated_at": "2026-09-18T09:30:00+00:00",
+  "coordinator_updated_at": "2026-09-18T16:30:00+00:00",
   "lanes": {
     "A": {
       "status": "DONE",
@@ -321,7 +321,7 @@
       "prompt": "prompts/P05-data-bridge.md",
       "status": "PARTIAL",
       "report": "reports/LANE-C.md",
-      "note": "Lane C synthetic fixture PARTIAL in isolated worktree. P03/P04 deps, generated types, real result store, iframe, and pipeline scan remain NOT_RUN. Not P12/P13."
+      "note": "Lane C synthetic fixture remains for module tests. P12 live data.read uses isolated page-result-access HTTP; routes mount only when explicitly configured. Real native result store and P13 remain NOT_RUN."
     },
     {
       "id": "P06",
@@ -581,7 +581,7 @@
       "prompt": "prompts/P12-integrated-verification.md",
       "status": "PARTIAL",
       "report": "reports/P12.md",
-      "note": "Candidate ac70cd21 plus uncommitted seams. Browser bundle uses isomorphic sha256. FHL live adapters default; UI tests keep mocks. Full pipeline --check and headed journey NOT_RUN. Closeout PARTIAL, not READY_FOR_SHIP."
+      "note": "Committed HEAD 348fad44. Uncommitted P12 seams: native Agent package generate, documents HTTP persist (D6/D9/history/rollback), result-access HTTP. Headed journey 1 passed on an isolated port. Full pipeline --check FAIL at dsh-dev git-lfs brand pointer. P12 slice 35 page pytest / 120 node / contract 86ad3cf4. PARTIAL, not READY_FOR_SHIP. Single PR path is p12 to main."
     },
     {
       "id": "P13",
