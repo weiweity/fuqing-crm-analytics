@@ -82,7 +82,16 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /collectWorkspaceProducts/);
   assert.match(indexSource, /listWorkspaceFiles/);
   assert.match(indexSource, /openWorkspaceFile/);
+  assert.match(indexSource, /readWorkspaceFile/);
+  assert.match(indexSource, /if \(!sessionId \|\| typeof list !== 'function'\) return \[\];/);
+  assert.match(indexSource, /unwrapRemoteValue/);
+  assert.match(indexSource, /limit: 4000/);
+  assert.match(indexSource, /page\.eof === true/);
+  assert.match(indexSource, /isSafeWorkspaceRelPath/);
+  assert.match(indexSource, /sidebarRight\?\.openResource/);
+  assert.match(indexSource, /fileResourceAddress\(product\.sessionId, product\.path\)/);
   assert.match(panelSource, /listWorkspaceFiles=\{props\.listWorkspaceFiles\}/);
+  assert.match(panelSource, /readWorkspaceFile=\{props\.readWorkspaceFile\}/);
   assert.match(indexSource, /name: 'conversation.composer.dock'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });

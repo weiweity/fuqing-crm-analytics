@@ -6,6 +6,7 @@ import { SAMPLE_PROMPTS } from './generate-context.mjs';
 import { bindingLabel, estimateIframeContentWidth, widthBand } from './host-visual.mjs';
 import { createFreeHtmlLibraryStore } from './store.mjs';
 import { mountPreviewHost } from '../../free-page/preview/preview-host.mjs';
+import { FREE_PAGE_REFERRER_POLICY, FREE_PAGE_SANDBOX } from '../../free-page/runtime/isolation-policy.mjs';
 
 type ThemeSource = { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
 type Store = ReturnType<typeof createFreeHtmlLibraryStore>;
@@ -183,7 +184,7 @@ function WorkspacePreview({ srcdoc, live, pageId, version, pkg, pointerEvents }:
     return <LivePreviewSlot pageId={pageId} version={version} pkg={pkg} pointerEvents={pointerEvents} />;
   }
   if (srcdoc) {
-    return <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" className="library-html-iframe" srcDoc={srcdoc} sandbox="allow-scripts" style={{ pointerEvents }} />;
+    return <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" className="library-html-iframe" srcDoc={srcdoc} sandbox={FREE_PAGE_SANDBOX} referrerPolicy={FREE_PAGE_REFERRER_POLICY} style={{ pointerEvents }} />;
   }
   return <p data-testid="fhl-preview-stopped">预览已停止。宿主入口仍可用。</p>;
 }

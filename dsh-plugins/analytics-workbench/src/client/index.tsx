@@ -48,7 +48,7 @@ import { createNativePageGenerate, createPagePackageWaiter, extractPagePackage }
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
-import { collectWorkspaceProducts, fileResourceAddress } from './cockpit-products.mjs';
+import { collectWorkspaceProducts, fileResourceAddress, isSafeWorkspaceRelPath, unwrapRemoteValue } from './cockpit-products.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 import { AccountMenu, LoginFooter, ThemeFooter, createAccountStore } from './account-chrome.tsx';
@@ -555,7 +555,7 @@ export function apply(ctx: Context): void {
       list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown>;
       read?: (sessionId: string, path: string, range?: { offset?: number; limit?: number }, signal?: AbortSignal) => Promise<unknown>;
     };
-  }).workspaceFiles;
+  } | undefined)?.workspaceFiles;
   const listWorkspaceFiles = async () => {
     const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot());
     const list = workspaceFilesApi?.list;
@@ -565,19 +565,32 @@ export function apply(ctx: Context): void {
   const openWorkspaceFile = (product: { sessionId?: string; path?: string }) => {
     const openResource = (ctx as unknown as { sidebarRight?: { openResource?(address: string): void } }).sidebarRight?.openResource;
     if (!product?.sessionId || !product?.path || typeof openResource !== 'function') return;
-    openResource(fileResourceAddress(product.sessionId, product.path));
+    if (!isSafeWorkspaceRelPath(product.path)) return;
+    const address = fileResourceAddress(product.sessionId, product.path);
+    if (!address) return;
+    openResource(address);
   };
   const readWorkspaceFile = async (product: { sessionId?: string; path?: string }) => {
     const read = workspaceFilesApi?.read;
     if (!product?.sessionId || !product?.path || typeof read !== 'function') return null;
+    if (!isSafeWorkspaceRelPath(product.path)) return null;
     try {
-      const result = await read.call(workspaceFilesApi, product.sessionId, product.path, { offset: 1, limit: 4000 });
-      const body = result && typeof result === 'object' && result !== null && 'text' in result
-        ? result as { text?: unknown }
-        : result && typeof result === 'object' && result !== null && 'value' in result
-          ? (result as { value?: { text?: unknown } }).value
+      const chunks: string[] = [];
+      let offset = 1;
+      for (let pageIndex = 0; pageIndex < 32; pageIndex += 1) {
+        const raw = await read.call(workspaceFilesApi, product.sessionId, product.path, { offset, limit: 4000 });
+        const first = unwrapRemoteValue(raw) as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown; value?: unknown } | null;
+        const nested = first && typeof first.text !== 'string' && first.value && typeof first.value === 'object'
+          ? first.value as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown }
           : null;
-      return typeof body?.text === 'string' && body.text ? body.text : null;
+        const page = first && typeof first.text === 'string' ? first : nested;
+        if (!page || typeof page.text !== 'string' || !page.text) break;
+        chunks.push(page.text);
+        if (page.eof === true || typeof page.lines !== 'number' || page.lines <= 0) break;
+        const start = typeof page.offset === 'number' ? page.offset : offset;
+        offset = start + page.lines;
+      }
+      return chunks.length ? chunks.join('\n') : null;
     } catch {
       return null;
     }

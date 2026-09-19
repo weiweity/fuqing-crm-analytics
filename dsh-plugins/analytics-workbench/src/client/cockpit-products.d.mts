@@ -13,6 +13,8 @@ export type CockpitProduct = {
 };
 
 export function classifyWorkspaceFile(path: string): CockpitFileKind | null;
+export function isSafeWorkspaceRelPath(path: string): boolean;
+export function unwrapRemoteValue(result: unknown): Record<string, unknown> | null;
 export function fileResourceAddress(sessionId: string, path: string): string;
 export function joinWorkspacePath(dir: string, name: string): string;
 export function workspaceEntriesToProducts(

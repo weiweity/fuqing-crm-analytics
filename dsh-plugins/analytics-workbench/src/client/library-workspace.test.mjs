@@ -942,10 +942,14 @@ test('editMode hover highlights shine-nodes on the HTML canvas and click does no
   const iframe = ui.doc.querySelector('[data-testid="library-html-preview"]');
   assert.ok(iframe, 'HTML canvas stays on the product');
   assert.equal(ui.doc.querySelector('[data-testid="html-hover-layer"]'), null);
-  assert.doesNotMatch(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /cockpit-hover-style/);
+  assert.match(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /cockpit-hover-style/);
+  assert.match(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /connect-src 'none'/);
+  assert.equal(iframe.getAttribute('sandbox') || iframe.sandbox?.toString(), 'allow-scripts');
+  assert.doesNotMatch(iframe.getAttribute('sandbox') || iframe.sandbox?.toString() || '', /allow-same-origin/);
+  assert.equal(iframe.getAttribute('referrerpolicy') || iframe.referrerPolicy, 'no-referrer');
   await ui.click('[data-testid="cockpit-edit-btn"]');
   assert.ok(ui.doc.querySelector('[data-testid="html-hover-layer"]'));
-  assert.doesNotMatch(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /cockpit-hover-style/);
+  assert.match(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /cockpit-hover-style/);
   assert.match(iframe.getAttribute('srcdoc') || iframe.srcdoc, /data-shine-node="title-1"/);
   const frameDoc = iframe.contentDocument;
   const node = frameDoc?.querySelector('[data-shine-node="title-1"]');
@@ -1099,6 +1103,12 @@ test('html fragments wrap into a document and pdf files stay out of the tree', a
     || ui.doc.querySelector('[data-testid="library-html-preview"]')?.srcdoc || '';
   assert.match(src, /<!doctype html>/i);
   assert.match(src, /片段/);
+  assert.match(src, /connect-src 'none'/);
+  assert.match(src, /cockpit-hover-style/);
+  const iframe = ui.doc.querySelector('[data-testid="library-html-preview"]');
+  assert.equal(iframe.getAttribute('sandbox') || iframe.sandbox?.toString(), 'allow-scripts');
+  assert.doesNotMatch(iframe.getAttribute('sandbox') || iframe.sandbox?.toString() || '', /allow-same-origin/);
+  assert.equal(iframe.getAttribute('referrerpolicy') || iframe.referrerPolicy, 'no-referrer');
 });
 
 test('board preview banner hides when the HTML group is selected', async t => {
@@ -1115,4 +1125,171 @@ test('board preview banner hides when the HTML group is selected', async t => {
   visible(ui.doc.querySelector('[data-testid="library-preview-banner"]'));
   await ui.click('[data-testid="library-panel-pages"]');
   assert.equal(ui.doc.querySelector('[data-testid="library-preview-banner"]'), null);
+});
+
+test('html editMode sidebar is a placeholder without board tools', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:week.html', kind: 'html', title: 'week.html', path: 'week.html', sessionId: 's1' },
+    ],
+    readWorkspaceFile: async () => '<html><body><p>week</p></body></html>',
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
+  await ui.click('[data-testid="cockpit-edit-btn"]');
+  const sidebar = ui.doc.querySelector('[data-testid="cockpit-sidebar"]');
+  assert.ok(sidebar);
+  assert.match(sidebar.textContent, /选中节点或板块后，在此编辑/);
+  assert.equal(ui.doc.querySelector('[data-testid="layout-start"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="library-rollback-previous"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="library-pages-view"]').hidden, false);
+});
+
+test('spreadsheet selection keeps the official-preview copy and does not paint html', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  let opened = null;
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:week.csv', kind: 'spreadsheet', title: 'week.csv', path: 'week.csv', sessionId: 's1' },
+    ],
+    openWorkspaceFile: product => { opened = product; },
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  await ui.click('[data-testid="library-panel-csv"]');
+  await ui.click('[data-kind="spreadsheet"] [data-testid="library-product-open"]');
+  assert.equal(opened?.path, 'week.csv');
+  assert.match(ui.doc.querySelector('[data-testid="library-pages-view"]').textContent, /表格和 PDF 在官方预览中打开/);
+  assert.equal(ui.doc.querySelector('[data-testid="library-html-preview"]'), null);
+});
+
+test('missing list, non-array list, and failed html reads stay on the empty canvas', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.match(ui.doc.querySelector('[data-testid="library-products-empty"]').textContent, /还没有产物/);
+
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => ({ not: 'array' }),
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.match(ui.doc.querySelector('[data-testid="library-products-empty"]').textContent, /还没有产物/);
+
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:week.html', kind: 'html', title: 'week.html', path: 'week.html', sessionId: 's1' },
+    ],
+    readWorkspaceFile: async () => { throw new Error('read failed'); },
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.equal(ui.doc.querySelector('[data-testid="library-html-preview"]'), null);
+  assert.match(ui.doc.querySelector('[data-testid="library-canvas-empty"]').textContent, /还没有页面/);
+});
+
+test('a saved board wins initialSurface pages and does not auto-open html', async t => {
+  const ui = await domFixture(t), snapshot = librarySnapshot();
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok(listOf(snapshot));
+    if (operation === 'get') return ok(snapshot);
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await act(async () => client.openBoard(snapshot.spec.board_id));
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:week.html', kind: 'html', title: 'week.html', path: 'week.html', sessionId: 's1' },
+    ],
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-view"]').hidden, false);
+  assert.equal(ui.doc.querySelector('[data-testid="library-pages-view"]').hidden, true);
+  assert.equal(ui.doc.querySelector('[data-kind="html"]')?.getAttribute('data-selected'), '0');
+  assert.match(ui.doc.querySelector('[data-testid="library-pathbar"]').textContent, /本会话 \/ 看板/);
+});
+
+test('Escape during a board preview keeps editMode', async t => {
+  const ui = await domFixture(t), snapshot = librarySnapshot(), pending = libraryPreview(snapshot);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok(listOf(snapshot));
+    if (operation === 'preview') return ok(pending);
+    return ok(snapshot);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openPreview(pending.preview_id));
+  await ui.click('[data-testid="cockpit-edit-btn"]');
+  assert.equal(ui.doc.querySelector('[data-testid="cockpit-edit-btn"]').textContent, '退出编辑');
+  await act(async () => { ui.doc.dispatchEvent(new ui.doc.defaultView.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  assert.equal(ui.doc.querySelector('[data-testid="cockpit-edit-btn"]').textContent, '退出编辑');
+  visible(ui.doc.querySelector('[data-testid="library-preview-banner"]'));
+});
+
+test('html group toggle collapses the file list without leaving the page', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:week.html', kind: 'html', title: 'week.html', path: 'week.html', sessionId: 's1' },
+    ],
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  const group = ui.doc.querySelector('[data-testid="library-panel-pages"]');
+  const list = group.parentElement.querySelector('ul');
+  assert.equal(group.getAttribute('aria-expanded'), 'true');
+  assert.equal(list.hidden, false);
+  await ui.click('[data-testid="library-panel-pages"]');
+  assert.equal(group.getAttribute('aria-expanded'), 'false');
+  assert.equal(list.hidden, true);
+  assert.equal(ui.doc.querySelector('[data-testid="library-pages-view"]').hidden, false);
 });

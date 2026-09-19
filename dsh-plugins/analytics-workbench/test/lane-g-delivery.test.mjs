@@ -26,6 +26,7 @@ test('host page generate targets the visible session and reuses the waiter reque
   assert.match(source, /resolvePageGenerateSession/);
   assert.doesNotMatch(source, /B0_PRIMARY_SESSION_ID\) \?\? ids\[0\]/);
   assert.match(source, /requestId: requestId as never/);
+  assert.match(source, /\?\.workspaceFiles/);
 });
 
 test('page tool delivers a valid free-page package', async () => {

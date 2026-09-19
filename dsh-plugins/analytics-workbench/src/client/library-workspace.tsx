@@ -6,8 +6,10 @@ import { ThemeProvider } from './competition-shell/index.ts';
 import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
 import { FreeHtmlLibraryApp } from './free-html-library/FreeHtmlLibraryApp.tsx';
 import { HtmlHoverLayer } from './HtmlHoverLayer.tsx';
+import { htmlWithHoverRuntime } from './html-hover-layer.mjs';
 import { mergeCockpitProducts, type CockpitProduct } from './cockpit-products.mjs';
 import { CockpitSidebar } from './CockpitSidebar.tsx';
+import { FREE_PAGE_CSP, FREE_PAGE_REFERRER_POLICY, FREE_PAGE_SANDBOX } from '../free-page/runtime/isolation-policy.mjs';
 import './cockpit-theme.css';
 
 const KIND_LABEL = { html: 'HTML', spreadsheet: 'CSV', pdf: 'PDF', board: '看板' };
@@ -110,12 +112,7 @@ const css = `
 .cockpit-sidebar-tools button { width:100%; min-height:36px; padding:8px 12px; text-align:left; }
 .sm-library-rail { grid-column:1; grid-row:2; min-width:0; min-height:0; display:flex; flex-direction:column; gap:4px; padding:12px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
 .sm-library-rail-title { margin:0 0 4px; font:500 16px/22px var(--sm-font-body); }
-.sm-library-search { display:flex; flex-direction:column; gap:4px; margin:0 4px 8px; color:var(--lib-muted); font-size:12px; }
-.sm-library-search input { width:100%; min-height:32px; border:0; border-radius:8px; padding:6px 10px; background:#ececee; color:var(--lib-ink); font:inherit; }
-.sm-library-nav { display:flex; flex-direction:column; gap:2px; margin:0 0 8px; }
-.sm-library-nav button { justify-content:flex-start; min-height:32px; border:0; background:transparent; color:var(--lib-ink); border-radius:8px; padding:6px 10px; font:400 13px/18px var(--sm-font-body); }
-.sm-library-nav button[aria-pressed="true"], .sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
-.sm-library-rail-foot { margin-top:auto; padding:8px 4px 0; }
+.sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
 .sm-library-canvas { grid-column:2; grid-row:2; min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--lib-canvas); }
 .sm-library-pathbar { display:flex; gap:8px; align-items:center; min-height:44px; padding:0 16px; border-bottom:1px solid var(--lib-line); font-size:13px; color:var(--lib-muted); }
 .sm-library-pathbar strong { color:var(--lib-ink); font-weight:500; }
@@ -126,15 +123,13 @@ const css = `
 .library-html-iframe { display:block; width:100%; height:100%; min-height:560px; border:0; background:#fff; }
 .sm-library-document [data-testid="fhl-root"] { min-height:100%; }
 .sm-library-document [data-testid="fhl-root"] > header, .sm-library-document [data-testid="fhl-status-spine"], .sm-library-document [data-testid="fhl-home"], .sm-library-document [data-testid="fhl-skip-iframe"], .sm-library-document .sm-fhl-workspace-heading, .sm-library-document [data-testid="fhl-workspace"] > .sm-fhl-toolbar { display:none; }
-.sm-library-ai-bar { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.08); }
-.sm-library-ai-bar button { min-height:28px; border:0; background:transparent; padding:4px 10px; border-radius:8px; font:500 13px/18px var(--sm-font-body); }
 .sm-library-empty { margin:48px auto; max-width:360px; color:var(--lib-muted); text-align:center; }
 .sm-library-toolbar,.sm-library-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .sm-library-workspace p { margin:0; }
 [data-testid="library-board-view"] p { color:var(--lib-muted); }
 .sm-library-workspace button:not(.ant-btn):not(.cockpit-back-btn):not(.cockpit-edit-btn):not(.cockpit-sidebar-close),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
 .sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
-.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--lib-ink); outline-offset:2px; }
+.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible { outline:2px solid var(--lib-ink); outline-offset:2px; }
 .sm-library-workspace .sm-library-confirm { background:var(--lib-ink); color:#fff; border-color:var(--lib-ink); }
 .sm-library-banner { margin:0; padding:8px 16px; border:0; border-bottom:1px solid var(--lib-line); display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff; }
 .sm-library-banner p { color:var(--lib-muted); font-size:12px; margin-right:auto; max-width:42em; }
@@ -172,11 +167,19 @@ function EditDiff({ state }: { state: LibraryState }) {
   </div>;
 }
 
+function neutralizeWrapperBreakout(html: string) {
+  return String(html)
+    .replace(/<\/(?=html|head|body)\b/gi, '&lt;/')
+    .replace(/<meta\b/gi, '&lt;meta');
+}
+
 function asSrcDoc(text: string) {
   const trimmed = text.trim();
   if (!trimmed) return '';
-  if (/<html[\s>]/i.test(trimmed) || /<!doctype/i.test(trimmed)) return trimmed;
-  return `<!doctype html><html><head><meta charset="utf-8"></head><body>${trimmed}</body></html>`;
+  const csp = `<meta http-equiv="Content-Security-Policy" content="${FREE_PAGE_CSP}">`;
+  return htmlWithHoverRuntime(
+    `<!doctype html><html><head><meta charset="utf-8">${csp}</head><body>${neutralizeWrapperBreakout(trimmed)}</body></html>`,
+  );
 }
 
 function ProductFolderTree({ items, selectedId, expanded, panel, onOpen, onToggle }: {
@@ -257,6 +260,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const [filePreview, setFilePreview] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ html: true, board: true, csv: false, sheet: false });
   const [editMode, setEditMode] = useState(false);
+  const previewSeq = useRef(0);
   const htmlIframeRef = useRef<HTMLIFrameElement>(null);
   const pageList = useSyncExternalStore(
     pageStore ? pageStore.subscribe : emptyPageSnap.subscribe,
@@ -328,8 +332,15 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
       return;
     }
     if (item.kind === 'html') {
+      const seq = ++previewSeq.current;
       if (readWorkspaceFile) {
-        void readWorkspaceFile(item).then(text => setFilePreview(typeof text === 'string' ? text : '')).catch(() => setFilePreview(''));
+        void readWorkspaceFile(item).then(text => {
+          if (seq !== previewSeq.current) return;
+          setFilePreview(typeof text === 'string' ? text : '');
+        }).catch(() => {
+          if (seq !== previewSeq.current) return;
+          setFilePreview('');
+        });
       }
       return;
     }
@@ -424,7 +435,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         {panel === 'pages' && selected?.kind === 'html' && !selected.page_id && filePreview
           ? <div className="library-html-container">
             <iframe ref={htmlIframeRef} title={selected.title} data-testid="library-html-preview" className="library-html-iframe"
-              srcDoc={asSrcDoc(filePreview)} sandbox="allow-scripts" />
+              srcDoc={asSrcDoc(filePreview)} sandbox={FREE_PAGE_SANDBOX} referrerPolicy={FREE_PAGE_REFERRER_POLICY} />
             {editMode ? <HtmlHoverLayer iframeRef={htmlIframeRef} editMode={editMode} /> : null}
           </div>
           : null}

@@ -3,14 +3,21 @@
 export const HOVER_STYLE_ID = 'cockpit-hover-style';
 export const HOVER_CLASS = 'shine-node-hover';
 export const FALLBACK_SELECTOR = 'h1,h2,h3,p,section,article,li,blockquote,figcaption';
-export const HOVER_STYLE_TEXT = [
-  `.${HOVER_CLASS} {`,
+const HOVER_RULE = [
   '  border: 2px solid #e8e8e8 !important;',
   '  background: rgba(247, 247, 247, 0.5) !important;',
   '  border-radius: 4px !important;',
   '  outline: none !important;',
   '  box-shadow: 0 0 0 1px rgba(23, 23, 23, 0.05) !important;',
   '  transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out !important;',
+].join('\n');
+
+export const HOVER_STYLE_TEXT = [
+  `[data-shine-node]:hover {`,
+  HOVER_RULE,
+  '}',
+  `.${HOVER_CLASS} {`,
+  HOVER_RULE,
   '}',
 ].join('\n');
 

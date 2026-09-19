@@ -5,6 +5,7 @@ import { createNavigationEpoch, isEpochDiscarded, isSupersededRead, SupersededRe
 import { cancelDraft, cancelTarget } from './leave/cancel-receipt.mjs';
 import { verifySaveReceipt, confirmIdempotencyKey } from './leave/save-receipt.mjs';
 import { hasUnsavedChanges, hasActiveEditContext, unsavedReasons, layoutChanged } from './leave/dirty-predicate.mjs';
+import { previousHistoryVersion } from '../board-spec/canvas-state.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -377,9 +378,9 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
         history = await readHistory(state.saved.spec.board_id);
         emit({ history });
       }
-      const previous = history.find(row => row.version < state.saved.spec.version);
-      if (!previous) { emit({ message: '没有可回退的更早版本。' }); return; }
-      await applyRollback(previous.version);
+      const previous = previousHistoryVersion({ spec: state.saved.spec, history });
+      if (previous == null) { emit({ message: '没有可回退的更早版本。' }); return; }
+      await applyRollback(previous);
     }),
   });
 }
