@@ -72,16 +72,16 @@ test('generate to preview stays free HTML; browse does not show selection chrome
   assert.equal(ui.doc.querySelector('[data-testid="fhl-iframe"]').style.pointerEvents, 'auto');
   assert.equal(ui.doc.querySelector('[data-testid="fhl-iframe"]').getAttribute('sandbox'), 'allow-scripts');
   await ui.click('[data-testid="fhl-toggle-mode"]');
-  assert.ok(ui.doc.querySelector('[data-testid="fhl-selection-chrome"]'));
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-selection-chrome"]'), null);
   assert.equal(ui.doc.querySelector('[data-testid="fhl-iframe"]').style.pointerEvents, 'none');
   await ui.click('[data-testid="fhl-hit-n_title"]');
-  assert.match(ui.doc.querySelector('[data-testid="fhl-scope-label"]').textContent, /静态元素|精确/);
-  await ui.click('[data-testid="fhl-select-element"]');
-  await ui.click('[data-testid="fhl-select-region"]');
-  await ui.click('[data-testid="fhl-select-page"]');
-  assert.match(ui.doc.querySelector('[data-testid="fhl-scope-label"]').textContent, /整页/);
-  await ui.click('[data-testid="fhl-reselect"]');
-  assert.match(ui.doc.querySelector('[data-testid="fhl-scope-label"]').textContent, /重新选择/);
+  assert.match(store.getSnapshot().selection?.label ?? '', /静态元素|精确|标题/);
+  await act(async () => { store.selectLocatable({ kind: 'static_element', node_id: 'n_title', mapping: 'valid' }); });
+  await act(async () => { store.selectLocatable({ kind: 'dynamic_region', node_id: 'r_chart', mapping: 'valid' }); });
+  await act(async () => { store.selectWholePage(); });
+  assert.match(store.getSnapshot().selection?.label ?? '', /整页/);
+  await act(async () => { store.selectLocatable({ kind: 'static_element', node_id: 'n_missing', mapping: 'stale' }); });
+  assert.equal(store.getSnapshot().selection?.stale, true);
   await ui.click('[data-testid="fhl-native-chat"]');
   assert.equal(native, 1);
 });
@@ -93,13 +93,13 @@ test('D6 confirm is in patch region; cancel and exit-edit do not save', async t 
   await act(async () => { store.setPrompt('页'); await store.generate(); });
   const version = store.getSnapshot().current.version;
   await ui.click('[data-testid="fhl-toggle-mode"]');
-  await ui.click('[data-testid="fhl-select-element"]');
+  await ui.click('[data-testid="fhl-hit-n_title"]');
   await ui.click('[data-testid="fhl-open-ai"]');
   await ui.click('[data-testid="fhl-patch-preview"]');
   assert.ok(ui.doc.querySelector('[data-testid="fhl-patch"]'));
   await ui.click('[data-testid="fhl-cancel-patch"]');
   assert.equal(store.getSnapshot().current.version, version);
-  await ui.click('[data-testid="fhl-select-element"]');
+  await ui.click('[data-testid="fhl-hit-n_title"]');
   await ui.click('[data-testid="fhl-open-ai"]');
   await ui.click('[data-testid="fhl-patch-preview"]');
   await ui.click('[data-testid="fhl-confirm-patch"]');
@@ -186,6 +186,34 @@ test('when the host owns conversation leave, dirty native-chat does not open a s
   await ui.click('[data-testid="fhl-native-chat"]');
   assert.equal(native, 1);
   assert.equal(ui.doc.querySelector('[data-testid="fhl-leave-prompt"]'), null);
+});
+
+test('editMode hover layer is visual-only and keeps iframe pointer events', async t => {
+  const ui = await domFixture(t);
+  const store = createFreeHtmlLibraryStore();
+  await ui.render(React.createElement(FreeHtmlLibraryApp, { store, themeSource: theme, goConversation() {} }));
+  await act(async () => { store.setPrompt('页'); await store.generate(); });
+  assert.ok(ui.doc.querySelector('[data-testid="fhl-iframe"]'));
+  assert.equal(ui.doc.querySelector('[data-testid="html-hover-layer"]'), null);
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-preview"]').getAttribute('data-edit-mode'), '0');
+  await ui.render(React.createElement(FreeHtmlLibraryApp, { store, themeSource: theme, goConversation() {}, editMode: true }));
+  assert.ok(ui.doc.querySelector('[data-testid="html-hover-layer"]'));
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-preview"]').getAttribute('data-edit-mode'), '1');
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-hit-layer"]'), null);
+  const iframe = ui.doc.querySelector('[data-testid="fhl-iframe"]');
+  assert.doesNotMatch(iframe.getAttribute('srcdoc') || iframe.srcdoc || '', /cockpit-hover-style|cockpit-hover-runtime/);
+  assert.equal(iframe.style.pointerEvents, 'auto');
+  assert.equal(store.getSnapshot().selection, null);
+  const frameDoc = iframe.contentDocument;
+  const node = frameDoc?.querySelector('[data-shine-node="n_title"]');
+  if (node) {
+    node.dispatchEvent(new ui.doc.defaultView.Event('mouseenter'));
+    assert.equal(node.classList.contains('shine-node-hover'), true);
+    node.dispatchEvent(new ui.doc.defaultView.Event('mouseleave'));
+    assert.equal(node.classList.contains('shine-node-hover'), false);
+    node.dispatchEvent(new ui.doc.defaultView.Event('click', { bubbles: true }));
+    assert.equal(store.getSnapshot().selection, null);
+  }
 });
 
 test('permission failure surfaces host recovery copy', async t => {

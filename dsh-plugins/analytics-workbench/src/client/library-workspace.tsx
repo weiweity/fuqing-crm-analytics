@@ -4,11 +4,11 @@ import { LibraryLayoutCanvas } from './library-layout-canvas.tsx';
 import type { LibraryBoardClient, LibraryState } from './library-board-client.mjs';
 import { ThemeProvider } from './competition-shell/index.ts';
 import type { CompetitionColorScheme } from './competition-shell/tokens.ts';
-import { ActionsWorkbench } from './competition-actions/index.ts';
-import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
-import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
 import { FreeHtmlLibraryApp } from './free-html-library/FreeHtmlLibraryApp.tsx';
+import { HtmlHoverLayer } from './HtmlHoverLayer.tsx';
 import { mergeCockpitProducts, type CockpitProduct } from './cockpit-products.mjs';
+import { CockpitSidebar } from './CockpitSidebar.tsx';
+import './cockpit-theme.css';
 
 const KIND_LABEL = { html: 'HTML', spreadsheet: 'CSV', pdf: 'PDF', board: '看板' };
 const TREE_GROUPS = [
@@ -49,13 +49,21 @@ function previewConfirmLabel(busy: boolean, uncertain: boolean, operation: strin
   return '确认保存这份看板';
 }
 
+function previewStatusLine(preview: NonNullable<LibraryState['preview']>, uncertain: boolean) {
+  const op = preview.operation === 'ROLLBACK' ? '回退预览'
+    : preview.operation === 'LAYOUT' ? '布局已通过检查'
+    : preview.operation === 'PATCH' ? '组件修改预览'
+    : '生成预览';
+  return uncertain ? `${op} · 保存结果待核对` : `${op} · 尚未保存`;
+}
+
 function groupTestId(key: string) {
   if (key === 'html') return 'library-panel-pages';
   if (key === 'board') return 'library-panel-board';
   return `library-panel-${key}`;
 }
 
-function groupPressed(key: string, panel: 'pages' | 'board' | 'actions') {
+function groupPressed(key: string, panel: 'pages' | 'board') {
   if (key === 'html') return panel === 'pages';
   if (key === 'board') return panel === 'board';
   return false;
@@ -63,7 +71,7 @@ function groupPressed(key: string, panel: 'pages' | 'board' | 'actions') {
 
 function pathbarCopy(
   selected: CockpitProduct | null,
-  panel: 'pages' | 'board' | 'actions',
+  panel: 'pages' | 'board',
   shown: { spec: { title: string } } | null,
 ) {
   if (selected) return { title: selected.title, trail: `本会话 / ${pathKindLabel(selected)}` };
@@ -85,9 +93,21 @@ const emptyPageSnap = {
 
 const css = `
 .sm-library-workspace { --lib-rail:#f7f7f7; --lib-canvas:#fff; --lib-ink:#171717; --lib-muted:#737373; --lib-line:#e8e8e8; --lib-active:#fff; min-width:0; min-height:100%; height:100%; display:grid; grid-template-columns:300px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
-.sm-library-pagehead { grid-column:1 / -1; display:flex; align-items:center; gap:12px; padding:16px 24px 12px; background:#fff; }
-.sm-library-pagehead h1 { margin:0; font:500 18px/25px var(--sm-font-body); }
-.sm-library-back { min-height:24px; border:1px solid #1677ff; background:#fff; color:#1677ff; border-radius:4px; padding:0 7px; font:400 14px/22px var(--sm-font-body); cursor:pointer; }
+.sm-library-workspace > header.sm-library-pagehead { grid-column:1 / -1; grid-row:1; display:flex; align-items:center; justify-content:space-between; gap:12px; height:56px; padding:0 24px; background:#fff; border-bottom:1px solid var(--lib-line); }
+.sm-library-workspace > header.sm-library-pagehead h1 { margin:0; font:500 18px/25px var(--sm-font-body); color:var(--lib-ink); }
+.sm-library-workspace button.cockpit-back-btn, .sm-library-workspace button.cockpit-edit-btn { display:inline-flex; align-items:center; gap:8px; min-height:32px; padding:6px 12px; background:#fff; color:var(--lib-ink); border:1px solid var(--lib-line); border-radius:6px; font:400 14px/20px var(--sm-font-body); cursor:pointer; }
+.sm-library-workspace button.cockpit-back-btn:hover, .sm-library-workspace button.cockpit-edit-btn:hover { background:var(--lib-line); }
+.sm-library-workspace button.cockpit-edit-btn.active { color:#ff6b35; border-color:#ff6b35; }
+.library-cockpit-main { display:flex; flex:1; min-width:0; min-height:0; align-items:stretch; }
+.library-content-area { flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.cockpit-sidebar { box-sizing:border-box; flex:0 0 320px; width:320px; max-width:320px; align-self:stretch; min-height:0; background:var(--lib-rail); border-left:1px solid var(--lib-line); display:flex; flex-direction:column; z-index:10; overflow:hidden; }
+.cockpit-sidebar-header { display:flex; justify-content:flex-end; align-items:center; height:48px; padding:0 16px; border-bottom:1px solid var(--lib-line); }
+.sm-library-workspace button.cockpit-sidebar-close { width:32px; height:32px; min-height:0; padding:0; display:flex; align-items:center; justify-content:center; background:transparent; border:none; border-radius:4px; color:var(--lib-ink); font-size:20px; line-height:1; cursor:pointer; }
+.cockpit-sidebar-body { flex:1; padding:16px; overflow-y:auto; }
+.cockpit-sidebar-footer { padding:16px; border-top:1px solid var(--lib-line); }
+.cockpit-sidebar-placeholder { margin:0; color:var(--lib-muted); font-size:12px; text-align:center; line-height:1.5; }
+.cockpit-sidebar-tools { display:flex; flex-direction:column; gap:8px; }
+.cockpit-sidebar-tools button { width:100%; min-height:36px; padding:8px 12px; text-align:left; }
 .sm-library-rail { grid-column:1; grid-row:2; min-width:0; min-height:0; display:flex; flex-direction:column; gap:4px; padding:12px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
 .sm-library-rail-title { margin:0 0 4px; font:500 16px/22px var(--sm-font-body); }
 .sm-library-search { display:flex; flex-direction:column; gap:4px; margin:0 4px 8px; color:var(--lib-muted); font-size:12px; }
@@ -102,6 +122,8 @@ const css = `
 .sm-library-pathbar span { margin-right:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .sm-library-document { position:relative; flex:1; min-height:0; overflow:auto; }
 .sm-library-document iframe, .sm-library-document [data-testid="fhl-live-preview"] { display:block; width:100%; height:100%; min-height:560px; border:0; background:#fff; }
+.library-html-container { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+.library-html-iframe { display:block; width:100%; height:100%; min-height:560px; border:0; background:#fff; }
 .sm-library-document [data-testid="fhl-root"] { min-height:100%; }
 .sm-library-document [data-testid="fhl-root"] > header, .sm-library-document [data-testid="fhl-status-spine"], .sm-library-document [data-testid="fhl-home"], .sm-library-document [data-testid="fhl-skip-iframe"], .sm-library-document .sm-fhl-workspace-heading, .sm-library-document [data-testid="fhl-workspace"] > .sm-fhl-toolbar { display:none; }
 .sm-library-ai-bar { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.08); }
@@ -110,13 +132,12 @@ const css = `
 .sm-library-toolbar,.sm-library-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .sm-library-workspace p { margin:0; }
 [data-testid="library-board-view"] p { color:var(--lib-muted); }
-.sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
+.sm-library-workspace button:not(.ant-btn):not(.cockpit-back-btn):not(.cockpit-edit-btn):not(.cockpit-sidebar-close),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
 .sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
 .sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--lib-ink); outline-offset:2px; }
-.sm-library-workspace button.sm-library-back { border-color:#1677ff; color:#1677ff; background:#fff; min-height:24px; padding:0 7px; border-radius:4px; font:400 14px/22px var(--sm-font-body); }
 .sm-library-workspace .sm-library-confirm { background:var(--lib-ink); color:#fff; border-color:var(--lib-ink); }
-.sm-library-banner { margin:0; padding:12px 24px; border:0; border-bottom:1px solid var(--lib-line); display:flex; flex-wrap:wrap; gap:12px; align-items:center; background:#fff; }
-.sm-library-banner p { color:var(--lib-muted); font-size:12px; margin-right:auto; }
+.sm-library-banner { margin:0; padding:8px 16px; border:0; border-bottom:1px solid var(--lib-line); display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff; }
+.sm-library-banner p { color:var(--lib-muted); font-size:12px; margin-right:auto; max-width:42em; }
 .sm-library-products { display:flex; flex-direction:column; gap:4px; min-height:0; flex:1; }
 .sm-library-products-hint { color:var(--lib-muted); font-size:12px; padding:0 8px 8px; }
 .sm-library-rail-section { display:flex; align-items:center; justify-content:space-between; padding:8px 8px 4px; color:var(--lib-muted); font-size:12px; }
@@ -129,12 +150,6 @@ const css = `
 .sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
 .sm-library-products li button span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .sm-library-products li button [data-testid="library-product-kind"] { display:none; }
-.sm-library-edit { position:relative; margin-left:auto; }
-.sm-library-edit > button { min-height:32px; }
-.sm-library-edit-menu { position:absolute; right:0; top:calc(100% + 6px); z-index:4; width:220px; padding:6px; background:#fff; border:1px solid var(--lib-line); border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.12); }
-.sm-library-edit-menu button { width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:2px; border:0; background:transparent; border-radius:8px; padding:8px 10px; text-align:left; }
-.sm-library-edit-menu button:hover { background:#f4f4f4; }
-.sm-library-edit-menu small { color:var(--lib-muted); font-size:11px; font-weight:400; }
 .sm-library-diff { overflow:auto; max-height:260px; }
 .sm-library-diff table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
 .sm-library-diff th,.sm-library-diff td { text-align:left; vertical-align:top; border-bottom:1px solid var(--lib-line); padding:8px; overflow-wrap:anywhere; white-space:pre-wrap; }
@@ -164,13 +179,11 @@ function asSrcDoc(text: string) {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body>${trimmed}</body></html>`;
 }
 
-function ProductFolderTree({ items, busy, selectedId, expanded, panel, onRefresh, onOpen, onToggle }: {
+function ProductFolderTree({ items, selectedId, expanded, panel, onOpen, onToggle }: {
   items: CockpitProduct[];
-  busy: boolean;
   selectedId: string | null;
   expanded: Record<string, boolean>;
-  panel: 'pages' | 'board' | 'actions';
-  onRefresh(): void;
+  panel: 'pages' | 'board';
   onOpen(item: CockpitProduct): void;
   onToggle(key: string): void;
 }) {
@@ -181,7 +194,6 @@ function ProductFolderTree({ items, busy, selectedId, expanded, panel, onRefresh
       <p className="sm-library-products-hint">本会话 · HTML / 看板 / CSV</p>
       <div className="sm-library-rail-section">
         <span>产物</span>
-        <button type="button" data-testid="library-products-refresh" disabled={busy} onClick={onRefresh}>刷新</button>
       </div>
       {visible.length === 0
         ? <p data-testid="library-products-empty">还没有产物。</p>
@@ -238,15 +250,14 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const recovery = useRef<HTMLButtonElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const wasBusy = useRef(state.busy);
-  const [panel, setPanel] = useState<'pages' | 'board' | 'actions'>(() => initialLibraryPanel(library, initialSurface));
-  const [visitedActions, setVisitedActions] = useState(false);
+  const [panel, setPanel] = useState<'pages' | 'board'>(() => initialLibraryPanel(library, initialSurface));
   const [workspaceFiles, setWorkspaceFiles] = useState<Array<Record<string, unknown>>>([]);
-  const [editingHtml, setEditingHtml] = useState(false);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ html: true, board: true, csv: false, sheet: false });
-  const [editMenuOpen, setEditMenuOpen] = useState(false);
-  const editMenu = useRef<HTMLDivElement>(null);
+  const [editMode, setEditMode] = useState(false);
+  const htmlIframeRef = useRef<HTMLIFrameElement>(null);
   const pageList = useSyncExternalStore(
     pageStore ? pageStore.subscribe : emptyPageSnap.subscribe,
     () => (pageStore ? pageStore.getSnapshot().pages : EMPTY_PAGES),
@@ -258,19 +269,21 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   };
   useEffect(() => { refreshProducts(); }, [listWorkspaceFiles]);
   useEffect(() => {
-    if (!editMenuOpen) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setEditMenuOpen(false); };
-    const onPointer = (event: PointerEvent) => {
-      if (editMenu.current && !editMenu.current.contains(event.target as Node)) setEditMenuOpen(false);
+    if (!editMode) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (state.layoutDraft || state.preview) return;
+      setEditMode(false);
     };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointer);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointer);
-    };
-  }, [editMenuOpen]);
-  useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id, Boolean(state.layoutDraft)]);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [editMode, state.layoutDraft, state.preview]);
+  useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id]);
+  useEffect(() => {
+    if (!state.layoutDraft) return;
+    const canvas = heading.current?.ownerDocument?.querySelector('.sm-layout-scroll');
+    if (canvas instanceof HTMLElement) canvas.focus();
+  }, [Boolean(state.layoutDraft)]);
   useEffect(() => {
     if (state.busy || !state.confirmationUncertain || !state.preview) return;
     // Disabling an in-flight action can leave browser focus on the body. Hand
@@ -295,25 +308,21 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     return () => window.removeEventListener('beforeunload', warn);
   }, [library, state.layoutDraft, state.preview, state.confirmationUncertain, state.editContext]);
   const shown = state.preview?.snapshot ?? state.layoutDraft ?? state.saved;
-  const actionsEnabled = crowdActionPackEnabled();
   const boardChrome = panel !== 'pages';
   const products = mergeCockpitProducts({ files: workspaceFiles, boards: state.boards, pages: pageList });
   const selected = products.find(item => item.id === selectedId) ?? null;
   const openProduct = (item: CockpitProduct) => {
     setSelectedId(item.id);
-    setEditingHtml(false);
     setFilePreview('');
     if (item.kind === 'board' && item.board_id) {
       void library.openBoard(item.board_id);
       setPanel('board');
       setExpanded(current => ({ ...current, board: true }));
-      setEditMenuOpen(false);
       return;
     }
     setPanel('pages');
     const bucket = treeBucket(item);
     setExpanded(current => ({ ...current, html: bucket === 'html' ? true : current.html, csv: bucket === 'csv' ? true : current.csv, sheet: bucket === 'sheet' ? true : current.sheet }));
-    setEditMenuOpen(false);
     if (item.page_id && pageStore) {
       void pageStore.openPage(item.page_id);
       return;
@@ -325,15 +334,6 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
       return;
     }
     openWorkspaceFile?.(item);
-  };
-  const editHtml = (item: CockpitProduct | null = selected) => {
-    if (!item || item.kind !== 'html') return;
-    if (item.page_id && pageStore) {
-      void pageStore.openPage(item.page_id);
-      pageStore.enterEdit();
-    }
-    setEditingHtml(true);
-    setPanel('pages');
   };
   useEffect(() => {
     if (selectedId) return;
@@ -349,36 +349,42 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     <style>{css}</style>
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
-      <header className="sm-library-pagehead" data-testid="sm-library-pagehead">
-        <button type="button" className="sm-library-back" data-testid="sm-cockpit-back" onClick={goConversation}>返回对话</button>
-        <h1 tabIndex={-1} ref={heading}>驾驶舱</h1>
+      <header className="sm-library-pagehead cockpit-header" data-testid="sm-library-pagehead">
+        <button type="button" className="cockpit-back-btn" data-testid="sm-cockpit-back" onClick={goConversation}>
+          <span aria-hidden="true">←</span>
+          返回对话
+        </button>
+        <h1 tabIndex={-1} ref={heading} className="cockpit-header-title">驾驶舱</h1>
+        <button
+          type="button"
+          className={editMode ? 'cockpit-edit-btn active' : 'cockpit-edit-btn'}
+          data-testid="cockpit-edit-btn"
+          aria-pressed={editMode}
+          onClick={() => setEditMode(open => !open)}
+        >
+          {editMode ? '退出编辑' : '编辑'}
+        </button>
       </header>
       <aside className="sm-library-rail">
         <p className="sm-library-rail-title">产物文件夹</p>
-        <ProductFolderTree items={products} busy={state.busy} selectedId={selectedId} expanded={expanded} panel={panel}
-          onRefresh={() => { refreshProducts(); void library.refresh(); }} onOpen={openProduct} onToggle={key => {
+        <ProductFolderTree items={products} selectedId={selectedId} expanded={expanded} panel={panel}
+          onOpen={openProduct} onToggle={key => {
             setExpanded(current => ({ ...current, [key]: !current[key] }));
             if (key === 'board') setPanel('board');
-            if (key === 'html') { setEditingHtml(false); setPanel('pages'); }
+            if (key === 'html') setPanel('pages');
           }} />
-        {actionsEnabled ? <div className="sm-library-rail-foot">
-          <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
-            onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button>
-        </div> : null}
       </aside>
       <div className="sm-library-canvas">
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
       {boardChrome && state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
-        <p>{state.confirmationUncertain ? '保存结果待核对。切换前可尝试取消尚未应用的草稿；已保存内容需通过回退处理。' : '切换前，是否取消当前未确认草稿？'}</p>
+        <p>{state.confirmationUncertain ? '保存结果待核对。可留下检查，或取消未应用草稿。' : '有未确认草稿。留下检查，或取消后切换。'}</p>
         <div className="sm-library-actions">
-          <button type="button" disabled={state.busy} onClick={() => library.keepDraft()}>继续检查当前草稿</button>
-          <button type="button" disabled={state.busy} onClick={() => { void library.discardAndNavigate(); }}>{state.confirmationUncertain ? '尝试取消草稿并切换' : '取消草稿并切换'}</button>
+          <button type="button" disabled={state.busy} onClick={() => library.keepDraft()}>留下</button>
+          <button type="button" disabled={state.busy} onClick={() => { void library.discardAndNavigate(); }}>{state.confirmationUncertain ? '尝试取消并切换' : '取消并切换'}</button>
         </div>
       </div> : null}
       {boardChrome && state.preview ? <div className="sm-library-banner" data-testid="library-preview-banner" ref={previewBanner}>
-        <p>{{ ROLLBACK: '回退预览', LAYOUT: '布局已通过检查', PATCH: '组件修改预览', GENERATE: '生成预览' }[state.preview.operation]} · v{state.preview.snapshot.spec.version} · {state.confirmationUncertain
-          ? '保存结果待核对。可能已写入服务端；请核对状态，或重试同一次保存。取消草稿不会撤销已保存内容。'
-          : '尚未保存。请检查下方内容和出处。'}</p>
+        <p>{previewStatusLine(state.preview, state.confirmationUncertain)}</p>
         <EditDiff state={state} />
         <div className="sm-library-actions">
           {state.confirmationUncertain ? <button type="button" disabled={state.busy} data-testid="library-inspect-confirmation" ref={recovery}
@@ -386,14 +392,6 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
           <button type="button" disabled={state.busy} data-testid="library-cancel" onClick={() => { void library.cancel(); }}>{previewCancelLabel(state.preview, state.confirmationUncertain)}</button>
           <button type="button" className="sm-library-confirm" disabled={state.busy} data-testid="library-confirm"
             onClick={() => { void library.confirm(); }}>{previewConfirmLabel(state.busy, state.confirmationUncertain, state.preview.operation)}</button>
-        </div>
-      </div> : null}
-      {boardChrome && state.editContext && !state.preview ? <div className="sm-library-banner" data-testid="library-edit-banner">
-        <p>已选中「{state.editContext.block.title}」· 基于 v{state.editContext.base_version}。请在原生对话描述修改要求；当前内容尚未改变。</p>
-        <div className="sm-library-actions">
-          <button type="button" disabled={state.busy} onClick={() => { void library.resumeEdit(); }}>转到原生对话描述修改</button>
-          <button type="button" disabled={state.busy} onClick={() => { void library.inspectEdit(); }}>检查 AI 修改预览</button>
-          <button type="button" disabled={state.busy} onClick={() => { void library.cancel(); }}>取消组件编辑</button>
         </div>
       </div> : null}
       {boardChrome && state.layoutDraft ? <div className="sm-library-banner" aria-label="布局编辑" data-testid="library-layout-banner">
@@ -405,60 +403,48 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
       </div> : null}
       <div className="sm-library-pathbar" data-testid="library-pathbar">
         <span>{path.title ? <><strong>{path.title}</strong> {path.trail}</> : path.trail}</span>
-        {panel === 'board' && state.saved && !state.preview && !state.layoutDraft
-          ? <div className="sm-library-edit" ref={editMenu}>
-            <button type="button" aria-expanded={editMenuOpen} aria-haspopup="menu" onClick={() => setEditMenuOpen(open => !open)}>
-              编辑 ▼
-            </button>
-            <div className="sm-library-edit-menu" role="menu" hidden={!editMenuOpen} data-testid="library-edit-menu">
-              <button type="button" role="menuitem" onClick={() => { setEditMenuOpen(false); goConversation(); }}>
-                AI 编辑<small>点板块后走 PATCH_BLOCK</small>
-              </button>
-              <button type="button" role="menuitem" data-testid="layout-start"
-                onClick={() => { setEditMenuOpen(false); library.beginLayout(); }}>
-                调整布局<small>网格拖拽，检查后再确认</small>
-              </button>
-              <button type="button" role="menuitem" data-testid="library-rollback-previous" disabled={state.busy}
-                onClick={() => { setEditMenuOpen(false); void library.rollbackPrevious(); }}>回退这一版</button>
-            </div>
-          </div>
-          : null}
-        {editingHtml
-          ? <button type="button" data-testid="library-products-back" onClick={() => { setEditingHtml(false); setSelectedId(null); setFilePreview(''); setPanel('pages'); setEditMenuOpen(false); }}>关闭</button>
-          : null}
       </div>
+      <div className="library-cockpit-main">
+      <div
+        className="library-content-area"
+        data-testid="library-content-area"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          transition: 'width 300ms ease-out',
+          width: editMode ? 'calc(100% - 320px)' : '100%',
+        }}
+      >
       <section hidden={panel !== 'pages'} data-testid="library-pages-view" className="sm-library-document">
-        {panel === 'pages' && selected?.kind === 'html' && !editingHtml
-          ? <div className="sm-library-ai-bar" data-testid="library-ai-bar" role="toolbar" aria-label="AI 编辑">
-            <button type="button" data-testid="library-product-edit" onClick={() => editHtml(selected)}>AI 编辑</button>
-          </div>
-          : null}
-        {panel === 'pages' && selected?.kind === 'html' && (editingHtml || selected.page_id)
+        {panel === 'pages' && selected?.kind === 'html' && selected.page_id
           ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
-            store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} />
+            store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} editMode={editMode} />
           : null}
-        {panel === 'pages' && selected?.kind === 'html' && !editingHtml && !selected.page_id && filePreview
-          ? <iframe title={selected.title} data-testid="library-html-preview" srcDoc={asSrcDoc(filePreview)} sandbox="allow-scripts" />
+        {panel === 'pages' && selected?.kind === 'html' && !selected.page_id && filePreview
+          ? <div className="library-html-container">
+            <iframe ref={htmlIframeRef} title={selected.title} data-testid="library-html-preview" className="library-html-iframe"
+              srcDoc={asSrcDoc(filePreview)} sandbox="allow-scripts" />
+            {editMode ? <HtmlHoverLayer iframeRef={htmlIframeRef} editMode={editMode} /> : null}
+          </div>
           : null}
         {panel === 'pages' && selected && selected.kind !== 'html'
           ? <p className="sm-library-empty">表格和 PDF 在官方预览中打开，不改上游壳。</p>
           : null}
-        {panel === 'pages' && !(selected?.kind === 'html' && (editingHtml || selected.page_id || filePreview)) && (!selected || selected.kind === 'html')
+        {panel === 'pages' && !(selected?.kind === 'html' && (selected.page_id || filePreview)) && (!selected || selected.kind === 'html')
           ? <p className="sm-library-empty" data-testid="library-canvas-empty">还没有页面。</p>
           : null}
       </section>
       <section hidden={panel !== 'board'} data-testid="library-board-view" className="sm-library-document">
       {shown ? <LibraryLayoutCanvas key={shown.spec.board_id} snapshot={shown} editing={Boolean(state.layoutDraft)} disabled={state.busy}
-        updateLayout={library.updateLayout} selectedBlockId={state.editContext?.block_id}
-        selectBlock={!state.preview && !state.layoutDraft ? blockId => { void library.beginEdit(blockId); } : undefined} />
+        updateLayout={library.updateLayout} />
         : <p className="sm-library-empty" data-testid="library-board-empty">还没有看板。</p>}
       </section>
-      {actionsEnabled && (panel === 'actions' || visitedActions) ? <section hidden={panel !== 'actions'} data-panel="competition-actions"
-        data-testid="analytics-competition-actions-view">
-        <OverlayErrorBoundary resetKey="library-actions">
-          <ActionsWorkbench modelAvailable={false} />
-        </OverlayErrorBoundary>
-      </section> : null}
+      </div>
+      <CockpitSidebar visible={editMode} onClose={() => setEditMode(false)} busy={state.busy}
+        showBoardTools={panel === 'board' && Boolean(state.saved) && !state.preview && !state.layoutDraft}
+        onLayout={() => library.beginLayout()} onRollback={() => { void library.rollbackPrevious(); }} />
+      </div>
       </div>
     </main>
   </ThemeProvider>;

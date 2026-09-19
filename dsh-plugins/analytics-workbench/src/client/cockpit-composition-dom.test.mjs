@@ -15,7 +15,8 @@ const { JSDOM } = createRequire(join(upstream, 'node_modules/jsdom/package.json'
 const outfile = join(plugin, 'lib/test-cockpit-composition.mjs');
 await createRequire(web.resolve('vite/package.json'))('esbuild').build({ absWorkingDir: plugin,
   entryPoints: ['src/client/cockpit-composition.tsx'], outfile, bundle: true, format: 'esm', platform: 'browser',
-  target: 'es2022', jsx: 'automatic', external: ['react', 'react/jsx-runtime', 'react-dom'], logLevel: 'silent' });
+  target: 'es2022', jsx: 'automatic', loader: { '.css': 'empty' },
+  external: ['react', 'react/jsx-runtime', 'react-dom'], logLevel: 'silent' });
 const { CockpitCompositionOverlay } = await import(pathToFileURL(outfile).href);
 
 test('compiled overlay measures official slot wrappers, preserves draft/identity, supports keyboard width and restores ownership/focus', async () => {

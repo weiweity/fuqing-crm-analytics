@@ -99,6 +99,7 @@ async function loadPanel() {
     platform: 'browser',
     target: 'es2022',
     jsx: 'automatic',
+    loader: { '.css': 'empty' },
     external: ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client'],
     logLevel: 'silent',
   });
