@@ -1,6 +1,6 @@
 # 伸美 AI 增长董事会
 
-当前代码交付与运行边界见 [STATUS](./STATUS.md)，下一步见 [M1 核心交付](./docs/hackathon/TODOS.md#m1-核心交付)。origin/main **`7a465316`**（[#207](https://github.com/weiweity/fuqing-crm-analytics/pull/207)）。VERSION **0.9.0.8**，DSH **0.1.6-alpha.2**（`ddefc45f`）。loopback，不上公网。产品仍 PARTIAL；Git 合入不等于正式 release、6677 reload 或本人 UAT 通过。侧栏底是登录/主题；比赛看板在登录菜单里新标签打开 `15173`，看板仍独立。驾驶舱「人群行动」已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)。说明板仍 v15、原板仍 v9。
+当前代码交付与运行边界见 [STATUS](./STATUS.md)，下一步见 [M1 核心交付](./docs/hackathon/TODOS.md#m1-核心交付)。origin/main **`22a0028f`**（[#210](https://github.com/weiweity/fuqing-crm-analytics/pull/210)）。VERSION **0.9.0.9**（本分支候选），DSH **0.1.6-alpha.2**（`ddefc45f`）。loopback，不上公网。产品仍 PARTIAL；Git 合入不等于正式 release、6677 reload 或本人 UAT 通过。侧栏底是登录/主题；比赛看板在登录菜单里新标签打开 `15173`，看板仍独立。驾驶舱「人群行动」已合 [#166](https://github.com/weiweity/fuqing-crm-analytics/pull/166)。说明板仍 v15、原板仍 v9。
 
 下方9月5–10日的决策、端口和候选追加保留为历史记录，不作为当前服务或Git HEAD。
 
@@ -33,7 +33,7 @@
 
 ## 快速开始
 
-新 DSH 开发入口见 [dsh-dev 使用说明](./scripts/dsh-dev/README.md)（日常改插件用 remainder `--plugin-path` / `reload`，不要 `--fresh`，不要官方 `reload` 编原仓插件）。侧栏驾驶舱按 BoardSpec 生成，见 [插件 README](./dsh-plugins/analytics-workbench/README.md)。现役插槽见 [DSH-PLUGIN-UI-COMPAT](./docs/hackathon/DSH-PLUGIN-UI-COMPAT.md)。登录菜单里的「比赛看板」只在新标签页打开旧 CRM 前端（默认 `http://127.0.0.1:15173`），看板仍独立，DSH 不内嵌也不代理。比赛 HTTP 见 [competition-http](./docs/operating/competition-http.md)，验证按 [当前验证入口](./docs/operating/verification.md) 选择范围。以下是**既有演示/私有分析的历史入口**，不作为新工作台的默认启动或验证命令；不要继承私人数据库配置。
+新 DSH 开发入口见 [dsh-dev 使用说明](./scripts/dsh-dev/README.md)（日常改插件用 remainder `--plugin-path` / `reload`，不要 `--fresh`，不要官方 `reload` 编原仓插件）。侧栏驾驶舱是独立二级页产物柜（本会话 HTML／看板／CSV；页头「编辑」留在本页），BoardSpec 生成见 [插件 README](./dsh-plugins/analytics-workbench/README.md)。现役插槽见 [DSH-PLUGIN-UI-COMPAT](./docs/hackathon/DSH-PLUGIN-UI-COMPAT.md)。登录菜单里的「比赛看板」只在新标签页打开旧 CRM 前端（默认 `http://127.0.0.1:15173`），看板仍独立，DSH 不内嵌也不代理。比赛 HTTP 见 [competition-http](./docs/operating/competition-http.md)，验证按 [当前验证入口](./docs/operating/verification.md) 选择范围。以下是**既有演示/私有分析的历史入口**，不作为新工作台的默认启动或验证命令；不要继承私人数据库配置。
 
 ### 1. 启动本地演示
 
