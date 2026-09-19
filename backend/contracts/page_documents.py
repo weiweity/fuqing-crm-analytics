@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 SCHEMA_VERSION = "free-page/v1"
 BRIDGE_PROTOCOL = "free-page-bridge/v1"
@@ -129,11 +129,36 @@ class PageBindingManifest(PageModel):
         return self
 
 
+OriginPath = Annotated[str, Field(min_length=1, max_length=512)]
+
+
+def workspace_origin_path(value: str | None) -> str | None:
+    if value is None:
+        return None
+    path = value.replace("\\", "/").removeprefix("./")
+    parts = path.split("/")
+    if (
+        not path
+        or path.startswith("/")
+        or "://" in path
+        or "\0" in path
+        or any(part in {"", ".", ".."} for part in parts)
+    ):
+        raise ValueError("origin_path must be a workspace-relative file path")
+    return path
+
+
 class PageDraft(PageModel):
     title: Title
     session_id: Opaque
     package: PagePackage
     binding_manifest: PageBindingManifest = Field(default_factory=PageBindingManifest)
+    origin_path: OriginPath | None = None
+
+    @field_validator("origin_path")
+    @classmethod
+    def origin_is_relative(cls, value: str | None) -> str | None:
+        return workspace_origin_path(value)
 
 
 class PageDocument(PageDraft):
@@ -211,6 +236,12 @@ class PageListItem(PageModel):
     version: Version
     session_id: Opaque
     binding_state: BindingState
+    origin_path: OriginPath | None = None
+
+    @field_validator("origin_path")
+    @classmethod
+    def origin_is_relative(cls, value: str | None) -> str | None:
+        return workspace_origin_path(value)
 
 
 class PageList(PageModel):
@@ -322,6 +353,9 @@ def page_documents_openapi() -> dict:
         schemas.update(schema.pop("$defs", {}))
         schemas[model.__name__] = schema
     _optional_omit_null(schemas["PagePatchPreview"], "title", "package", "binding_manifest")
+    _optional_omit_null(schemas["PageDraft"], "origin_path")
+    _optional_omit_null(schemas["PageDocument"], "origin_path")
+    _optional_omit_null(schemas["PageListItem"], "origin_path")
     def json_ref(name):
         return {"$ref": f"#/components/schemas/{name}"}
     preview_ok = {"description": "Page preview", "content": {"application/json": {"schema": json_ref("PagePreview")}}}

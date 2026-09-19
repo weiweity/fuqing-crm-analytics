@@ -186,8 +186,11 @@ class PageDocumentStore:
                         continue
                     raise
                 spec = snapshot["spec"]
-                items.append({key: spec[key] for key in
-                              ("page_id", "title", "version", "session_id", "binding_state")})
+                item = {key: spec[key] for key in
+                        ("page_id", "title", "version", "session_id", "binding_state")}
+                if spec.get("origin_path"):
+                    item["origin_path"] = spec["origin_path"]
+                items.append(item)
             return items
 
     @staticmethod
