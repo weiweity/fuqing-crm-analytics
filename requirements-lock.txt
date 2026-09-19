@@ -7,7 +7,7 @@
 # 禁止: 本 PR 不升级生产 DuckDB 主版本；锁内 duckdb 保持现网兼容 pin。
 annotated-doc==0.0.5
 annotated-types==0.7.0
-anyio==4.13.0
+anyio==4.14.2
 bcrypt==5.0.0
 certifi==2026.2.25
 cffi==2.0.0
