@@ -6,7 +6,7 @@
 | 项 | 状态 |
 |---|---|
 | 本地 Git 基线 | 已 fetch 核验 `origin/main` 为 **c0f47a24（#213）**；任务分支以此为基线，`git merge origin/main` 为 Already up to date。 |
-| 当前工作树 | `fuqin-date/.worktrees/cockpit-v2-kernel`，分支 `codex/cockpit-v2-kernel`；接管 Grok G01–G04 累计未提交成果。 |
+| 当前工作树 | `fuqin-date/.worktrees/cockpit-v2-kernel`，分支 `codex/cockpit-v2-kernel`；Grok G01–G04 与 Codex C01–C03 成果已提交并推送，代码/版本候选为 `1da06ba1`，本次文档同步随后追加；PR 待创建。 |
 | VERSION / 产品 | **0.10.0.0**，用户确认的 V2 功能候选版本；产品仍 **PARTIAL**，原全量 Goal **PAUSED**。loopback，不上公网。 |
 | DSH 基座 | **0.1.6-alpha.2（ddefc45f）**，不改上游。 |
 | 现役 | 交接记录为 #213 已 reload6677、页库18091；本轮未切换、未重启，未将隔离验收写成现役验收。 |
@@ -22,7 +22,7 @@
 - 沿原有 leaveCoordinator 处理切资产/退出/返回；未知保存回执锁定切换并保留幂等键；原生侧栏不能 veto，重新进入恢复 store 中草稿。
 - 本轮修复看板属性 PATCH、原生预览选择、未知确认后的安全取消/刷新、HTML 脚本顺序及原始文件重入；107 项针对性测试、21 条真实隔离浏览器主链均通过，失败过程留证。
 - 本轮证据与操作说明见 [驾驶舱 V2 本地交付](docs/hackathon/COCKPIT-V2-LOCAL-2026-09-19.md)。C01–C03本地完成：B0完整聚合、合成backend及浏览器主链通过；77项backend跳过。分层证据与NOT_RUN见该文及C03。
-- 本次用户已授权修复及 `/ship` 到 commit、push、PR，并明确跳过追加代码审查；提交/推送进度按交付说明记录。未授权 merge 或 reload。原仓 HANDOVER-CODEX.md 和本地交接材料保留，不入 Git。
+- 本次用户已授权修复及 `/ship` 到 commit、push、PR，并明确跳过追加代码审查；三笔代码/版本提交已通过正常 push hooks 并推送，PR 尚未创建，详见交付说明。未执行 merge 或 reload。原仓 HANDOVER-CODEX.md 和本地交接材料保留，不入 Git。
 
 ### 仍开放且不由本轮代签的验收
 

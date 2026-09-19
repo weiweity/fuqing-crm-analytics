@@ -1,6 +1,6 @@
 {
   "schema": "free-page-t0-evidence/v1",
-  "at": "2026-09-19T14:44:15.974Z",
+  "at": "2026-09-19T15:03:22.805Z",
   "machine": {
     "os": "darwin arm64",
     "node": "v24.19.0"
@@ -13,17 +13,17 @@
     "viewport": "1280x800"
   },
   "ports": {
-    "harness": 61541,
-    "proxy": 61542,
-    "chromeCdp": 61544,
+    "harness": 63478,
+    "proxy": 63479,
+    "chromeCdp": 63482,
     "avoided": 6677
   },
   "sandbox": "allow-scripts",
   "allowSameOrigin": false,
-  "duration_ms": 5308,
-  "runaway_observe_ms": 1506,
+  "duration_ms": 5417,
+  "runaway_observe_ms": 1505,
   "recovery_ms": 1112,
-  "host_ticks_before": 46,
+  "host_ticks_before": 48,
   "host_ticks_during": 133,
   "host_click_during_runaway": true,
   "evaluate_timeout_during_runaway": false,
