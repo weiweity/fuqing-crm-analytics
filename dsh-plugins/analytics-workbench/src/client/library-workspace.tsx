@@ -18,25 +18,43 @@ const emptyPageSnap = {
 };
 
 const css = `
-.sm-library-workspace { min-width:0; display:flex; flex-direction:column; gap:16px; padding:20px; background:var(--sm-bg); color:var(--sm-ink); font-family:var(--sm-font-body); }
-.sm-library-toolbar,.sm-library-actions,.sm-library-nav { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.sm-library-toolbar h1 { margin:0 auto 0 0; font-size:20px; font-weight:500; }
-.sm-library-nav button[aria-pressed="true"] { background:var(--sm-purple); color:var(--sm-bg); }
+.sm-library-workspace { --lib-rail:#f6f6f7; --lib-canvas:#fff; --lib-ink:#1f1f1f; --lib-muted:#8c8c8c; --lib-line:#ececec; --lib-active:#ececec; min-width:0; min-height:640px; height:100%; display:grid; grid-template-columns:240px minmax(0,1fr); grid-template-rows:minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
+.sm-library-rail { min-width:0; display:flex; flex-direction:column; gap:4px; padding:12px 10px 16px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
+.sm-library-rail h1 { margin:4px 8px 12px; font:600 16px/22px var(--sm-font-body); }
+.sm-library-search { display:flex; flex-direction:column; gap:4px; margin:0 4px 8px; color:var(--lib-muted); font-size:12px; }
+.sm-library-search input { width:100%; min-height:32px; border:0; border-radius:8px; padding:6px 10px; background:#ececee; color:var(--lib-ink); font:inherit; }
+.sm-library-nav { display:flex; flex-direction:column; gap:2px; margin:0 0 8px; }
+.sm-library-nav button { justify-content:flex-start; min-height:32px; border:0; background:transparent; color:var(--lib-ink); border-radius:8px; padding:6px 10px; font:400 13px/18px var(--sm-font-body); }
+.sm-library-nav button[aria-pressed="true"], .sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
+.sm-library-rail-foot { margin-top:auto; padding:8px 4px 0; }
+.sm-library-canvas { min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--lib-canvas); }
+.sm-library-pathbar { display:flex; gap:8px; align-items:center; min-height:44px; padding:0 16px; border-bottom:1px solid var(--lib-line); font-size:13px; color:var(--lib-muted); }
+.sm-library-pathbar strong { color:var(--lib-ink); font-weight:500; }
+.sm-library-pathbar span { margin-right:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.sm-library-document { position:relative; flex:1; min-height:0; overflow:auto; }
+.sm-library-document iframe, .sm-library-document [data-testid="fhl-live-preview"] { display:block; width:100%; height:100%; min-height:560px; border:0; background:#fff; }
+.sm-library-document [data-testid="fhl-root"] { min-height:100%; }
+.sm-library-document [data-testid="fhl-root"] > header, .sm-library-document [data-testid="fhl-status-spine"], .sm-library-document [data-testid="fhl-home"], .sm-library-document [data-testid="fhl-skip-iframe"], .sm-library-document .sm-fhl-workspace-heading, .sm-library-document [data-testid="fhl-workspace"] > .sm-fhl-toolbar { display:none; }
+.sm-library-ai-bar { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:3; display:flex; gap:2px; padding:4px; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.08); }
+.sm-library-ai-bar button { min-height:28px; border:0; background:transparent; padding:4px 10px; border-radius:8px; font:500 13px/18px var(--sm-font-body); }
+.sm-library-empty { margin:48px auto; max-width:360px; color:var(--lib-muted); text-align:center; }
+.sm-library-toolbar,.sm-library-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .sm-library-workspace p { margin:0; }
-[data-testid="library-board-view"] p { color:var(--sm-muted); }
-.sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:var(--sm-bg); border:1px solid var(--sm-line); border-radius:6px; padding:8px 12px; cursor:pointer; }
+[data-testid="library-board-view"] p { color:var(--lib-muted); }
+.sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
 .sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
-.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible { outline:2px solid var(--sm-purple); outline-offset:3px; }
-.sm-library-workspace .sm-library-confirm { background:var(--sm-purple); color:var(--sm-bg); }
-.sm-library-banner { padding:12px; border:1px solid var(--sm-purple); border-radius:8px; display:flex; flex-direction:column; gap:12px; }
-.sm-library-products { display:flex; flex-direction:column; gap:12px; }
-.sm-library-products-hint { color:var(--sm-muted); font-size:13px; }
-.sm-library-products ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
-.sm-library-products li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--sm-line); border-radius:8px; }
-.sm-library-products li span:first-child { margin-right:auto; font-weight:500; }
+.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--sm-purple); outline-offset:2px; }
+.sm-library-workspace .sm-library-confirm { background:var(--sm-purple); color:#fff; border-color:var(--sm-purple); }
+.sm-library-banner { margin:12px 16px; padding:12px; border:1px solid var(--sm-purple); border-radius:8px; display:flex; flex-direction:column; gap:12px; }
+.sm-library-products { display:flex; flex-direction:column; gap:4px; min-height:0; }
+.sm-library-products-hint { color:var(--lib-muted); font-size:12px; padding:4px 10px; }
+.sm-library-rail-section { display:flex; align-items:center; justify-content:space-between; padding:8px 10px 4px; color:var(--lib-muted); font-size:12px; }
+.sm-library-products ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.sm-library-products li button { width:100%; display:flex; gap:8px; align-items:center; border:0; background:transparent; border-radius:8px; padding:8px 10px; text-align:left; font:400 13px/18px var(--sm-font-body); overflow:hidden; }
+.sm-library-products li button span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .sm-library-diff { overflow:auto; max-height:260px; }
 .sm-library-diff table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
-.sm-library-diff th,.sm-library-diff td { text-align:left; vertical-align:top; border-bottom:1px solid var(--sm-line); padding:8px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.sm-library-diff th,.sm-library-diff td { text-align:left; vertical-align:top; border-bottom:1px solid var(--lib-line); padding:8px; overflow-wrap:anywhere; white-space:pre-wrap; }
 `;
 
 function EditDiff({ state }: { state: LibraryState }) {
@@ -56,32 +74,45 @@ function EditDiff({ state }: { state: LibraryState }) {
   </div>;
 }
 
-function CockpitProductsView({ items, busy, onRefresh, onOpen, onEdit }: {
+function asSrcDoc(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  if (/<html[\s>]/i.test(trimmed) || /<!doctype/i.test(trimmed)) return trimmed;
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body>${trimmed}</body></html>`;
+}
+
+function CockpitProductsView({ items, busy, query, selectedId, onQuery, onRefresh, onOpen, showSearch = true }: {
   items: CockpitProduct[];
   busy: boolean;
+  query: string;
+  selectedId: string | null;
+  onQuery(value: string): void;
   onRefresh(): void;
   onOpen(item: CockpitProduct): void;
-  onEdit(item: CockpitProduct): void;
+  showSearch?: boolean;
 }) {
+  const needle = query.trim().toLowerCase();
+  const filtered = needle ? items.filter(item => item.title.toLowerCase().includes(needle)) : items;
   return (
     <div className="sm-library-products" data-testid="library-products">
-      <p className="sm-library-products-hint">对话里生成的页面和文件会出现在这里。打开走官方预览；HTML 编辑进本页编辑器，不改上游。</p>
-      <div className="sm-library-toolbar">
-        <button type="button" data-testid="library-products-refresh" disabled={busy} onClick={onRefresh}>刷新产物</button>
+      {showSearch ? <label className="sm-library-search">搜索
+        <input data-testid="library-products-search" value={query} placeholder="搜索" onChange={event => onQuery(event.target.value)} />
+      </label> : null}
+      <div className="sm-library-rail-section">
+        <span>我的资料</span>
+        <button type="button" data-testid="library-products-refresh" disabled={busy} onClick={onRefresh}>刷新</button>
       </div>
-      {items.length === 0
+      {filtered.length === 0
         ? <p data-testid="library-products-empty">还没有产物。</p>
         : (
           <ul data-testid="library-products-list">
-            {items.map(item => (
-              <li key={item.id} data-kind={item.kind}>
-                <span>{item.title}</span>
-                <span data-testid="library-product-kind">{KIND_LABEL[item.kind as keyof typeof KIND_LABEL] ?? item.kind}</span>
-                {item.subtitle ? <span>{item.subtitle}</span> : null}
-                <button type="button" data-testid="library-product-open" onClick={() => onOpen(item)}>打开</button>
-                {item.kind === 'html'
-                  ? <button type="button" data-testid="library-product-edit" onClick={() => onEdit(item)}>编辑</button>
-                  : null}
+            {filtered.map(item => (
+              <li key={item.id} data-kind={item.kind} data-selected={selectedId === item.id ? '1' : '0'}>
+                <button type="button" data-testid="library-product-open" aria-current={selectedId === item.id}
+                  onClick={() => onOpen(item)}>
+                  <span>{item.title}</span>
+                  <span data-testid="library-product-kind">{KIND_LABEL[item.kind as keyof typeof KIND_LABEL] ?? item.kind}</span>
+                </button>
               </li>
             ))}
           </ul>
@@ -91,13 +122,14 @@ function CockpitProductsView({ items, busy, onRefresh, onOpen, onEdit }: {
 }
 
 export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board', pageStore,
-  listWorkspaceFiles, openWorkspaceFile }: {
+  listWorkspaceFiles, openWorkspaceFile, readWorkspaceFile }: {
   library: LibraryBoardClient; goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   initialSurface?: 'pages' | 'board';
   pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
   listWorkspaceFiles?: () => Promise<Array<Record<string, unknown>>>;
   openWorkspaceFile?: (product: Record<string, unknown>) => void;
+  readWorkspaceFile?: (product: Record<string, unknown>) => Promise<string | null>;
 }) {
   const state = useSyncExternalStore(library.subscribe, library.getSnapshot);
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
@@ -110,6 +142,9 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const [visitedActions, setVisitedActions] = useState(false);
   const [workspaceFiles, setWorkspaceFiles] = useState<Array<Record<string, unknown>>>([]);
   const [editingHtml, setEditingHtml] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [filePreview, setFilePreview] = useState('');
   const pageList = useSyncExternalStore(
     pageStore ? pageStore.subscribe : emptyPageSnap.subscribe,
     () => (pageStore ? pageStore.getSnapshot().pages : EMPTY_PAGES),
@@ -147,25 +182,60 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const shown = state.preview?.snapshot ?? state.layoutDraft ?? state.saved;
   const actionsEnabled = crowdActionPackEnabled();
   const boardChrome = panel !== 'pages';
-  let headingText = shown?.spec.title ?? '我的驾驶舱';
-  if (panel === 'pages') headingText = '驾驶舱产物';
-  if (actionsEnabled && panel === 'actions') headingText = '人群行动';
+  const products = mergeCockpitProducts({ files: workspaceFiles, boards: state.boards, pages: pageList });
+  const selected = products.find(item => item.id === selectedId) ?? null;
+  const openProduct = (item: CockpitProduct) => {
+    setSelectedId(item.id);
+    setEditingHtml(false);
+    setFilePreview('');
+    if (item.kind === 'board' && item.board_id) {
+      void library.openBoard(item.board_id);
+      setPanel('board');
+      return;
+    }
+    setPanel('pages');
+    if (item.page_id && pageStore) {
+      void pageStore.openPage(item.page_id);
+      return;
+    }
+    if (item.kind === 'html') {
+      if (readWorkspaceFile) {
+        void readWorkspaceFile(item).then(text => setFilePreview(typeof text === 'string' ? text : '')).catch(() => setFilePreview(''));
+      }
+      return;
+    }
+    openWorkspaceFile?.(item);
+  };
+  const editHtml = (item: CockpitProduct | null = selected) => {
+    if (!item || item.kind !== 'html') return;
+    if (item.page_id && pageStore) {
+      void pageStore.openPage(item.page_id);
+      pageStore.enterEdit();
+    }
+    setEditingHtml(true);
+    setPanel('pages');
+  };
   return <ThemeProvider colorScheme={colorScheme} className="sm-library-theme">
     <style>{css}</style>
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
-      <div className="sm-library-toolbar">
-        <h1 tabIndex={-1} ref={heading}>{headingText}</h1>
-        <button type="button" onClick={goConversation}>返回原生对话</button>
-      </div>
-      <nav className="sm-library-nav" aria-label="驾驶舱页面">
-        <button type="button" aria-pressed={panel === 'pages'} data-testid="library-panel-pages"
-          onClick={() => { setEditingHtml(false); setPanel('pages'); }}>产物</button>
-        <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
-          onClick={() => setPanel('board')}>我的驾驶舱</button>
-        {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
-          onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
-      </nav>
+      <aside className="sm-library-rail">
+        <h1 tabIndex={-1} ref={heading}>资料库</h1>
+        <nav className="sm-library-nav" aria-label="驾驶舱页面">
+          <button type="button" aria-pressed={panel === 'pages'} data-testid="library-panel-pages"
+            onClick={() => { setEditingHtml(false); setPanel('pages'); }}>本地产物</button>
+          <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
+            onClick={() => setPanel('board')}>我的驾驶舱</button>
+          {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
+            onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
+        </nav>
+        <CockpitProductsView items={products} busy={state.busy} query={query} selectedId={selectedId}
+          onQuery={setQuery} onRefresh={refreshProducts} onOpen={openProduct} showSearch={panel === 'pages'} />
+        <div className="sm-library-rail-foot">
+          <button type="button" onClick={goConversation}>返回原生对话</button>
+        </div>
+      </aside>
+      <div className="sm-library-canvas">
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
       {boardChrome && state.incoming ? <div className="sm-library-banner" role="group" aria-label="处理未确认草稿">
         <p>{state.confirmationUncertain ? '保存结果待核对。切换前可尝试取消尚未应用的草稿；已保存内容需通过回退处理。' : '切换前，是否取消当前未确认草稿？'}</p>
@@ -202,34 +272,33 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
           <button type="button" disabled={state.busy} data-testid="layout-preview" onClick={() => { void library.previewLayout(); }}>检查布局</button>
         </div>
       </div> : null}
-      <section hidden={panel !== 'pages'} data-testid="library-pages-view">
-        {panel === 'pages' && editingHtml ? <>
-          <div className="sm-library-toolbar">
-            <button type="button" data-testid="library-products-back" onClick={() => setEditingHtml(false)}>返回产物</button>
+      <div className="sm-library-pathbar" data-testid="library-pathbar">
+        <span>{selected ? <>我的资料 / <strong>{selected.title}</strong></> : '我的资料'}</span>
+        {selected && (editingHtml || selected.kind === 'html' || panel === 'board')
+          ? <button type="button" data-testid="library-products-back" onClick={() => { setEditingHtml(false); setSelectedId(null); setFilePreview(''); setPanel('pages'); }}>关闭</button>
+          : null}
+      </div>
+      <section hidden={panel !== 'pages'} data-testid="library-pages-view" className="sm-library-document">
+        {panel === 'pages' && selected?.kind === 'html' && !editingHtml
+          ? <div className="sm-library-ai-bar" data-testid="library-ai-bar" role="toolbar" aria-label="AI 编辑">
+            <button type="button" data-testid="library-product-edit" onClick={() => editHtml(selected)}>AI 编辑</button>
           </div>
-          <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
+          : null}
+        {panel === 'pages' && selected?.kind === 'html' && (editingHtml || selected.page_id)
+          ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
             store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} />
-        </> : null}
-        {panel === 'pages' && !editingHtml ? <CockpitProductsView
-          items={mergeCockpitProducts({ files: workspaceFiles, boards: state.boards, pages: pageList })}
-          busy={state.busy}
-          onRefresh={refreshProducts}
-          onOpen={item => {
-            if (item.kind === 'board' && item.board_id) { void library.openBoard(item.board_id); setPanel('board'); return; }
-            if (item.page_id && pageStore) { void pageStore.openPage(item.page_id); setEditingHtml(true); return; }
-            openWorkspaceFile?.(item);
-          }}
-          onEdit={item => {
-            if (item.kind !== 'html') return;
-            if (item.page_id && pageStore) {
-              void pageStore.openPage(item.page_id);
-              pageStore.enterEdit();
-            }
-            setEditingHtml(true);
-          }}
-        /> : null}
+          : null}
+        {panel === 'pages' && selected?.kind === 'html' && !editingHtml && !selected.page_id && filePreview
+          ? <iframe title={selected.title} data-testid="library-html-preview" srcDoc={asSrcDoc(filePreview)} sandbox="allow-scripts" />
+          : null}
+        {panel === 'pages' && selected && selected.kind !== 'html'
+          ? <p className="sm-library-empty">表格和 PDF 在官方预览中打开，不改上游壳。</p>
+          : null}
+        {panel === 'pages' && !(selected?.kind === 'html' && (editingHtml || selected.page_id || filePreview)) && (!selected || selected.kind === 'html')
+          ? <p className="sm-library-empty" data-testid="library-canvas-empty">对话里生成的页面会出现在左侧。点开 HTML 后整页预览，再用 AI 编辑。</p>
+          : null}
       </section>
-      <section hidden={panel !== 'board'} data-testid="library-board-view">
+      <section hidden={panel !== 'board'} data-testid="library-board-view" className="sm-library-document">
       <div className="sm-library-toolbar">
         <button type="button" disabled={state.busy} onClick={() => { void library.refresh(); }}>刷新已保存看板</button>
       </div>
@@ -256,6 +325,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
           <ActionsWorkbench modelAvailable={false} />
         </OverlayErrorBoundary>
       </section> : null}
+      </div>
     </main>
   </ThemeProvider>;
 }

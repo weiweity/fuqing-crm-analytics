@@ -727,19 +727,24 @@ test('pages surface is a product cabinet with html edit', async t => {
     openWorkspaceFile: product => { opened = product; },
   }));
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
-  assert.match(ui.doc.querySelector('h1').textContent, /驾驶舱产物/);
+  assert.match(ui.doc.querySelector('h1').textContent, /资料库/);
   assert.match(ui.doc.querySelector('[data-testid="library-panel-pages"]').textContent, /产物/);
   assert.equal(ui.doc.querySelector('[data-testid="library-products-empty"]'), null);
   const list = ui.doc.querySelector('[data-testid="library-products-list"]');
   assert.match(list.textContent, /week\.html/);
   assert.match(list.textContent, /week\.csv/);
-  assert.ok(ui.doc.querySelector('[data-kind="html"] [data-testid="library-product-edit"]'));
+  assert.equal(ui.doc.querySelector('[data-kind="html"] [data-testid="library-product-edit"]'), null);
   assert.equal(ui.doc.querySelector('[data-kind="spreadsheet"] [data-testid="library-product-edit"]'), null);
   await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
-  assert.equal(opened?.path, 'week.html');
+  assert.equal(opened, null, 'html stays in the library canvas');
+  assert.match(ui.doc.querySelector('[data-testid="library-pathbar"]').textContent, /week\.html/);
+  assert.ok(ui.doc.querySelector('[data-testid="library-product-edit"]'));
+  await ui.click('[data-kind="spreadsheet"] [data-testid="library-product-open"]');
+  assert.equal(opened?.path, 'week.csv');
+  await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
   await ui.click('[data-testid="library-product-edit"]');
   assert.ok(ui.doc.querySelector('[data-testid="fhl-root"]'), 'html edit enters the existing page editor');
-  assert.equal(ui.doc.querySelector('[data-testid="library-products"]'), null);
+  assert.ok(ui.doc.querySelector('[data-testid="library-products-list"]'), 'the file rail stays visible while editing');
   await ui.click('[data-testid="library-products-back"]');
   assert.ok(ui.doc.querySelector('[data-testid="library-products-list"]'));
   await ui.click('[data-kind="board"] [data-testid="library-product-open"]');

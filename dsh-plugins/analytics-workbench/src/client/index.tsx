@@ -563,23 +563,41 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
+  const workspaceFilesApi = (ctx.remote as unknown as {
+    workspaceFiles?: {
+      list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown>;
+      read?: (sessionId: string, path: string, range?: { offset?: number; limit?: number }, signal?: AbortSignal) => Promise<unknown>;
+    };
+  }).workspaceFiles;
   const listWorkspaceFiles = async () => {
     const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot(), composition?.getSnapshot()?.sessionId);
-    const filesApi = (ctx.remote as unknown as {
-      workspaceFiles?: { list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown> };
-    }).workspaceFiles;
-    const list = filesApi?.list;
+    const list = workspaceFilesApi?.list;
     if (!sessionId || typeof list !== 'function') return [];
-    return collectWorkspaceProducts((id, path, signal) => list.call(filesApi, id, path, signal), sessionId);
+    return collectWorkspaceProducts((id, path, signal) => list.call(workspaceFilesApi, id, path, signal), sessionId);
   };
   const openWorkspaceFile = (product: { sessionId?: string; path?: string }) => {
     const openResource = (ctx as unknown as { sidebarRight?: { openResource?(address: string): void } }).sidebarRight?.openResource;
     if (!product?.sessionId || !product?.path || typeof openResource !== 'function') return;
     openResource(fileResourceAddress(product.sessionId, product.path));
   };
+  const readWorkspaceFile = async (product: { sessionId?: string; path?: string }) => {
+    const read = workspaceFilesApi?.read;
+    if (!product?.sessionId || !product?.path || typeof read !== 'function') return null;
+    try {
+      const result = await read.call(workspaceFilesApi, product.sessionId, product.path, { offset: 1, limit: 4000 });
+      const body = result && typeof result === 'object' && result !== null && 'text' in result
+        ? result as { text?: unknown }
+        : result && typeof result === 'object' && result !== null && 'value' in result
+          ? (result as { value?: { text?: unknown } }).value
+          : null;
+      return typeof body?.text === 'string' && body.text ? body.text : null;
+    } catch {
+      return null;
+    }
+  };
   if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
-    inject: () => ({ composition, library, themeSource, pageStore, listWorkspaceFiles, openWorkspaceFile }),
+    inject: () => ({ composition, library, themeSource, pageStore, listWorkspaceFiles, openWorkspaceFile, readWorkspaceFile }),
   }, CockpitCompositionOverlay));
   /**
    * The N14 three-choice prompt. It is its own overlay so the leave transaction
@@ -708,6 +726,7 @@ export function apply(ctx: Context): void {
         pageStore,
         listWorkspaceFiles,
         openWorkspaceFile,
+        readWorkspaceFile,
         askTransport: http
           ? {
             fetchImpl: http.fetchImpl,
