@@ -176,7 +176,7 @@ for (const succeeds of [false, true]) {
     await client.openBoard(snapshot.spec.board_id);
     await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
       themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
-    const button = [...ui.doc.querySelectorAll('button')].find(button => button.textContent === '刷新已保存看板');
+    const button = ui.doc.querySelector('[data-testid="library-products-refresh"]');
     button.focus(); defer = true; await act(async () => button.click());
     assert.equal(button.disabled, true);
     ui.doc.body.tabIndex = -1; ui.doc.body.focus(); ui.doc.body.removeAttribute('tabindex');
@@ -654,6 +654,10 @@ test('crowd-action pack off hides the native 人群行动 entry', async t => {
   assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions"]'), null);
   assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions-view"]'), null);
   assert.match(ui.doc.querySelector('[data-testid="library-panel-board"]')?.textContent ?? '', /看板/);
+  assert.match(ui.doc.querySelector('[data-testid="sm-cockpit-back"]').textContent, /返回对话/);
+  assert.match(ui.doc.querySelector('[data-testid="sm-library-pagehead"] h1').textContent, /驾驶舱/);
+  assert.equal([...ui.doc.querySelectorAll('button')].filter(button => button.textContent === '返回对话').length, 1);
+  assert.match(ui.doc.querySelector('[data-testid="library-board-empty"]')?.textContent ?? '', /还没有看板/);
 });
 
 test('beforeunload follows hasUnsavedChanges and ignores a clean editContext', async t => {
@@ -714,6 +718,29 @@ test('beforeunload follows hasUnsavedChanges and ignores a clean editContext', a
   assert.ok(armed.length > 0, 'a pending preview arms beforeunload');
 });
 
+test('html products reveal the pages canvas instead of the empty board', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'board',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:a.html', kind: 'html', title: 'a.html', path: 'a.html', sessionId: 's1' },
+    ],
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.equal(ui.doc.querySelector('[data-testid="library-pages-view"]').hidden, false);
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-view"]').hidden, true);
+  assert.match(ui.doc.querySelector('[data-testid="library-pathbar"]').textContent, /a\.html/);
+  assert.equal(ui.doc.querySelector('[data-testid="library-board-empty"]')?.closest('[hidden]') != null, true);
+});
+
 test('pages surface is a product cabinet with html edit', async t => {
   const ui = await domFixture(t), snapshot = librarySnapshot();
   const client = createLibraryBoardClient(async (_channel, operation) => {
@@ -736,7 +763,9 @@ test('pages surface is a product cabinet with html edit', async t => {
     openWorkspaceFile: product => { opened = product; },
   }));
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
-  assert.match(ui.doc.querySelector('h1').textContent, /产物文件夹/);
+  assert.match(ui.doc.querySelector('[data-testid="sm-library-pagehead"]').textContent, /返回对话/);
+  assert.match(ui.doc.querySelector('h1').textContent, /驾驶舱/);
+  assert.match(ui.doc.querySelector('.sm-library-rail-title').textContent, /产物文件夹/);
   assert.match(ui.doc.querySelector('[data-testid="library-panel-pages"]').textContent, /HTML/);
   assert.equal(ui.doc.querySelector('[data-testid="library-products-empty"]'), null);
   const list = ui.doc.querySelector('[data-testid="library-products-list"]');

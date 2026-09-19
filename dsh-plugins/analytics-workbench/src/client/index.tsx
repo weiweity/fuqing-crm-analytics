@@ -48,10 +48,8 @@ import { createNativePageGenerate, createPagePackageWaiter, extractPagePackage }
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
-import { createCockpitComposition } from './cockpit-composition.mjs';
 import { collectWorkspaceProducts, fileResourceAddress } from './cockpit-products.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
-import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 import { AccountMenu, LoginFooter, ThemeFooter, createAccountStore } from './account-chrome.tsx';
 
@@ -410,15 +408,23 @@ export function apply(ctx: Context): void {
   const accountStore = createAccountStore();
   const boardLive = createWorkbenchStore(DEMO_BOARD).create();
   const connection = ctx.get?.('connection') as ConnectionHandle | undefined;
-  const composition = connection?.rpc?.call && typeof ctx.layout?.selectPanel === 'function'
-    ? createCockpitComposition({ sessions: ctx.sessions, layout: ctx.layout }) : undefined;
+  let leaveAdapter: HostLeaveAdapter | undefined;
   const library = connection?.rpc?.call
     ? createLibraryBoardClient((channel, operation, payload, signal) => callBoardConnection(connection.rpc, channel, operation, payload, signal), {
       async editNative(context) {
         const sessionId = ctx.sessions.list.getSnapshot().ids.find(id => id === context.session_id);
         if (!sessionId) throw new Error('此看板的原生会话当前不可用；已保存内容仍可查看，请恢复原会话后编辑。');
-        if (composition) { composition.open(sessionId); composition.revealChat(); }
-        else { retainMainView(ctx.sessions, sessionId); ctx.layout?.selectPanel(null); }
+        retainMainView(ctx.sessions, sessionId);
+        if (leaveAdapter) {
+          const result = await leaveAdapter.request('conversation');
+          if (result !== 'navigated') {
+            throw new Error(result === 'prompt'
+              ? '请先处理未保存的草稿，再转入原生对话描述修改。'
+              : '当前无法转入原生对话；选中目标保留，可重试。');
+          }
+        } else {
+          try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
+        }
         const reply = await ctx.remote.session.prompt({
           sessionId, requestId: `board-edit-${crypto.randomUUID()}` as never,
           mode: 'queue', clientTimeZone: 'Asia/Shanghai',
@@ -438,7 +444,7 @@ export function apply(ctx: Context): void {
       waiter: pagePackageWaiter,
       submitPrompt: async (prompt, extras) => {
         const list = ctx.sessions.list.getSnapshot();
-        const sessionId = resolvePageGenerateSession(list, composition?.getSnapshot()?.sessionId);
+        const sessionId = resolvePageGenerateSession(list);
         const requestId = extras?.requestId;
         if (!sessionId || typeof requestId !== 'string' || !PAGE_REQUEST_ID_PATTERN.test(requestId)
           || typeof ctx.remote?.session?.prompt !== 'function') {
@@ -488,22 +494,13 @@ export function apply(ctx: Context): void {
     // Deferred: the adapter owns the host setter, and it is constructed around
     // this coordinator. By the time any intent resolves, both exist.
     navigate: (intent: { kind: string; id?: string | null }): Promise<void> => {
-      if (intent.kind === 'panel' && intent.id === COCKPIT_PANEL_ID) {
-        if (composition) {
-          const state = library!.getSnapshot();
-          composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-          return Promise.resolve();
-        }
-        return leaveAdapter!.perform({ ...intent, kind: 'panel', id: COCKPIT_PANEL_ID });
-      }
       return leaveAdapter!.perform(intent);
     },
   }) : undefined;
-  const leaveAdapter: HostLeaveAdapter | undefined = leaveCoordinator
+  leaveAdapter = leaveCoordinator
     ? createHostLeaveAdapter({ coordinator: leaveCoordinator, layout: ctx.layout }) : undefined;
   ctx.effect(() => () => leaveAdapter?.dispose(), 'analytics-board: leave adapter lifetime');
   ctx.effect(() => () => leaveCoordinator?.dispose(), 'analytics-board: leave coordinator lifetime');
-  ctx.effect(() => () => composition?.dispose(), 'analytics-board: native composition lifetime');
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
@@ -518,11 +515,6 @@ export function apply(ctx: Context): void {
       return true;
     }
     try {
-      if (composition && library) {
-        const state = library.getSnapshot();
-        composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-        return true;
-      }
       layout.selectPanel(COCKPIT_PANEL_ID as MainPanelId);
       return true;
     } catch {
@@ -538,15 +530,10 @@ export function apply(ctx: Context): void {
   const goConversation = (): void => {
     if (!leaveAdapter) {
       // No library client to protect (pack disabled): keep the original switch.
-      composition?.close();
       try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
       return;
     }
-    void leaveAdapter.request('conversation').then((result: 'navigated' | 'prompt' | 'busy' | 'stayed') => {
-      if (result === 'navigated') composition?.close();
-      // 'prompt' keeps the cockpit open while the three choices are shown;
-      // 'busy' means an earlier intent is still resolving — do not queue a second.
-    }).catch(() => {
+    void leaveAdapter.request('conversation').catch(() => {
       // The host refused the switch: stay on the current page rather than
       // unloading the library state.
     });
@@ -570,7 +557,7 @@ export function apply(ctx: Context): void {
     };
   }).workspaceFiles;
   const listWorkspaceFiles = async () => {
-    const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot(), composition?.getSnapshot()?.sessionId);
+    const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot());
     const list = workspaceFilesApi?.list;
     if (!sessionId || typeof list !== 'function') return [];
     return collectWorkspaceProducts((id, path, signal) => list.call(workspaceFilesApi, id, path, signal), sessionId);
@@ -595,10 +582,6 @@ export function apply(ctx: Context): void {
       return null;
     }
   };
-  if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
-    inject: () => ({ composition, library, themeSource, pageStore, listWorkspaceFiles, openWorkspaceFile, readWorkspaceFile }),
-  }, CockpitCompositionOverlay));
   /**
    * The N14 three-choice prompt. It is its own overlay so the leave transaction
    * (Lane F) stays out of the composition/workspace components (Lane E): those
@@ -722,7 +705,6 @@ export function apply(ctx: Context): void {
         themeSource,
         board: boardLive,
         library,
-        composition,
         pageStore,
         listWorkspaceFiles,
         openWorkspaceFile,

@@ -39,16 +39,13 @@ function host() {
 }
 
 /**
- * The index.tsx wiring under test: `navigate` mirrors the composition branch
- * (`panel` + `cockpit` opens the composition instead of the standalone panel).
+ * The index.tsx wiring under test: cockpit is an independent main panel.
+ * `navigate` performs the host panel switch. Composition overlay is not the
+ * default cockpit entry.
  */
-function wiring(t, { dispatch, host: seam, compositionOpen } = {}) {
+function wiring(t, { dispatch, host: seam } = {}) {
   const library = createLibraryBoardClient(async (_channel, operation) => dispatch(operation));
   t.after(() => library.dispose());
-  const opened = [];
-  const composition = compositionOpen === undefined ? undefined : {
-    open: sessionId => { opened.push(sessionId); compositionOpen(sessionId); },
-  };
   const performed = [];
   const leaveCoordinator = createLeaveCoordinator({
     snapshot: () => ({ ...library.getSnapshot(), htmlUnsaved: false }),
@@ -57,11 +54,6 @@ function wiring(t, { dispatch, host: seam, compositionOpen } = {}) {
     discard: () => library.discardDraft(),
     navigate: intent => {
       performed.push(intent);
-      if (intent.kind === 'panel' && intent.id === COCKPIT_PANEL_ID && composition) {
-        const state = library.getSnapshot();
-        composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-        return Promise.resolve();
-      }
       return adapter.perform(intent);
     },
   });
@@ -76,16 +68,11 @@ function wiring(t, { dispatch, host: seam, compositionOpen } = {}) {
       void adapter.request('panel', { id: COCKPIT_PANEL_ID }).catch(() => {});
       return true;
     }
-    if (composition) {
-      const state = library.getSnapshot();
-      composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-      return true;
-    }
     seam.controller.selectPanel(COCKPIT_PANEL_ID);
     return true;
   };
   const hasUnsavedChanges = () => library.getSnapshot().preview !== null;
-  return { library, coordinator: leaveCoordinator, adapter, host: seam, opened, performed, openCockpitPanel };
+  return { library, coordinator: leaveCoordinator, adapter, host: seam, performed, openCockpitPanel };
 }
 
 test('a clean entry switches directly and takes no epoch', async t => {
@@ -135,12 +122,10 @@ test('a dirty page prompts; the entry switches only after save resolves', async 
   assert.deepEqual(w.library.getSnapshot().saved, applied);
 });
 
-test('a dirty page in composition mode opens the composition instead of the panel', async t => {
+test('a dirty page after save lands on the standalone cockpit panel', async t => {
   const saved = snap(), applied = snap({ version: 2, content: '已保存' }), pending = draft(applied);
-  let openPanel = null;
   const w = wiring(t, {
     host: host(),
-    compositionOpen: sessionId => { openPanel = sessionId ?? null; },
     dispatch: operation => {
       if (operation === 'get') return ok(saved);
       if (operation === 'list') return ok(listOf(applied));
@@ -153,8 +138,7 @@ test('a dirty page in composition mode opens the composition instead of the pane
   await w.library.openPreview(pending.preview_id);
   assert.equal(w.openCockpitPanel(), true);
   await w.coordinator.choose('save_and_leave');
-  assert.equal(w.host.panel(), null, 'the composition branch never pushes the standalone panel');
-  assert.equal(openPanel, saved.spec.session_id, 'the composition opened on the board session');
+  assert.equal(w.host.panel(), 'cockpit', 'the entry lands on the independent cockpit page');
 });
 
 test('a failed save keeps the page and the prompt recoverable', async t => {

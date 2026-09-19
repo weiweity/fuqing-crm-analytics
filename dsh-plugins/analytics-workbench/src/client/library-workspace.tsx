@@ -60,6 +60,23 @@ function groupPressed(key: string, panel: 'pages' | 'board' | 'actions') {
   if (key === 'board') return panel === 'board';
   return false;
 }
+
+function pathbarCopy(
+  selected: CockpitProduct | null,
+  panel: 'pages' | 'board' | 'actions',
+  shown: { spec: { title: string } } | null,
+) {
+  if (selected) return { title: selected.title, trail: `本会话 / ${pathKindLabel(selected)}` };
+  if (panel === 'board' && shown) return { title: shown.spec.title, trail: '本会话 / 看板' };
+  if (panel === 'board') return { title: null, trail: '本会话 / 看板' };
+  return { title: null, trail: '产物文件夹' };
+}
+
+function initialLibraryPanel(library: LibraryBoardClient, initialSurface: 'pages' | 'board') {
+  const snap = library.getSnapshot();
+  if (snap.preview || snap.layoutDraft || snap.saved) return 'board';
+  return initialSurface;
+}
 const EMPTY_PAGES: Array<{ page_id?: string; title?: string; version?: number }> = [];
 const emptyPageSnap = {
   subscribe: (_listener: () => void) => () => {},
@@ -67,16 +84,19 @@ const emptyPageSnap = {
 };
 
 const css = `
-.sm-library-workspace { --lib-rail:#f7f7f7; --lib-canvas:#fff; --lib-ink:#171717; --lib-muted:#737373; --lib-line:#e8e8e8; --lib-active:#fff; min-width:0; min-height:640px; height:100%; display:grid; grid-template-columns:300px minmax(0,1fr); grid-template-rows:minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
-.sm-library-rail { min-width:0; display:flex; flex-direction:column; gap:4px; padding:12px 10px 16px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
-.sm-library-rail h1 { margin:4px 8px 12px; font:600 16px/22px var(--sm-font-body); }
+.sm-library-workspace { --lib-rail:#f7f7f7; --lib-canvas:#fff; --lib-ink:#171717; --lib-muted:#737373; --lib-line:#e8e8e8; --lib-active:#fff; min-width:0; min-height:100%; height:100%; display:grid; grid-template-columns:300px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
+.sm-library-pagehead { grid-column:1 / -1; display:flex; align-items:center; gap:12px; padding:16px 24px 12px; background:#fff; }
+.sm-library-pagehead h1 { margin:0; font:500 18px/25px var(--sm-font-body); }
+.sm-library-back { min-height:24px; border:1px solid #1677ff; background:#fff; color:#1677ff; border-radius:4px; padding:0 7px; font:400 14px/22px var(--sm-font-body); cursor:pointer; }
+.sm-library-rail { grid-column:1; grid-row:2; min-width:0; min-height:0; display:flex; flex-direction:column; gap:4px; padding:12px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
+.sm-library-rail-title { margin:0 0 4px; font:500 16px/22px var(--sm-font-body); }
 .sm-library-search { display:flex; flex-direction:column; gap:4px; margin:0 4px 8px; color:var(--lib-muted); font-size:12px; }
 .sm-library-search input { width:100%; min-height:32px; border:0; border-radius:8px; padding:6px 10px; background:#ececee; color:var(--lib-ink); font:inherit; }
 .sm-library-nav { display:flex; flex-direction:column; gap:2px; margin:0 0 8px; }
 .sm-library-nav button { justify-content:flex-start; min-height:32px; border:0; background:transparent; color:var(--lib-ink); border-radius:8px; padding:6px 10px; font:400 13px/18px var(--sm-font-body); }
 .sm-library-nav button[aria-pressed="true"], .sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
 .sm-library-rail-foot { margin-top:auto; padding:8px 4px 0; }
-.sm-library-canvas { min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--lib-canvas); }
+.sm-library-canvas { grid-column:2; grid-row:2; min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--lib-canvas); }
 .sm-library-pathbar { display:flex; gap:8px; align-items:center; min-height:44px; padding:0 16px; border-bottom:1px solid var(--lib-line); font-size:13px; color:var(--lib-muted); }
 .sm-library-pathbar strong { color:var(--lib-ink); font-weight:500; }
 .sm-library-pathbar span { margin-right:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
@@ -93,6 +113,7 @@ const css = `
 .sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
 .sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
 .sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--lib-ink); outline-offset:2px; }
+.sm-library-workspace button.sm-library-back { border-color:#1677ff; color:#1677ff; background:#fff; min-height:24px; padding:0 7px; border-radius:4px; font:400 14px/22px var(--sm-font-body); }
 .sm-library-workspace .sm-library-confirm { background:var(--lib-ink); color:#fff; border-color:var(--lib-ink); }
 .sm-library-banner { margin:0; padding:12px 24px; border:0; border-bottom:1px solid var(--lib-line); display:flex; flex-wrap:wrap; gap:12px; align-items:center; background:#fff; }
 .sm-library-banner p { color:var(--lib-muted); font-size:12px; margin-right:auto; }
@@ -217,13 +238,13 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const recovery = useRef<HTMLButtonElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const wasBusy = useRef(state.busy);
-  const [panel, setPanel] = useState<'pages' | 'board' | 'actions'>(initialSurface);
+  const [panel, setPanel] = useState<'pages' | 'board' | 'actions'>(() => initialLibraryPanel(library, initialSurface));
   const [visitedActions, setVisitedActions] = useState(false);
   const [workspaceFiles, setWorkspaceFiles] = useState<Array<Record<string, unknown>>>([]);
   const [editingHtml, setEditingHtml] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState('');
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ html: initialSurface === 'pages', board: true, csv: false, sheet: false });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ html: true, board: true, csv: false, sheet: false });
   const [editMenuOpen, setEditMenuOpen] = useState(false);
   const editMenu = useRef<HTMLDivElement>(null);
   const pageList = useSyncExternalStore(
@@ -314,23 +335,36 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     setEditingHtml(true);
     setPanel('pages');
   };
+  useEffect(() => {
+    if (selectedId) return;
+    if (shown) {
+      setPanel('board');
+      return;
+    }
+    const firstHtml = products.find(item => treeBucket(item) === 'html');
+    if (firstHtml) openProduct(firstHtml);
+  }, [selectedId, shown, workspaceFiles, state.boards, pageList]);
+  const path = pathbarCopy(selected, panel, shown);
   return <ThemeProvider colorScheme={colorScheme} className="sm-library-theme">
     <style>{css}</style>
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
+      <header className="sm-library-pagehead" data-testid="sm-library-pagehead">
+        <button type="button" className="sm-library-back" data-testid="sm-cockpit-back" onClick={goConversation}>返回对话</button>
+        <h1 tabIndex={-1} ref={heading}>驾驶舱</h1>
+      </header>
       <aside className="sm-library-rail">
-        <h1 tabIndex={-1} ref={heading}>产物文件夹</h1>
+        <p className="sm-library-rail-title">产物文件夹</p>
         <ProductFolderTree items={products} busy={state.busy} selectedId={selectedId} expanded={expanded} panel={panel}
-          onRefresh={refreshProducts} onOpen={openProduct} onToggle={key => {
+          onRefresh={() => { refreshProducts(); void library.refresh(); }} onOpen={openProduct} onToggle={key => {
             setExpanded(current => ({ ...current, [key]: !current[key] }));
             if (key === 'board') setPanel('board');
             if (key === 'html') { setEditingHtml(false); setPanel('pages'); }
           }} />
-        <div className="sm-library-rail-foot">
-          {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
-            onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
-          <button type="button" onClick={goConversation}>返回对话</button>
-        </div>
+        {actionsEnabled ? <div className="sm-library-rail-foot">
+          <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
+            onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button>
+        </div> : null}
       </aside>
       <div className="sm-library-canvas">
       {state.message ? <p role="status" aria-live="polite" data-testid="library-message">{state.message}</p> : null}
@@ -370,9 +404,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         </div>
       </div> : null}
       <div className="sm-library-pathbar" data-testid="library-pathbar">
-        <span>{selected
-          ? <><strong>{selected.title}</strong> 本会话 / {pathKindLabel(selected)}</>
-          : panel === 'board' ? '本会话 / 看板' : '产物文件夹'}</span>
+        <span>{path.title ? <><strong>{path.title}</strong> {path.trail}</> : path.trail}</span>
         {panel === 'board' && state.saved && !state.preview && !state.layoutDraft
           ? <div className="sm-library-edit" ref={editMenu}>
             <button type="button" aria-expanded={editMenuOpen} aria-haspopup="menu" onClick={() => setEditMenuOpen(open => !open)}>
@@ -391,13 +423,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
             </div>
           </div>
           : null}
-        {panel === 'board' && state.layoutDraft
-          ? <button type="button" disabled>调整布局中</button>
-          : null}
-        {panel === 'board' && state.preview?.operation === 'LAYOUT'
-          ? <button type="button" disabled>待确认</button>
-          : null}
-        {selected && (editingHtml || selected.kind === 'html' || panel === 'board')
+        {editingHtml
           ? <button type="button" data-testid="library-products-back" onClick={() => { setEditingHtml(false); setSelectedId(null); setFilePreview(''); setPanel('pages'); setEditMenuOpen(false); }}>关闭</button>
           : null}
       </div>
@@ -418,28 +444,14 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
           ? <p className="sm-library-empty">表格和 PDF 在官方预览中打开，不改上游壳。</p>
           : null}
         {panel === 'pages' && !(selected?.kind === 'html' && (editingHtml || selected.page_id || filePreview)) && (!selected || selected.kind === 'html')
-          ? <p className="sm-library-empty" data-testid="library-canvas-empty">对话里生成的页面会出现在左侧。点开 HTML 后整页预览，再用 AI 编辑。</p>
+          ? <p className="sm-library-empty" data-testid="library-canvas-empty">还没有页面。</p>
           : null}
       </section>
       <section hidden={panel !== 'board'} data-testid="library-board-view" className="sm-library-document">
-      <div className="sm-library-toolbar">
-        <button type="button" disabled={state.busy} onClick={() => { void library.refresh(); }}>刷新已保存看板</button>
-      </div>
-      <label>已保存看板　<select aria-label="打开已保存看板" disabled={state.busy} value={state.saved?.spec.board_id ?? ''}
-        onChange={event => { if (event.target.value) void library.openBoard(event.target.value); }}>
-        <option value="">请选择看板</option>
-        {state.boards.map(board => <option key={board.board_id} value={board.board_id}>{board.title} · v{board.version}</option>)}
-      </select></label>
-      {shown ? <><p>v{shown.spec.version} · {state.preview ? state.confirmationUncertain ? '保存结果待核对' : '待确认草稿' : state.layoutDraft ? '本地布局草稿' : '服务端已保存快照'} · 数据为合成验证来源</p>
-        <LibraryLayoutCanvas key={shown.spec.board_id} snapshot={shown} editing={Boolean(state.layoutDraft)} disabled={state.busy}
-          updateLayout={library.updateLayout} selectedBlockId={state.editContext?.block_id}
-          selectBlock={!state.preview && !state.layoutDraft ? blockId => { void library.beginEdit(blockId); } : undefined} /></> : <p>问数后，在原生对话生成驾驶舱；已保存的看板不依赖模型在线。</p>}
-      {state.saved && !state.preview && !state.layoutDraft && !state.editContext ? <div className="sm-library-actions">
-        <button type="button" disabled={state.busy} onClick={() => { void library.loadHistory(); }}>查看历史版本</button>
-        {state.history.map(version => <button type="button" key={version.version}
-          disabled={state.busy || version.version >= state.saved!.spec.version}
-          onClick={() => { void library.rollback(version.version); }}>预览回退到 v{version.version}</button>)}
-      </div> : null}
+      {shown ? <LibraryLayoutCanvas key={shown.spec.board_id} snapshot={shown} editing={Boolean(state.layoutDraft)} disabled={state.busy}
+        updateLayout={library.updateLayout} selectedBlockId={state.editContext?.block_id}
+        selectBlock={!state.preview && !state.layoutDraft ? blockId => { void library.beginEdit(blockId); } : undefined} />
+        : <p className="sm-library-empty" data-testid="library-board-empty">还没有看板。</p>}
       </section>
       {actionsEnabled && (panel === 'actions' || visitedActions) ? <section hidden={panel !== 'actions'} data-panel="competition-actions"
         data-testid="analytics-competition-actions-view">
