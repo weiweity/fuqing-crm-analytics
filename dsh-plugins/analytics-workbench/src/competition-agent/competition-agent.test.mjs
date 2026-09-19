@@ -42,6 +42,11 @@ test('registered tools do not include old routes', () => {
   assert.equal(liveTransportRefused().live_transport, 'NOT_CONNECTED');
 });
 
+test('page generate is in the same registered family as board generate', () => {
+  assert.equal(REGISTERED_TOOLS.includes('competition_board_generate'), true);
+  assert.equal(REGISTERED_TOOLS.includes('free_html_page_generate'), true);
+});
+
 test('competition boundary blocks native tools only after a method result and until turn stop', () => {
   const boundary = createCompetitionToolBoundary();
   const agent = {};
@@ -51,6 +56,8 @@ test('competition boundary blocks native tools only after a method result and un
   assert.match(boundary.guard(execution('bash')), /method boundary/);
   assert.match(boundary.guard(execution('grep')), /native filesystem/);
   assert.equal(boundary.guard(execution('competition_growth_step')), undefined);
+  assert.equal(boundary.guard(execution('competition_board_generate')), undefined);
+  assert.equal(boundary.guard(execution('free_html_page_generate')), undefined);
   assert.equal(boundary.guard(execution('run_code')), undefined);
   boundary.clear(agent);
   assert.equal(boundary.guard(execution('read')), undefined);

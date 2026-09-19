@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { B0_PRIMARY_SESSION_ID as primary, QUERY_SESSION_IDS, configuredSession, bindInitialSession } from '../src/initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID as primary, QUERY_SESSION_IDS, configuredSession, bindInitialSession, resolvePageGenerateSession } from '../src/initial-session.mjs';
 
 function row(id, mainView = 0) {
   return { id, retainedBy: mainView ? { mainView } : {} };
@@ -71,6 +71,29 @@ test('query pair selects the first registered session once; later user switch is
   f.publish(queryReady);
   assert.deepEqual(f.opened, [first]);
   dispose();
+});
+
+test('page generate uses the visible session, never ids[0] or the B0 fixture by default', () => {
+  const live = {
+    phase: 'ready',
+    ids: ['session-old', 'session-visible'],
+    byId: {
+      'session-old': row('session-old'),
+      'session-visible': row('session-visible', 1),
+    },
+  };
+  assert.equal(resolvePageGenerateSession(live, undefined), 'session-visible');
+  assert.equal(resolvePageGenerateSession(live, 'session-old'), 'session-old');
+  assert.equal(resolvePageGenerateSession(live, 'session-missing'), 'session-visible');
+  const noCurrent = {
+    phase: 'ready',
+    ids: ['session-old', 'session-other'],
+    byId: { 'session-old': row('session-old'), 'session-other': row('session-other') },
+  };
+  assert.equal(resolvePageGenerateSession(noCurrent, undefined), null);
+  assert.notEqual(resolvePageGenerateSession(noCurrent, undefined), noCurrent.ids[0]);
+  const withFixture = { phase: 'ready', ids: [primary, 'session-live'], byId: { [primary]: row(primary), 'session-live': row('session-live', 1) } };
+  assert.equal(resolvePageGenerateSession(withFixture, undefined), 'session-live');
 });
 
 test('open failure is reported once, never retried or replaced with another session', () => {

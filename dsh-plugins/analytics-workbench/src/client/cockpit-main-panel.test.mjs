@@ -49,13 +49,17 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
   assert.match(indexSource, /seedBoard\.facts/);
   assert.doesNotMatch(indexSource, /onClick=\{\(\) => props\.actions\.openGenerate\(\)\}/);
   assert.match(indexSource, /props\.openCockpit\?\.\(\);/);
-  // Lane K: the cockpit entry routes a dirty page through the leave
-  // coordinator (panel intent), keeps a clean entry on the direct switch (the
-  // tool-card gesture's preview read must not be epoch-discarded), and the
-  // navigate callback keeps the composition alive for the cockpit entry.
+  // Lane K: dirty pages go through the leave coordinator; a clean entry still
+  // switches the standalone cockpit panel directly so a tool-card preview read
+  // is not epoch-discarded. The cockpit is an independent main page, not a
+  // native-chat composition overlay.
   assert.match(indexSource, /leaveAdapter\.request\('panel', \{ kind: 'panel', id: COCKPIT_PANEL_ID \}\)/);
   assert.match(indexSource, /hasUnsavedChanges\(\{ \.\.\.library\.getSnapshot\(\), htmlUnsaved/);
-  assert.match(indexSource, /intent\.id === COCKPIT_PANEL_ID/);
+  assert.doesNotMatch(panelSource, /ActivateCockpitComposition/);
+  assert.doesNotMatch(panelSource, /composition\?:/);
+  assert.match(panelSource, /initialSurface="pages"/);
+  assert.doesNotMatch(indexSource, /CockpitCompositionOverlay/);
+  assert.doesNotMatch(indexSource, /createCockpitComposition/);
   {
     const entry = indexSource.indexOf('const openCockpitPanel');
     assert.ok(entry >= 0, 'openCockpitPanel exists');
@@ -63,8 +67,31 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
     const directSwitch = indexSource.indexOf('selectPanel(COCKPIT_PANEL_ID as MainPanelId)', entry);
     assert.ok(dirtyCheck >= 0 && directSwitch > dirtyCheck,
       'the dirty check must guard the direct switch, not follow it');
+    assert.equal(indexSource.slice(entry, entry + 900).includes('composition.open'), false,
+      'a clean cockpit entry must not open the composition overlay');
+  }
+  {
+    const edit = indexSource.indexOf('async editNative');
+    assert.ok(edit >= 0, 'editNative exists');
+    const prompt = indexSource.indexOf('session.prompt', edit);
+    const leave = indexSource.indexOf("leaveAdapter.request('conversation')", edit);
+    assert.ok(leave >= 0 && prompt > leave,
+      'editNative must wait for the leave coordinator before unloading the cockpit');
   }
   assert.match(indexSource, /pageStore \}/);
+  assert.match(indexSource, /collectWorkspaceProducts/);
+  assert.match(indexSource, /listWorkspaceFiles/);
+  assert.match(indexSource, /openWorkspaceFile/);
+  assert.match(indexSource, /readWorkspaceFile/);
+  assert.match(indexSource, /if \(!sessionId \|\| typeof list !== 'function'\) return \[\];/);
+  assert.match(indexSource, /unwrapRemoteValue/);
+  assert.match(indexSource, /limit: 4000/);
+  assert.match(indexSource, /page\.eof === true/);
+  assert.match(indexSource, /isSafeWorkspaceRelPath/);
+  assert.match(indexSource, /sidebarRight\?\.openResource/);
+  assert.match(indexSource, /fileResourceAddress\(product\.sessionId, product\.path\)/);
+  assert.match(panelSource, /listWorkspaceFiles=\{props\.listWorkspaceFiles\}/);
+  assert.match(panelSource, /readWorkspaceFile=\{props\.readWorkspaceFile\}/);
   assert.match(indexSource, /name: 'conversation.composer.dock'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });
@@ -81,6 +108,7 @@ async function loadPanel() {
     platform: 'browser',
     target: 'es2022',
     jsx: 'automatic',
+    loader: { '.css': 'empty' },
     external: ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client'],
     logLevel: 'silent',
   });

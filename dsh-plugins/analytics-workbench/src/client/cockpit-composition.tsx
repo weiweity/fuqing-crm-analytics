@@ -30,9 +30,13 @@ type Box = { left: number; top: number; width: number; height: number };
 type ThemeSource = { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
 
 /** main/cockpit is a navigation entry only; native main/conversation retains render ownership. */
-export function ActivateCockpitComposition({ composition, library, themeSource, goConversation, pageStore }: {
+export function ActivateCockpitComposition({ composition, library, themeSource, goConversation, pageStore,
+  listWorkspaceFiles, openWorkspaceFile, readWorkspaceFile }: {
   composition: CockpitComposition; library: LibraryBoardClient; themeSource: ThemeSource; goConversation(): void;
   pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
+  listWorkspaceFiles?: () => Promise<Array<Record<string, unknown>>>;
+  openWorkspaceFile?: (product: Record<string, unknown>) => void;
+  readWorkspaceFile?: (product: Record<string, unknown>) => Promise<string | null>;
 }) {
   const state = useSyncExternalStore(composition.subscribe, composition.getSnapshot);
   useLayoutEffect(() => {
@@ -40,13 +44,18 @@ export function ActivateCockpitComposition({ composition, library, themeSource, 
     const board = library.getSnapshot();
     composition.open((board.preview?.snapshot ?? board.saved)?.spec.session_id);
   }, [composition, library, state.fallback]);
-  return state.fallback ? <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={goConversation} initialSurface="pages" pageStore={pageStore} />
+  return state.fallback ? <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={goConversation} initialSurface="pages" pageStore={pageStore}
+    listWorkspaceFiles={listWorkspaceFiles} openWorkspaceFile={openWorkspaceFile} readWorkspaceFile={readWorkspaceFile} />
     : <p role="status">正在打开驾驶舱与原生对话…</p>;
 }
 
-export function CockpitCompositionOverlay({ composition, library, themeSource, usePanelInfo, pageStore }: PropsRuntime<'shell.overlay'> & {
+export function CockpitCompositionOverlay({ composition, library, themeSource, usePanelInfo, pageStore,
+  listWorkspaceFiles, openWorkspaceFile, readWorkspaceFile }: PropsRuntime<'shell.overlay'> & {
   composition: CockpitComposition; library: LibraryBoardClient; themeSource: ThemeSource;
   pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
+  listWorkspaceFiles?: () => Promise<Array<Record<string, unknown>>>;
+  openWorkspaceFile?: (product: Record<string, unknown>) => void;
+  readWorkspaceFile?: (product: Record<string, unknown>) => Promise<string | null>;
 }) {
   const state = useSyncExternalStore(composition.subscribe, composition.getSnapshot);
   const board = useSyncExternalStore(library.subscribe, library.getSnapshot);
@@ -159,7 +168,8 @@ export function CockpitCompositionOverlay({ composition, library, themeSource, u
           {geometry.chat > 0 ? '收起原生对话' : '展开原生对话'}</button>
       </header>
       <div className="sm-cockpit-composition-canvas" style={{ width: geometry.canvas, display: geometry.canvas > 0 ? undefined : 'none' }}>
-        <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={() => composition.close()} initialSurface="pages" pageStore={pageStore} />
+        <LibraryCockpitPanel library={library} themeSource={themeSource} goConversation={() => composition.close()} initialSurface="pages" pageStore={pageStore}
+          listWorkspaceFiles={listWorkspaceFiles} openWorkspaceFile={openWorkspaceFile} readWorkspaceFile={readWorkspaceFile} />
       </div>
       {geometry.mode === 'split' ? <div className="sm-cockpit-divider" role="separator" aria-label="调整原生对话宽度" aria-orientation="vertical"
         tabIndex={0} aria-valuemin={CHAT_MIN} aria-valuemax={Math.max(CHAT_MIN, box.width - 568)} aria-valuenow={geometry.chat} style={{ left: geometry.canvas }}

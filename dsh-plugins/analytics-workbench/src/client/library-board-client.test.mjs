@@ -272,6 +272,7 @@ test('free layout edits are local; collision, failed preview and cancel preserve
       for (const update of payload.layouts) result.spec.blocks.find(item => item.block_id === update.block_id).layout = update.layout;
       return ok(draft(result, { operation: 'LAYOUT' }));
     }
+    if (operation === 'cancel') return ok({ preview_id: payload.preview_id, status: 'CANCELLED' });
     throw new Error(`unexpected ${operation}`);
   });
   await instance.openBoard(saved.spec.board_id); instance.beginLayout();
@@ -288,6 +289,12 @@ test('free layout edits are local; collision, failed preview and cancel preserve
   assert.deepEqual(state().saved, source);
   assert.deepEqual(calls.at(-1).payload.layouts, [{ block_id: first.block_id, layout: { x: 1, y: 6, w: 8, h: 7 } }]);
   assert.deepEqual(saved.spec.blocks[0], original.spec.blocks[0]);
+  const previewId = state().preview.preview_id;
+  await instance.cancel();
+  assert.equal(state().preview, null);
+  assert.deepEqual(state().layoutDraft.spec.blocks[0].layout, { x: 1, y: 6, w: 8, h: 7 });
+  assert.equal(calls.at(-1).operation, 'cancel');
+  assert.equal(calls.at(-1).payload.preview_id, previewId);
 });
 
 test('local layout cancel and draft switching barrier do not create server writes', async t => {
@@ -302,6 +309,107 @@ test('local layout cancel and draft switching barrier do not create server write
   instance.beginLayout(); await instance.openBoard('other'); await instance.discardAndNavigate();
   assert.deepEqual(state().saved, other); assert.equal(state().layoutDraft, null);
   assert.deepEqual(calls.map(call => call.operation), ['get', 'get']);
+});
+
+test('rollbackPrevious reuses loaded history and reports when none is earlier', async t => {
+  const v1 = snap({ version: 1 });
+  const none = client(t, operation => {
+    if (operation === 'get') return ok(v1);
+    if (operation === 'list') return ok(listOf(v1));
+    if (operation === 'history') return ok([{ version: 1, operation: 'GENERATE', created_at_ms: 1 }]);
+    throw new Error(`unexpected ${operation}`);
+  });
+  await none.instance.openBoard(v1.spec.board_id);
+  await none.instance.loadHistory();
+  await none.instance.rollbackPrevious();
+  assert.match(none.state().message, /没有可回退的更早版本/);
+  assert.equal(none.state().preview, null);
+  assert.equal(none.calls.filter(call => call.operation === 'history').length, 1);
+  assert.equal(none.calls.some(call => call.operation === 'rollback_preview'), false);
+
+  const v2 = snap({ version: 2 });
+  const reuse = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(v2);
+    if (operation === 'list') return ok(listOf(v2));
+    if (operation === 'history') return ok([
+      { version: 1, operation: 'GENERATE', created_at_ms: 1 },
+      { version: 2, operation: 'PATCH', created_at_ms: 2 },
+    ]);
+    if (operation === 'rollback_preview') {
+      assert.equal(payload.to_version, 1);
+      return ok(draft(snap({ version: 3 }), { operation: 'ROLLBACK', base_version: 2 }));
+    }
+    throw new Error(`unexpected ${operation}`);
+  });
+  await reuse.instance.openBoard(v2.spec.board_id);
+  await reuse.instance.loadHistory();
+  await reuse.instance.rollbackPrevious();
+  assert.equal(reuse.state().preview.operation, 'ROLLBACK');
+  assert.equal(reuse.calls.filter(call => call.operation === 'history').length, 1, 'loaded history is not fetched again');
+
+  const blocked = client(t, operation => {
+    if (operation === 'get') return ok(v2);
+    if (operation === 'list') return ok(listOf(v2));
+    throw new Error(`unexpected ${operation}`);
+  });
+  await blocked.instance.openBoard(v2.spec.board_id);
+  blocked.instance.beginLayout();
+  await blocked.instance.rollbackPrevious();
+  assert.equal(blocked.state().preview, null, 'layout draft blocks rollbackPrevious');
+  assert.equal(blocked.calls.some(call => call.operation === 'history' || call.operation === 'rollback_preview'), false);
+
+  const bad = client(t, operation => {
+    if (operation === 'get') return ok(v2);
+    if (operation === 'list') return ok(listOf(v2));
+    if (operation === 'history') return ok([{ version: 1 }]);
+    throw new Error(`unexpected ${operation}`);
+  });
+  await bad.instance.openBoard(v2.spec.board_id);
+  await bad.instance.rollbackPrevious();
+  assert.match(bad.state().message, /版本历史响应不合法/);
+  assert.equal(bad.state().preview, null);
+});
+
+test('rollbackPrevious loads history once then opens a ROLLBACK preview', async t => {
+  const saved = snap({ version: 2 });
+  const { instance, state, calls } = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'list') return ok(listOf(saved));
+    if (operation === 'history') return ok([{ version: 1, operation: 'GENERATE', created_at_ms: 1 }]);
+    if (operation === 'rollback_preview') {
+      assert.equal(payload.to_version, 1);
+      return ok(draft(snap({ version: 3 }), { operation: 'ROLLBACK', base_version: 2 }));
+    }
+    throw new Error(`unexpected ${operation}`);
+  });
+  await instance.openBoard(saved.spec.board_id);
+  await instance.rollbackPrevious();
+  assert.equal(state().preview.operation, 'ROLLBACK');
+  assert.deepEqual(calls.map(call => call.operation), ['get', 'history', 'rollback_preview']);
+  await instance.rollbackPrevious();
+  assert.equal(state().preview.operation, 'ROLLBACK');
+  assert.equal(calls.filter(call => call.operation === 'rollback_preview').length, 1, 'busy preview blocks a second rollback');
+});
+
+test('rollbackPrevious picks the immediate previous version regardless of history order', async t => {
+  const v3 = snap({ version: 3 });
+  const { instance, calls } = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(v3);
+    if (operation === 'list') return ok(listOf(v3));
+    if (operation === 'history') return ok([
+      { version: 1, operation: 'GENERATE', created_at_ms: 1 },
+      { version: 3, operation: 'PATCH', created_at_ms: 3 },
+      { version: 2, operation: 'PATCH', created_at_ms: 2 },
+    ]);
+    if (operation === 'rollback_preview') {
+      assert.equal(payload.to_version, 2);
+      return ok(draft(snap({ version: 4 }), { operation: 'ROLLBACK', base_version: 3 }));
+    }
+    throw new Error(`unexpected ${operation}`);
+  });
+  await instance.openBoard(v3.spec.board_id);
+  await instance.rollbackPrevious();
+  assert.equal(calls.find(call => call.operation === 'rollback_preview').payload.to_version, 2);
 });
 
 test('selected edit is native-session bound, switching requires cancellation, and failed cancel retains the target', async t => {

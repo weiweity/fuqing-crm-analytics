@@ -21,6 +21,15 @@ const { AGENT_PACKAGE, createIsolatedFetch } = await import(pathToFileURL(join(p
 const REQUEST_ID = 'page-gen-test0001-delivery';
 const execution = { agent: { session: { id: 'session_page_fixture' } }, signal: new AbortController().signal };
 
+test('host page generate targets the visible session and reuses the waiter requestId', async () => {
+  const source = await readFile(join(plugin, 'src/client/index.tsx'), 'utf8');
+  assert.match(source, /resolvePageGenerateSession/);
+  assert.doesNotMatch(source, /B0_PRIMARY_SESSION_ID\) \?\? ids\[0\]/);
+  assert.match(source, /requestId: requestId as never/);
+  assert.match(source, /const remoteWorkspaceFiles = \(\) =>/);
+  assert.match(source, /catch \{\s*return undefined;/);
+});
+
 test('page tool delivers a valid free-page package', async () => {
   const receipt = await executePageTool(PAGE_GENERATE_TOOL_NAME, {
     request_id: REQUEST_ID,

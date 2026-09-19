@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { ThemeProvider } from '../competition-shell/index.ts';
 import type { CompetitionColorScheme } from '../competition-shell/tokens.ts';
+import { HtmlHoverLayer } from '../HtmlHoverLayer.tsx';
 import { SAMPLE_PROMPTS } from './generate-context.mjs';
 import { bindingLabel, estimateIframeContentWidth, widthBand } from './host-visual.mjs';
 import { createFreeHtmlLibraryStore } from './store.mjs';
 import { mountPreviewHost } from '../../free-page/preview/preview-host.mjs';
+import { FREE_PAGE_REFERRER_POLICY, FREE_PAGE_SANDBOX } from '../../free-page/runtime/isolation-policy.mjs';
 
 type ThemeSource = { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
 type Store = ReturnType<typeof createFreeHtmlLibraryStore>;
@@ -29,30 +31,49 @@ function contextTitle(panel: string) {
 }
 
 const extraCss = `
-.sm-fhl-home { display:flex; flex-direction:column; gap:var(--sm-space-5); max-width:920px; }
-.sm-fhl-home h1 { margin:0; font:var(--sm-type-title) var(--sm-font-display); }
-.sm-fhl-anchor { display:flex; flex-direction:column; gap:var(--sm-space-2); }
-.sm-fhl-anchor textarea { min-height:120px; resize:vertical; }
-.sm-fhl-examples { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); }
-.sm-fhl-examples button { min-height:var(--sm-touch); }
-.sm-fhl-recent { display:flex; flex-direction:column; gap:var(--sm-space-1); }
-.sm-fhl-recent li { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); align-items:center; list-style:none; }
+.sm-fhl > header.sm-fhl-toolbar { padding:8px 16px; border-bottom:1px solid var(--sm-line); background:var(--sm-nav); }
+.sm-fhl-rail { display:flex; gap:8px; padding:4px 16px; font-size:12px; }
+.sm-fhl-rail button { min-height:28px; border:0; padding:0 4px; color:var(--sm-muted); }
+.sm-fhl main { flex:1; min-height:0; display:flex; flex-direction:column; }
+.sm-fhl[data-view="home"] main { padding:32px 20px 40px; }
+.sm-fhl[data-view="workspace"] main { padding:0; }
+.sm-fhl-home { display:flex; flex-direction:column; gap:16px; width:min(520px, 100%); margin:0 auto; }
+.sm-fhl-home h1 { margin:0; font:500 22px/28px var(--sm-font-display); }
+.sm-fhl-home p { margin:0; color:var(--sm-muted); font-size:13px; }
+.sm-fhl-anchor { display:flex; flex-direction:column; gap:10px; }
+.sm-fhl-anchor textarea { min-height:72px; resize:vertical; }
+.sm-fhl-examples { display:flex; flex-wrap:wrap; gap:8px; }
+.sm-fhl-examples button { min-height:28px; min-width:unset; padding:4px 12px; border-radius:999px; font-size:12px; background:var(--sm-glass); }
+.sm-fhl-quiet { border:0 !important; min-height:28px !important; min-width:unset; padding:0 4px !important; color:var(--sm-lilac); background:transparent !important; }
+.sm-fhl-recent { display:flex; flex-direction:column; gap:8px; }
+.sm-fhl-recent h2 { margin:0; font:500 13px/18px var(--sm-font-body); color:var(--sm-muted); }
+.sm-fhl-recent li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; list-style:none; font-size:13px; }
 .sm-fhl-recent ul { margin:0; padding:0; }
-.sm-fhl-workspace-heading { margin:0 0 var(--sm-space-2); font:600 16px/24px var(--sm-font-body); }
-.sm-fhl-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,360px); gap:var(--sm-space-3); min-height:0; }
+.sm-fhl-recent li button { min-height:28px; }
+.sm-fhl-workspace-heading { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.sm-fhl-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,280px); grid-template-rows:auto minmax(520px,1fr) auto; gap:0; min-height:0; flex:1; }
 .sm-fhl[data-panel="closed"] .sm-fhl-workspace { grid-template-columns:minmax(0,1fr); }
-.sm-fhl-preview { min-width:0; border:1px solid var(--sm-line); border-radius:var(--sm-radius-control); position:relative; background:var(--sm-glass); }
-.sm-fhl-preview iframe { display:block; width:100%; min-height:480px; border:0; background:#fff; }
-.sm-fhl-hit { position:absolute; inset:0; display:flex; flex-wrap:wrap; gap:var(--sm-space-1); align-content:flex-start; padding:var(--sm-space-2); }
-.sm-fhl-float { position:absolute; bottom:var(--sm-space-3); left:var(--sm-space-3); display:flex; flex-wrap:wrap; gap:var(--sm-space-1); background:var(--sm-nav); padding:var(--sm-space-2); border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control); }
-.sm-fhl-toolbar { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); align-items:center; }
-.sm-fhl-assets { margin-top:var(--sm-space-3); }
-.sm-fhl-context h2 { margin:0 0 var(--sm-space-2); font:600 16px/24px var(--sm-font-body); }
-.sm-fhl-patch { border:1px solid var(--sm-line-strong); padding:var(--sm-space-3); border-radius:var(--sm-radius-control); }
-.sm-leave-prompt { margin:var(--sm-space-3) 0; display:flex; flex-direction:column; gap:var(--sm-space-2); padding:var(--sm-space-3); border:1px solid var(--sm-line-strong); border-radius:var(--sm-radius-control); }
-.sm-leave-prompt h2 { margin:0; font:600 16px/24px var(--sm-font-body); }
-.sm-leave-prompt p { margin:0; }
-.sm-leave-prompt-actions { display:flex; flex-wrap:wrap; gap:var(--sm-space-2); }
+.sm-fhl-workspace > .sm-fhl-toolbar { grid-column:1 / -1; padding:8px 12px; border-bottom:1px solid var(--sm-line); background:var(--sm-nav); }
+.sm-fhl-preview { min-width:0; min-height:520px; position:relative; background:#0a0711; display:flex; flex-direction:column; }
+.library-html-container { position:relative; min-height:0; flex:1; display:flex; flex-direction:column; }
+.library-html-iframe { display:block; width:100%; flex:1; min-height:520px; border:0; background:#fff; }
+.sm-fhl-preview iframe, .sm-fhl-preview [data-testid="fhl-live-preview"] { display:block; width:100%; flex:1; min-height:520px; border:0; background:#fff; }
+.sm-fhl-preview [data-testid="fhl-live-preview"] { height:100%; }
+.sm-fhl-hit { position:absolute; inset:0; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; padding:8px; }
+.sm-fhl-hit button { min-height:28px; font-size:12px; background:rgba(9,5,13,.72); }
+.sm-fhl-float { position:absolute; bottom:12px; left:12px; display:flex; flex-wrap:wrap; gap:6px; background:rgba(15,11,23,.92); padding:8px; border:1px solid var(--sm-line); border-radius:12px; max-width:min(720px, calc(100% - 24px)); }
+.sm-fhl-float button, .sm-fhl-float select { min-height:28px; font-size:12px; }
+.sm-fhl-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.sm-fhl-assets { margin-top:8px; font-size:13px; color:var(--sm-muted); }
+.sm-fhl-assets summary { min-height:28px; border:0; padding:0; }
+.sm-fhl-context { border-left:1px solid var(--sm-line); padding:12px; background:var(--sm-nav); overflow:auto; }
+.sm-fhl-context h2 { margin:0 0 8px; font:500 14px/20px var(--sm-font-body); }
+.sm-fhl-patch { border-top:1px solid var(--sm-line); padding:10px 12px; background:var(--sm-nav); grid-column:1 / -1; }
+.sm-leave-prompt { margin:12px 16px; display:flex; flex-direction:column; gap:8px; padding:12px 16px; border:1px solid var(--sm-line-strong); border-radius:12px; background:var(--sm-nav); }
+.sm-leave-prompt h2 { margin:0; font:500 16px/24px var(--sm-font-body); }
+.sm-leave-prompt p { margin:0; color:var(--sm-muted); }
+.sm-leave-prompt-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.sm-fhl [data-testid="fhl-message"], .sm-fhl [data-testid="fhl-live"] { margin:0; padding:6px 16px; font-size:12px; color:var(--sm-muted); }
 @media (max-width: 1280px) {
   .sm-fhl-workspace { grid-template-columns:minmax(0,1fr); }
 }
@@ -84,13 +105,13 @@ function LibraryHome({ store }: { store: Store }) {
         <textarea id="fhl-prompt" data-testid="fhl-prompt" value={state.prompt} onChange={event => store.setPrompt(event.target.value)} placeholder="描述想生成的页面……" />
         <div className="sm-fhl-toolbar">
           <button type="submit" className="sm-fhl-generate" data-testid="fhl-generate" disabled={state.busy}>{state.busy ? '生成中…' : '生成页面'}</button>
-          <button type="button" data-testid="fhl-add-data" onClick={() => store.setDataContext({ attached: true, label: '可选数据未绑定，仍可生成' })}>添加数据（可选）</button>
-          <button type="button" data-testid="fhl-add-design" onClick={() => {
+          <button type="button" className="sm-fhl-quiet" data-testid="fhl-add-data" onClick={() => store.setDataContext({ attached: true, label: '可选数据未绑定，仍可生成' })}>添加数据</button>
+          <button type="button" className="sm-fhl-quiet" data-testid="fhl-add-design" onClick={() => {
             store.setDesignGuide({ kind: 'design.md', loaded: false, error: '未读到 DESIGN.md 文件' });
             store.setSkill({ loaded: false, error: '未读到 skill' });
-          }}>DESIGN.md / skill（可选）</button>
+          }}>DESIGN.md / skill</button>
         </div>
-        <p data-testid="fhl-optional-hint">{state.dataContext?.label || '没有数据或设计指导也能生成。'}{state.designGuide?.loaded ? ' 已附加设计指导。' : state.designGuide?.error ? ` ${state.designGuide.error}` : ''}{state.skill?.loaded ? ' 已附加 skill。' : ''}</p>
+        <p data-testid="fhl-optional-hint">{state.dataContext?.label || '在对话里说要什么页也可以。没有数据或设计指导也能生成。'}{state.designGuide?.loaded ? ' 已附加设计指导。' : state.designGuide?.error ? ` ${state.designGuide.error}` : ''}{state.skill?.loaded ? ' 已附加 skill。' : ''}</p>
       </form>
       <div className="sm-fhl-examples" data-testid="fhl-examples">
         {SAMPLE_PROMPTS.map(text => <button type="button" key={text} onClick={() => store.applyExample(text)}>{text}</button>)}
@@ -122,7 +143,7 @@ function LivePreviewSlot({
   pageId: string;
   version: number;
   pkg: { html?: string; css?: string; js?: string; resources?: unknown[] };
-  pointerEvents: string;
+  pointerEvents: NonNullable<CSSProperties['pointerEvents']>;
 }) {
   const slot = useRef<HTMLDivElement>(null);
   const hostRef = useRef<ReturnType<typeof mountPreviewHost> | null>(null);
@@ -151,11 +172,35 @@ function LivePreviewSlot({
   return <div ref={slot} data-testid="fhl-live-preview" />;
 }
 
-function Workspace({ store, goConversation }: { store: Store; goConversation(): void }) {
+function WorkspacePreview({ srcdoc, live, pageId, version, pkg, pointerEvents }: {
+  srcdoc?: string;
+  live: boolean;
+  pageId?: string;
+  version?: number;
+  pkg?: { html?: string; css?: string; js?: string; resources?: unknown[] };
+  pointerEvents: NonNullable<CSSProperties['pointerEvents']>;
+}) {
+  if (srcdoc && live && pageId != null && version != null && pkg) {
+    return <LivePreviewSlot pageId={pageId} version={version} pkg={pkg} pointerEvents={pointerEvents} />;
+  }
+  if (srcdoc) {
+    return <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" className="library-html-iframe" srcDoc={srcdoc} sandbox={FREE_PAGE_SANDBOX} referrerPolicy={FREE_PAGE_REFERRER_POLICY} style={{ pointerEvents }} />;
+  }
+  return <p data-testid="fhl-preview-stopped">预览已停止。宿主入口仍可用。</p>;
+}
+
+function Workspace({ store, goConversation, editMode = false, previewRef }: {
+  store: Store;
+  goConversation(): void;
+  editMode?: boolean;
+  previewRef: { current: HTMLDivElement | null };
+}) {
   const state = store.getSnapshot();
   const layout = store.layout();
   const locatable = state.current?.package.node_map ?? [];
   const livePkg = state.preview?.snapshot ?? state.current?.package;
+  const iframePointerEvents: NonNullable<CSSProperties['pointerEvents']> = editMode ? 'auto' : layout.pointerEvents;
+  const srcdoc = layout.srcdoc;
   return (
     <section data-testid="fhl-workspace" aria-labelledby="fhl-workspace-title">
       <h2 id="fhl-workspace-title" className="sm-fhl-workspace-heading">页面工作区</h2>
@@ -172,13 +217,11 @@ function Workspace({ store, goConversation }: { store: Store; goConversation(): 
         <button type="button" data-testid="fhl-inspect" onClick={() => store.inspectCurrent()}>页面检查</button>
       </div>
       <div className="sm-fhl-workspace">
-        <div className="sm-fhl-preview" data-testid="fhl-preview" data-mode={state.mode}>
-          {layout.srcdoc && state.adapterKind === 'p12-live' && livePkg && state.current
-            ? <LivePreviewSlot pageId={state.current.page_id} version={state.current.version} pkg={livePkg} pointerEvents={layout.pointerEvents} />
-            : layout.srcdoc
-              ? <iframe title="自由 HTML 页面预览" data-testid="fhl-iframe" srcDoc={layout.srcdoc} sandbox="allow-scripts" style={{ pointerEvents: layout.pointerEvents }} />
-              : <p data-testid="fhl-preview-stopped">预览已停止。宿主入口仍可用。</p>}
-          {state.mode === 'edit' ? <div className="sm-fhl-hit" data-testid="fhl-hit-layer">
+        <div ref={previewRef} className="sm-fhl-preview library-html-container" data-testid="fhl-preview" data-mode={state.mode} data-edit-mode={editMode ? '1' : '0'} style={{ position: 'relative' }}>
+          <WorkspacePreview srcdoc={srcdoc} live={state.adapterKind === 'p12-live' && Boolean(livePkg && state.current)}
+            pageId={state.current?.page_id} version={state.current?.version} pkg={livePkg} pointerEvents={iframePointerEvents} />
+          {editMode ? <HtmlHoverLayer iframeRef={previewRef} editMode={editMode} /> : null}
+          {state.mode === 'edit' && !editMode ? <div className="sm-fhl-hit" data-testid="fhl-hit-layer">
             {locatable.map(node => (
               <button type="button" key={node.node_id} data-testid={`fhl-hit-${node.node_id}`}
                 onClick={() => store.selectLocatable({
@@ -188,23 +231,6 @@ function Workspace({ store, goConversation }: { store: Store; goConversation(): 
                 {node.kind === 'dynamic_region' ? '动态区域' : '元素'} · {node.node_id}
               </button>
             ))}
-          </div> : null}
-          {state.mode === 'edit' ? <div className="sm-fhl-float" data-testid="fhl-selection-chrome" role="toolbar" aria-label="选区动作">
-            <span data-testid="fhl-scope-label">{state.selection?.ok ? `当前范围：${state.selection.label}` : state.selection?.stale ? '映射已失效，请重新选择' : '尚未选择'}</span>
-            <button type="button" data-testid="fhl-select-element" onClick={() => store.selectLocatable({ kind: 'static_element', node_id: 'n_title', mapping: 'valid' })}>选择元素</button>
-            <button type="button" data-testid="fhl-select-region" onClick={() => store.selectLocatable({ kind: 'dynamic_region', node_id: 'r_chart', mapping: 'valid' })}>选择动态区域</button>
-            <button type="button" data-testid="fhl-select-page" onClick={() => store.selectWholePage()}>切换到整页</button>
-            <button type="button" data-testid="fhl-reselect" onClick={() => store.selectLocatable({ kind: 'static_element', node_id: 'n_missing', mapping: 'stale' })}>模拟失效映射</button>
-            <label htmlFor="fhl-next-node">键盘选择可定位区域</label>
-            <select id="fhl-next-node" data-testid="fhl-node-list" value={state.selection?.node_id ?? ''} onChange={event => {
-              const node = locatable.find(item => item.node_id === event.target.value);
-              if (node) store.selectLocatable({ kind: node.kind === 'dynamic_region' ? 'dynamic_region' : 'static_element', node_id: node.node_id, mapping: 'valid' });
-            }}>
-              <option value="">选择下一个可定位区域</option>
-              {locatable.map(node => <option key={node.node_id} value={node.node_id}>{node.kind === 'dynamic_region' ? '动态区域' : '元素'} · {node.node_id}</option>)}
-            </select>
-            <button type="button" data-testid="fhl-ai-from-selection" onClick={() => store.openContext('ai')}>AI 编辑</button>
-            <button type="button" data-testid="fhl-clear-selection" onClick={() => store.clearSelection()}>取消选区</button>
           </div> : null}
         </div>
         {state.contextPanel ? <aside className="sm-fhl-context" data-testid="fhl-context" data-panel={state.contextPanel} aria-labelledby="fhl-context-title">
@@ -241,13 +267,14 @@ function Workspace({ store, goConversation }: { store: Store; goConversation(): 
 
 export function FreeHtmlLibraryApp({
   goConversation, themeSource, store: provided, viewportWidth = 1440,
-  hostOwnsConversationLeave = false,
+  hostOwnsConversationLeave = false, editMode = false,
 }: {
   goConversation(): void;
   themeSource: ThemeSource;
   store?: Store;
   viewportWidth?: number;
   hostOwnsConversationLeave?: boolean;
+  editMode?: boolean;
 }) {
   const store = useMemo(
     () => provided ?? createFreeHtmlLibraryStore({ viewportWidth }),
@@ -257,6 +284,7 @@ export function FreeHtmlLibraryApp({
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [restore, setRestore] = useState('');
   useEffect(() => { store.setViewport(viewportWidth); }, [store, viewportWidth]);
   useEffect(() => {
@@ -319,7 +347,7 @@ export function FreeHtmlLibraryApp({
           </div>
         </div> : null}
         <main id="fhl-main" tabIndex={-1} ref={heading}>
-          {state.view === 'home' ? <LibraryHome store={store} /> : <Workspace store={store} goConversation={goConversation} />}
+          {state.view === 'home' ? <LibraryHome store={store} /> : <Workspace store={store} goConversation={goConversation} editMode={editMode} previewRef={previewRef} />}
         </main>
         <span hidden data-testid="fhl-restore">{restore}</span>
       </div>

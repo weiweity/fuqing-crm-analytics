@@ -1,0 +1,264 @@
+/* DSH Light 色值系统 */
+:root {
+  --dsh-bg: #f7f7f7;          /* 灰底 */
+  --dsh-ink: #171717;         /* 墨文本 */
+  --dsh-secondary: #737373;   /* 次要文本 */
+  --dsh-line: #e8e8e8;        /* 线/边框 */
+  --dsh-accent: #ff6b35;      /* 橙色强调（编辑态） */
+}
+
+/* 返回按钮 */
+.cockpit-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--dsh-bg);
+  color: var(--dsh-ink);
+  border: 1px solid var(--dsh-line);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.cockpit-back-btn:hover {
+  background: var(--dsh-line);
+}
+
+/* 编辑按钮 */
+.cockpit-edit-btn {
+  padding: 8px 16px;
+  background: var(--dsh-bg);
+  color: var(--dsh-ink);
+  border: 1px solid var(--dsh-line);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.cockpit-edit-btn:hover {
+  background: var(--dsh-line);
+}
+
+/* 编辑态（Task-B 会用到） */
+.cockpit-edit-btn.active {
+  color: var(--dsh-accent);
+}
+
+/* 页头容器 */
+.cockpit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 24px;
+  background: white;
+  border-bottom: 1px solid var(--dsh-line);
+}
+
+.cockpit-header-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--dsh-ink);
+}
+
+/* Beat the workspace generic button chrome (same specificity needs a later/longer selector). */
+.sm-library-workspace .cockpit-header {
+  grid-column: 1 / -1;
+}
+
+.sm-library-workspace button.cockpit-back-btn,
+.sm-library-workspace button.cockpit-edit-btn {
+  background: var(--dsh-bg);
+  color: var(--dsh-ink);
+  border: 1px solid var(--dsh-line);
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 0;
+}
+
+.sm-library-workspace button.cockpit-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.sm-library-workspace button.cockpit-edit-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.sm-library-workspace button.cockpit-back-btn:hover,
+.sm-library-workspace button.cockpit-edit-btn:hover {
+  background: var(--dsh-line);
+}
+
+.sm-library-workspace button.cockpit-edit-btn.active {
+  color: var(--dsh-accent);
+}
+
+/* 主区：产物画布 + 侧轨 */
+.library-cockpit-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.library-content-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transition: width 300ms ease-out;
+}
+
+/* 侧轨容器 */
+.cockpit-sidebar {
+  box-sizing: border-box;
+  flex: 0 0 320px;
+  width: 320px;
+  max-width: 320px;
+  height: 100%;
+  background: var(--dsh-bg);
+  border-left: 1px solid var(--dsh-line);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  will-change: transform;
+  overflow: hidden;
+  animation: slideInRight 300ms ease-out;
+}
+
+.cockpit-sidebar-leave {
+  animation: slideOutRight 300ms ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    flex-basis: 0;
+    width: 0;
+    max-width: 0;
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    flex-basis: 320px;
+    width: 320px;
+    max-width: 320px;
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    flex-basis: 320px;
+    width: 320px;
+    max-width: 320px;
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    flex-basis: 0;
+    width: 0;
+    max-width: 0;
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* 侧轨头部 */
+.cockpit-sidebar-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--dsh-line);
+}
+
+.cockpit-sidebar-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--dsh-ink);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 150ms ease-out;
+}
+
+.cockpit-sidebar-close:hover {
+  background: var(--dsh-line);
+}
+
+.sm-library-workspace button.cockpit-sidebar-close {
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsh-ink);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sm-library-workspace button.cockpit-sidebar-close:hover {
+  background: var(--dsh-line);
+}
+
+/* 侧轨主体（阶段 1 空白） */
+.cockpit-sidebar-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* 侧轨底部 placeholder */
+.cockpit-sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--dsh-line);
+}
+
+.cockpit-sidebar-placeholder {
+  margin: 0;
+  color: var(--dsh-secondary);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.cockpit-sidebar-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cockpit-sidebar-tools button {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--dsh-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--dsh-ink);
+  font: 500 13px/18px inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cockpit-sidebar-tools button:hover {
+  background: var(--dsh-line);
+}

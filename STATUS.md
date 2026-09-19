@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.8**。origin/main **`22a0028f`**（#210）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.9**（本分支候选）。origin/main **`22a0028f`**（#210）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.2**（`ddefc45f`）。6677 PID **637** remainder 无 `--fresh`。隔离页库 `127.0.0.1:18091`（`--page-http on`）。 |
 | 产品 | 仍 PARTIAL。自由 HTML 已合 #209+#210；P13 真模型样本未跑。Goal PAUSED。账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED。131GB 只读元数据，禁止复制／改写／全表扫描 |
@@ -17,7 +17,11 @@
 
 ### 自由 HTML 驾驶舱（Git 已合，现役已 reload）
 
-[#209](https://github.com/weiweity/fuqing-crm-analytics/pull/209) 装配六路；[#210](https://github.com/weiweity/fuqing-crm-analytics/pull/210) `22a0028f` 接通生成工具、隔离 HTTP、驾驶舱离开。A–F/G/H/K/P12/SEAMS 工作树已删。入口：侧栏驾驶舱 → **自由页面**。保存打 18091，拒绝写 6677。剩余：P13 三场景、宿主壳接 DESIGN.md/Ant Design、侧栏 veto 已接受限制、`openPlazaRole`、Noto 字体。[施工包](docs/hackathon/free-html-cockpit/README.md) 仍本地未跟踪。产品仍 PARTIAL，不是 READY_FOR_SHIP。
+[#209](https://github.com/weiweity/fuqing-crm-analytics/pull/209) 装配六路；[#210](https://github.com/weiweity/fuqing-crm-analytics/pull/210) `22a0028f` 接通生成工具、隔离 HTTP、驾驶舱离开。A–F/G/H/K/P12/SEAMS 工作树已删。入口：侧栏驾驶舱打开独立二级页产物柜（HTML／看板／CSV）；已存自由页仍在柜里。保存打 18091，拒绝写 6677。剩余：P13 三场景、宿主壳接 DESIGN.md/Ant Design、侧栏 veto 已接受限制、`openPlazaRole`、Noto 字体。[施工包](docs/hackathon/free-html-cockpit/README.md) 仍本地未跟踪。产品仍 PARTIAL，不是 READY_FOR_SHIP。
+
+### 驾驶舱产物柜（本分支 0.9.0.9 候选，未合 main）
+
+侧栏 `cockpit` 左栏「产物文件夹」合并已存自由页、看板和工作区 html/xlsx/csv/pdf（最多两层、80 条；`cockpit-products.mjs`）。页头「编辑」留在本页，打开侧轨（看板：调整布局／回退这一版）。HTML 画布 `[data-shine-node]` 悬停仅视觉。去掉路径栏第二编辑入口和点板块进原生对话。工作区 HTML 预览注入 FREE_PAGE CSP 与 no-referrer；Host list/read 解开 RemoteResult 并读到 eof。不改 DSH 上游。合入不等于 6677 reload 或 P13 完成。
 
 ### 已有产品与历史交付基线
 

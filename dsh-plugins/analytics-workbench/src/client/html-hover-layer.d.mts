@@ -1,0 +1,13 @@
+export const HOVER_STYLE_ID: string;
+export const HOVER_CLASS: string;
+export const FALLBACK_SELECTOR: string;
+export const HOVER_STYLE_TEXT: string;
+export function srcdocHasHoverRuntime(html: string | null | undefined): boolean;
+export function htmlWithHoverRuntime(html: string | null | undefined): string;
+export function resolveIframe(target: Element | null | undefined): HTMLIFrameElement | null;
+export function readIframeDocument(iframe: HTMLIFrameElement | null | undefined): Document | null;
+export function injectHoverStyle(doc: Document | null | undefined): HTMLStyleElement | null;
+export function shineNodes(doc: Document | null | undefined): Element[];
+export function ensureShineNodes(doc: Document): Element[];
+export function bindShineNodeHover(doc: Document | null | undefined): () => void;
+export function attachHoverToIframe(target: Element | null | undefined): () => void;

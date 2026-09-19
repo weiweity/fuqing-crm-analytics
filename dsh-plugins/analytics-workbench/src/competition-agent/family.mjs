@@ -1,4 +1,6 @@
 /** Competition-growth skill family. Grok registers this into pack-skills/FAMILIES. */
+import { PAGE_GENERATE_TOOL_NAME } from './page-family.mjs';
+export { PAGE_GENERATE_TOOL_NAME };
 
 export const SKILL_NAME = 'competition-growth';
 export const RESOURCE_TOOL_NAME = 'competition_growth_skill_resource';
@@ -21,6 +23,7 @@ export const REGISTERED_TOOLS = Object.freeze([
   RESOURCE_TOOL_NAME, CAPABILITIES_TOOL_NAME, STEP_TOOL_NAME, PATCH_TOOL_NAME,
   BOARD_CATALOG_TOOL_NAME, BOARD_GENERATE_TOOL_NAME,
   BOARD_EDIT_CONTEXT_TOOL_NAME, BOARD_EDIT_TOOL_NAME,
+  PAGE_GENERATE_TOOL_NAME,
 ]);
 export const FORBIDDEN_EXPANSIONS = Object.freeze([
   '/api/v1/audience/table', '/api/v1/audience/summary', '/api/v1/analytics/catalog',

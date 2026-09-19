@@ -18,7 +18,7 @@ import {
 } from '../model.mjs';
 import { css, markCss } from './styles.ts';
 import { trapDialogTab } from './focus.ts';
-import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, retainMainView } from '../initial-session.mjs';
+import { B0_PRIMARY_SESSION_ID, QUERY_SESSION_IDS, bindInitialSession, mainViewSessionId, resolvePageGenerateSession, retainMainView } from '../initial-session.mjs';
 import { QUERY_TOOL_NAME } from '../query-model.mjs';
 import { FIRST_PURCHASE_TOOL_NAME } from '../first-purchase-query-model.mjs';
 import { QueryToolCard } from './query-card.tsx';
@@ -48,9 +48,8 @@ import { createNativePageGenerate, createPagePackageWaiter, extractPagePackage }
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
-import { createCockpitComposition } from './cockpit-composition.mjs';
+import { collectWorkspaceProducts, fileResourceAddress, isSafeWorkspaceRelPath, unwrapRemoteValue } from './cockpit-products.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
-import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 import { AccountMenu, LoginFooter, ThemeFooter, createAccountStore } from './account-chrome.tsx';
 
@@ -409,15 +408,23 @@ export function apply(ctx: Context): void {
   const accountStore = createAccountStore();
   const boardLive = createWorkbenchStore(DEMO_BOARD).create();
   const connection = ctx.get?.('connection') as ConnectionHandle | undefined;
-  const composition = connection?.rpc?.call && typeof ctx.layout?.selectPanel === 'function'
-    ? createCockpitComposition({ sessions: ctx.sessions, layout: ctx.layout }) : undefined;
+  let leaveAdapter: HostLeaveAdapter | undefined;
   const library = connection?.rpc?.call
     ? createLibraryBoardClient((channel, operation, payload, signal) => callBoardConnection(connection.rpc, channel, operation, payload, signal), {
       async editNative(context) {
         const sessionId = ctx.sessions.list.getSnapshot().ids.find(id => id === context.session_id);
         if (!sessionId) throw new Error('此看板的原生会话当前不可用；已保存内容仍可查看，请恢复原会话后编辑。');
-        if (composition) { composition.open(sessionId); composition.revealChat(); }
-        else { retainMainView(ctx.sessions, sessionId); ctx.layout?.selectPanel(null); }
+        retainMainView(ctx.sessions, sessionId);
+        if (leaveAdapter) {
+          const result = await leaveAdapter.request('conversation');
+          if (result !== 'navigated') {
+            throw new Error(result === 'prompt'
+              ? '请先处理未保存的草稿，再转入原生对话描述修改。'
+              : '当前无法转入原生对话；选中目标保留，可重试。');
+          }
+        } else {
+          try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
+        }
         const reply = await ctx.remote.session.prompt({
           sessionId, requestId: `board-edit-${crypto.randomUUID()}` as never,
           mode: 'queue', clientTimeZone: 'Asia/Shanghai',
@@ -436,21 +443,23 @@ export function apply(ctx: Context): void {
     nativeGenerate: createNativePageGenerate({
       waiter: pagePackageWaiter,
       submitPrompt: async (prompt, extras) => {
-        const ids = ctx.sessions.list.getSnapshot().ids ?? [];
-        const sessionId = ids.find(id => id === B0_PRIMARY_SESSION_ID) ?? ids[0];
-        if (!sessionId || typeof ctx.remote?.session?.prompt !== 'function') {
+        const list = ctx.sessions.list.getSnapshot();
+        const sessionId = resolvePageGenerateSession(list);
+        const requestId = extras?.requestId;
+        if (!sessionId || typeof requestId !== 'string' || !PAGE_REQUEST_ID_PATTERN.test(requestId)
+          || typeof ctx.remote?.session?.prompt !== 'function') {
           const error = new Error('原生 Agent 未返回页面源码包');
           (error as Error & { code?: string }).code = 'NATIVE_GENERATE_UNAVAILABLE';
           throw error;
         }
         return ctx.remote.session.prompt({
           sessionId: sessionId as never,
-          requestId: `page-gen-${crypto.randomUUID()}` as never,
+          requestId: requestId as never,
           mode: 'queue',
           clientTimeZone: 'Asia/Shanghai',
           content: [{
             type: 'text',
-            text: `请生成自由 HTML 页面。先用文本给出说明，然后必须调用 ${PAGE_GENERATE_TOOL_NAME} 工具交付页面源码包（字段 html、css、js、resources、node_map），并把这个标识逐字填入 request_id：${extras?.requestId}。不要使用 BoardSpec，不要回退到示例页面。提示：${prompt}`,
+            text: `请生成自由 HTML 页面。先用文本给出说明，然后必须调用 ${PAGE_GENERATE_TOOL_NAME} 工具交付页面源码包（字段 html、css、js、resources、node_map），并把这个标识逐字填入 request_id：${requestId}。不要使用 BoardSpec，不要回退到示例页面。提示：${prompt}`,
           }],
         });
       },
@@ -485,22 +494,13 @@ export function apply(ctx: Context): void {
     // Deferred: the adapter owns the host setter, and it is constructed around
     // this coordinator. By the time any intent resolves, both exist.
     navigate: (intent: { kind: string; id?: string | null }): Promise<void> => {
-      if (intent.kind === 'panel' && intent.id === COCKPIT_PANEL_ID) {
-        if (composition) {
-          const state = library!.getSnapshot();
-          composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-          return Promise.resolve();
-        }
-        return leaveAdapter!.perform({ ...intent, kind: 'panel', id: COCKPIT_PANEL_ID });
-      }
       return leaveAdapter!.perform(intent);
     },
   }) : undefined;
-  const leaveAdapter: HostLeaveAdapter | undefined = leaveCoordinator
+  leaveAdapter = leaveCoordinator
     ? createHostLeaveAdapter({ coordinator: leaveCoordinator, layout: ctx.layout }) : undefined;
   ctx.effect(() => () => leaveAdapter?.dispose(), 'analytics-board: leave adapter lifetime');
   ctx.effect(() => () => leaveCoordinator?.dispose(), 'analytics-board: leave coordinator lifetime');
-  ctx.effect(() => () => composition?.dispose(), 'analytics-board: native composition lifetime');
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
@@ -515,11 +515,6 @@ export function apply(ctx: Context): void {
       return true;
     }
     try {
-      if (composition && library) {
-        const state = library.getSnapshot();
-        composition.open((state.preview?.snapshot ?? state.saved)?.spec.session_id);
-        return true;
-      }
       layout.selectPanel(COCKPIT_PANEL_ID as MainPanelId);
       return true;
     } catch {
@@ -535,15 +530,10 @@ export function apply(ctx: Context): void {
   const goConversation = (): void => {
     if (!leaveAdapter) {
       // No library client to protect (pack disabled): keep the original switch.
-      composition?.close();
       try { ctx.layout?.selectPanel(null); } catch { /* stay on the current panel */ }
       return;
     }
-    void leaveAdapter.request('conversation').then((result: 'navigated' | 'prompt' | 'busy' | 'stayed') => {
-      if (result === 'navigated') composition?.close();
-      // 'prompt' keeps the cockpit open while the three choices are shown;
-      // 'busy' means an earlier intent is still resolving — do not queue a second.
-    }).catch(() => {
+    void leaveAdapter.request('conversation').catch(() => {
       // The host refused the switch: stay on the current page rather than
       // unloading the library state.
     });
@@ -560,10 +550,59 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
-  if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
-    inject: () => ({ composition, library, themeSource, pageStore }),
-  }, CockpitCompositionOverlay));
+  const remoteWorkspaceFiles = () => {
+    try {
+      return (ctx.remote as unknown as {
+        workspaceFiles?: {
+          list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown>;
+          read?: (sessionId: string, path: string, range?: { offset?: number; limit?: number }, signal?: AbortSignal) => Promise<unknown>;
+        };
+      }).workspaceFiles;
+    } catch {
+      return undefined;
+    }
+  };
+  const listWorkspaceFiles = async () => {
+    const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot());
+    const workspaceFilesApi = remoteWorkspaceFiles();
+    const list = workspaceFilesApi?.list;
+    if (!sessionId || typeof list !== 'function') return [];
+    return collectWorkspaceProducts((id, path, signal) => list.call(workspaceFilesApi, id, path, signal), sessionId);
+  };
+  const openWorkspaceFile = (product: { sessionId?: string; path?: string }) => {
+    const openResource = (ctx as unknown as { sidebarRight?: { openResource?(address: string): void } }).sidebarRight?.openResource;
+    if (!product?.sessionId || !product?.path || typeof openResource !== 'function') return;
+    if (!isSafeWorkspaceRelPath(product.path)) return;
+    const address = fileResourceAddress(product.sessionId, product.path);
+    if (!address) return;
+    openResource(address);
+  };
+  const readWorkspaceFile = async (product: { sessionId?: string; path?: string }) => {
+    const workspaceFilesApi = remoteWorkspaceFiles();
+    const read = workspaceFilesApi?.read;
+    if (!product?.sessionId || !product?.path || typeof read !== 'function') return null;
+    if (!isSafeWorkspaceRelPath(product.path)) return null;
+    try {
+      const chunks: string[] = [];
+      let offset = 1;
+      for (let pageIndex = 0; pageIndex < 32; pageIndex += 1) {
+        const raw = await read.call(workspaceFilesApi, product.sessionId, product.path, { offset, limit: 4000 });
+        const first = unwrapRemoteValue(raw) as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown; value?: unknown } | null;
+        const nested = first && typeof first.text !== 'string' && first.value && typeof first.value === 'object'
+          ? first.value as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown }
+          : null;
+        const page = first && typeof first.text === 'string' ? first : nested;
+        if (!page || typeof page.text !== 'string' || !page.text) break;
+        chunks.push(page.text);
+        if (page.eof === true || typeof page.lines !== 'number' || page.lines <= 0) break;
+        const start = typeof page.offset === 'number' ? page.offset : offset;
+        offset = start + page.lines;
+      }
+      return chunks.length ? chunks.join('\n') : null;
+    } catch {
+      return null;
+    }
+  };
   /**
    * The N14 three-choice prompt. It is its own overlay so the leave transaction
    * (Lane F) stays out of the composition/workspace components (Lane E): those
@@ -687,8 +726,10 @@ export function apply(ctx: Context): void {
         themeSource,
         board: boardLive,
         library,
-        composition,
         pageStore,
+        listWorkspaceFiles,
+        openWorkspaceFile,
+        readWorkspaceFile,
         askTransport: http
           ? {
             fetchImpl: http.fetchImpl,

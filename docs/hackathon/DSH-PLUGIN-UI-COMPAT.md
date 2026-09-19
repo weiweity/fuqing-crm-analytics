@@ -1,6 +1,6 @@
 # DSH 插件 UI 兼容
 
-现役对照 [STATUS](../../STATUS.md)：origin/main **`7a465316`**（[#207](https://github.com/weiweity/fuqing-crm-analytics/pull/207)）。DSH **0.1.6-alpha.2**（`ddefc45f`）。不改上游源码。不把插件可加载或单项测试写成整壳兼容通过、正式 release 或 6677 已 reload。
+现役对照 [STATUS](../../STATUS.md)：origin/main **`22a0028f`**（[#210](https://github.com/weiweity/fuqing-crm-analytics/pull/210)）。本分支 VERSION **0.9.0.9** 候选。DSH **0.1.6-alpha.2**（`ddefc45f`）。不改上游源码。不把插件可加载或单项测试写成整壳兼容通过、正式 release 或 6677 已 reload。
 
 插槽登记以 `dsh-plugins/analytics-workbench/src/client/index.tsx` 与 `shine-brand` 为准；细节见 [workbench README](../../dsh-plugins/analytics-workbench/README.md)。
 
@@ -32,6 +32,7 @@
 - 侧栏灰玻璃、主聊天纯白；发送/停止统一品牌色（含「停止生成」）。
 - 登录未登录显示「未登录」；本机 `localStorage` 写入显示名称后显示名字/飞书。不是飞书 OAuth。
 - DESIGN.md 的 Deep Plum / Outfit / 44px 不套到 DSH 壳。按钮跟上游 36px。
+- 侧栏驾驶舱 `main` 是独立二级页产物柜（本会话 HTML／看板／CSV）；页头「编辑」留在本页，侧轨调整布局／回退。HTML `[data-shine-node]` 悬停仅视觉。
 - 证据：`plugin-ui-native-chrome`、`plugin-ui-lifecycle`、`account-identity`。不是浏览器 UAT、不是 Figma 过关。
 
 ## 2026-09-09 候选附录（不是现役）

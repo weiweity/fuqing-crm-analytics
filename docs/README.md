@@ -1,7 +1,7 @@
 # Docs 索引
 
 > 按 lifecycle 分层，新人约 5 分钟找到入口。  
-> **最后更新**: 2026-09-18。VERSION **0.9.0.8**，非正式 release。origin/main **`7a465316`**（[#207](https://github.com/weiweity/fuqing-crm-analytics/pull/207)）。DSH **0.1.6-alpha.2**（`ddefc45f`）。0.8.0.0 基线仍是 #129 `a729ff6`。最新 Git HEAD 与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
+> **最后更新**: 2026-09-19。VERSION **0.9.0.9**（本分支候选），非正式 release。origin/main **`22a0028f`**（[#210](https://github.com/weiweity/fuqing-crm-analytics/pull/210)）。DSH **0.1.6-alpha.2**（`ddefc45f`）。0.8.0.0 基线仍是 #129 `a729ff6`。最新 Git HEAD 与施工边界以根目录 [STATUS.md](../STATUS.md) 为准。产品仍 PARTIAL。Mission 主链文档仍有效。
 
 ## 黑客松当前实现
 
@@ -101,7 +101,7 @@ fuqing-crm-analytics/docs/
 | 你想… | 看 |
 |---|---|
 | 演示 AI 增长董事会 / 调用 Mission API | `hackathon/README.md` + `hackathon/MISSION-API.md` |
-| 看 BoardSpec 驾驶舱怎么生成 / 刷新 | [`../dsh-plugins/analytics-workbench/README.md`](../dsh-plugins/analytics-workbench/README.md) + 根 `STATUS.md` |
+| 看驾驶舱产物柜、BoardSpec 生成 / 刷新 | [`../dsh-plugins/analytics-workbench/README.md`](../dsh-plugins/analytics-workbench/README.md) + 根 `STATUS.md` |
 | 看插件占了哪些 DSH 槽 | `hackathon/DSH-PLUGIN-UI-COMPAT.md` |
 | 起 6677 / 插拔伸美包 | [`../scripts/dsh-dev/README.md`](../scripts/dsh-dev/README.md) |
 | 项目能不能用 / 债指针 | 根 `STATUS.md` + `TECH-DEBT.md` |
