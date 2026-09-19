@@ -1,4 +1,4 @@
-/** Generated free-page contract; do not edit. OpenAPI SHA-256: 86ad3cf4d71b05cb827a52f38b568ae3e0ed02ea7312a9dd3b6d848971e0ef3a */
+/** Generated free-page contract; do not edit. OpenAPI SHA-256: 236fe93d8d2f03f0b94bfded6510e706a0bd2f044ecda532fe86a30dcf79c572 */
 export interface paths {
     "/api/v1/analytics/page-documents/pages": {
         parameters: {
@@ -421,6 +421,8 @@ export interface components {
              * @enum {string}
              */
             binding_state: "UNBOUND_SAMPLE" | "BOUND_VERIFIED" | "BOUND_STALE";
+            /** Origin Path */
+            origin_path?: string;
             package: components["schemas"]["PagePackage"];
             /** Page Id */
             page_id: string;
@@ -440,6 +442,8 @@ export interface components {
         /** PageDraft */
         PageDraft: {
             binding_manifest?: components["schemas"]["PageBindingManifest"];
+            /** Origin Path */
+            origin_path?: string;
             package: components["schemas"]["PagePackage"];
             /** Session Id */
             session_id: string;
@@ -458,6 +462,8 @@ export interface components {
              * @enum {string}
              */
             binding_state: "UNBOUND_SAMPLE" | "BOUND_VERIFIED" | "BOUND_STALE";
+            /** Origin Path */
+            origin_path?: string;
             /** Page Id */
             page_id: string;
             /** Session Id */

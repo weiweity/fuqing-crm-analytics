@@ -1,9 +1,9 @@
 export type LeavePredicateState = {
   layoutDraft?: unknown; saved?: unknown; preview?: unknown; confirmationUncertain?: boolean; editContext?: unknown;
   /** Free-HTML dirty flag folded in by the host (index.tsx); read by unsavedReasons. */
-  htmlUnsaved?: boolean;
+  htmlUnsaved?: boolean; fieldDraft?: unknown;
 };
-export type UnsavedReason = 'layout_changed' | 'pending_patch_preview' | 'confirmationUncertain';
+export type UnsavedReason = 'layout_changed' | 'pending_patch_preview' | 'confirmationUncertain' | 'field_draft' | 'html_unsaved';
 export function layoutChanged(state: LeavePredicateState | null | undefined): boolean;
 export function unsavedReasons(state: LeavePredicateState | null | undefined): UnsavedReason[];
 export function hasUnsavedChanges(state: LeavePredicateState | null | undefined): boolean;

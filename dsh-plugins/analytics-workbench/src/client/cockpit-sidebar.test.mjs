@@ -35,7 +35,7 @@ async function domFixture(t) {
   };
 }
 
-test('closing the sidebar plays the leave class then unmounts; busy disables board tools', async t => {
+test('closing the sidebar unmounts the context immediately; busy disables board tools', async t => {
   const ui = await domFixture(t);
   const events = { close: 0, layout: 0, rollback: 0 };
   await ui.render(React.createElement(CockpitSidebar, {
@@ -46,8 +46,7 @@ test('closing the sidebar plays the leave class then unmounts; busy disables boa
   }));
   const aside = ui.doc.querySelector('[data-testid="cockpit-sidebar"]');
   assert.ok(aside);
-  assert.equal(aside.getAttribute('aria-hidden'), 'false');
-  assert.match(aside.textContent, /布局在画布上拖/);
+  assert.equal(aside.getAttribute('aria-label'), '编辑产物');
   const layout = ui.doc.querySelector('[data-testid="layout-start"]');
   const rollback = ui.doc.querySelector('[data-testid="library-rollback-previous"]');
   assert.equal(layout.disabled, true);
@@ -60,18 +59,13 @@ test('closing the sidebar plays the leave class then unmounts; busy disables boa
     visible: true, busy: false, showBoardTools: false,
     onClose: () => { events.close += 1; },
   }));
-  assert.match(ui.doc.querySelector('[data-testid="cockpit-sidebar"]').textContent, /选中节点或板块后，在此编辑/);
+  assert.ok(ui.doc.querySelector('[data-testid="cockpit-sidebar-close"]'));
   assert.equal(ui.doc.querySelector('[data-testid="layout-start"]'), null);
 
   await ui.render(React.createElement(CockpitSidebar, {
     visible: false, showBoardTools: false,
     onClose: () => { events.close += 1; },
   }));
-  const leaving = ui.doc.querySelector('[data-testid="cockpit-sidebar"]');
-  assert.ok(leaving);
-  assert.match(leaving.className, /cockpit-sidebar-leave/);
-  assert.equal(leaving.getAttribute('aria-hidden'), 'true');
-  await act(async () => { await new Promise(resolve => setTimeout(resolve, 350)); });
   assert.equal(ui.doc.querySelector('[data-testid="cockpit-sidebar"]'), null);
 
   await ui.render(React.createElement(CockpitSidebar, {

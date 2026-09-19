@@ -6,6 +6,7 @@ import { cancelDraft, cancelTarget } from './leave/cancel-receipt.mjs';
 import { verifySaveReceipt, confirmIdempotencyKey } from './leave/save-receipt.mjs';
 import { hasUnsavedChanges, hasActiveEditContext, unsavedReasons, layoutChanged } from './leave/dirty-predicate.mjs';
 import { previousHistoryVersion } from '../board-spec/canvas-state.mjs';
+import { describeBlockPatch, validateBlockChanges } from '../board-spec/block-changes.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -13,10 +14,11 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
   const listeners = new Set();
   const lifetime = new AbortController();
   const epoch = createNavigationEpoch();
-  let state = { busy: false, message: '', boards: [], saved: null, preview: null, confirmationUncertain: false, layoutDraft: null, editContext: null, incoming: null, history: [] };
+  let state = { busy: false, message: '', boards: [], saved: null, preview: null, confirmationUncertain: false, layoutDraft: null, editContext: null, incoming: null, history: [], fieldDraft: null };
   const emit = patch => {
     if (lifetime.signal.aborted) return;
     if (patch.saved) {
+      patch = { ...patch, fieldDraft: null };
       // A validated saved receipt is sufficient to update its selector entry;
       // a later list/head refresh must not be required to acknowledge the save.
       const { board_id, session_id, title, version } = patch.saved.spec;
@@ -149,10 +151,16 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     await editNative(state.editContext);
     emit({ message: '已将选中组件交给原生对话，请输入修改要求。返回看板可检查预览或取消编辑。' });
   }
-  async function selectEdit(blockId) {
+  async function establishEdit(blockId, { sendNative }) {
     const saved = state.saved;
     if (!saved || !saved.spec.blocks.some(block => block.block_id === blockId)) throw new Error('请先打开看板并选择其中的组件。');
-    const existing = await request('current_edit', { board_id: saved.spec.board_id });
+    if (state.confirmationUncertain || state.preview || state.layoutDraft || state.fieldDraft) throw new Error('请先处理当前修改，再切换组件。');
+    let existing = await request('current_edit', { board_id: saved.spec.board_id });
+    if (!sendNative && existing && existing.block_id !== blockId && !existing.preview_id) {
+      const old = boardEditContext(existing);
+      await cancelCurrent({ kind: 'edit', id: old.edit_context_id, idField: 'edit_context_id' });
+      existing = null;
+    }
     const context = boardEditContext(existing ?? await request('select_edit', {
       board_id: saved.spec.board_id, base_version: saved.spec.version, block_id: blockId,
     }));
@@ -163,7 +171,45 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       emit({ incoming: { kind: 'edit', id: blockId }, message: '该会话有另一组件的未确认编辑，请先处理，不能静默换目标。' }); return;
     }
     if (context.preview_id) { await readPreview(context.preview_id); return; }
-    await sendEdit();
+    if (sendNative) await sendEdit();
+  }
+  async function selectEdit(blockId) {
+    await establishEdit(blockId, { sendNative: true });
+  }
+  async function selectComponentOnly(blockId) {
+    await establishEdit(blockId, { sendNative: false });
+  }
+  async function previewBlockPatch(changes) {
+    const saved = state.saved;
+    if (!saved) throw new Error('请先打开看板。');
+    if (state.confirmationUncertain) {
+      throw new Error('有未核对的保存回执，不能再发起内容 PATCH。');
+    }
+    if (state.layoutDraft || state.preview) {
+      throw new Error('正在预览布局，不能同时做内容 PATCH；请先确认或取消布局。');
+    }
+    const blockId = state.editContext?.block_id;
+    if (!blockId) throw new Error('请先选择组件。选择不会发送消息。');
+    const block = saved.spec.blocks.find(item => item.block_id === blockId);
+    const checked = validateBlockChanges(changes, {
+      block,
+      factsByResultId: { ...saved.facts_by_result_id, ...state.editContext?.facts_by_result_id },
+    });
+    if (!checked.ok) throw new Error(checked.message);
+    const value = boardPreview(await request('patch_preview', {
+      board_id: saved.spec.board_id,
+      base_version: saved.spec.version,
+      block_id: blockId,
+      // The RPC validates props without an edit-context read. Carry the current
+      // kind for a partial props edit; an unchanged kind preserves other props.
+      changes: Object.hasOwn(checked.changes, 'props') && !Object.hasOwn(checked.changes, 'kind')
+        ? { ...checked.changes, kind: block.kind } : checked.changes,
+    }));
+    if (value.status !== 'PENDING' || value.operation !== 'PATCH' || value.base_version !== saved.spec.version
+      || value.snapshot.spec.board_id !== saved.spec.board_id) {
+      throw new Error('内容补丁预览目标不一致；当前看板未保存。');
+    }
+    emit({ preview: { ...value, source: 'fields' }, layoutDraft: null, history: [], message: '组件修改已预览；确认后才保存。' });
   }
   /**
    * One cancellation path for all three entries (D45/T26). The receipt is
@@ -171,7 +217,14 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
    * conflicting reply keeps the draft and the recovery prompt. The layout
    * special case lives in the helper, not here, so every caller shares it.
    */
-  const cancelCurrent = target => cancelDraft({ ...target, request, emit });
+  const cancelCurrent = async target => {
+    const recovering = state.confirmationUncertain;
+    const receipt = await cancelDraft({ ...target, request, emit });
+    // A successful recovery must not leave a stale selection pinning the old
+    // base version. Only a verified cancellation permits dropping this state.
+    if (recovering) emit({ editContext: null, fieldDraft: null, layoutDraft: null });
+    return receipt;
+  };
   async function cancelEdit() {
     return cancelCurrent(cancelTarget({ editContext: state.editContext }));
   }
@@ -194,6 +247,10 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
   }
   return Object.freeze({
     getSnapshot: () => state,
+    setFieldDraft(changes) {
+      if (state.busy || state.preview || state.confirmationUncertain) return;
+      emit({ fieldDraft: changes && Object.keys(changes).length ? changes : null });
+    },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     dispose() { lifetime.abort(); epoch.dispose(); listeners.clear(); },
     /** Dirty-draft predicate (D42): only real unsaved work blocks leaving. */
@@ -211,6 +268,12 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     openBoard: id => intend('board', () => navigate({ kind: 'board', id })),
     openPreview: (id, contextId) => intend('preview', () => navigate({ kind: 'preview', id, ...(contextId ? { contextId } : {}) })),
     beginEdit: blockId => intend('edit', () => navigate({ kind: 'edit', id: blockId })),
+    selectComponent: blockId => intend('edit', () => selectComponentOnly(blockId)),
+    describeSelectedPatch: () => {
+      const block = state.saved?.spec.blocks.find(item => item.block_id === state.editContext?.block_id);
+      return describeBlockPatch(block, { factsByResultId: { ...state.saved?.facts_by_result_id, ...state.editContext?.facts_by_result_id } });
+    },
+    previewBlockPatch: changes => perform(() => previewBlockPatch(changes)),
     resumeEdit: () => perform(sendEdit),
     inspectEdit: () => perform(async () => {
       if (!state.editContext) return;
@@ -239,10 +302,10 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
      */
     discardDraft: () => perform(async () => {
       const target = cancelTarget(state, { forLeave: true });
-      if (!target) return { ok: true };
+      if (!target) { emit({ fieldDraft: null }); return { ok: true }; }
       try {
         await cancelCurrent(target);
-        emit({ incoming: null });
+        emit({ incoming: null, fieldDraft: null });
         return { ok: true };
       } catch (error) {
         return { ok: false, message: error instanceof Error ? error.message : '未能放弃草稿，已留在当前页。' };
@@ -260,6 +323,7 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
      * reported as unsaved instead of navigating away from the change.
      */
     saveForLeave: () => perform(async () => {
+      if (!state.preview && state.fieldDraft) await previewBlockPatch(state.fieldDraft);
       const draft = state.preview;
       if (!draft) {
         if (layoutChanged(state)) return { ok: false, reason: 'layout_unsaved' };
@@ -290,8 +354,7 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       const intent = state.incoming;
       const target = cancelTarget(state);
       if (!intent || !target) return;
-      if (state.editContext) await cancelEdit();
-      else await cancelCurrent(target);
+      await cancelCurrent(target);
       emit({ preview: null, layoutDraft: null, confirmationUncertain: false });
       await navigate(intent);
     }),
@@ -304,10 +367,10 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       await cancelCurrent(target);
       emit(restoreLayout
         ? { incoming: null, layoutDraft: restoreLayout, message: '已返回布局调整；尚未保存。' }
-        : { incoming: null });
+        : { incoming: null, fieldDraft: null });
     }),
     beginLayout() {
-      if (state.busy || state.preview || !state.saved || state.layoutDraft || state.editContext) return;
+      if (state.busy || state.preview || !state.saved || state.layoutDraft || state.editContext || state.confirmationUncertain) return;
       emit({ layoutDraft: state.saved, history: [], message: '布局编辑中：拖动手柄移动或缩放；方向键也可调整，检查后再确认保存。' });
     },
     updateLayout(blockId, box) {

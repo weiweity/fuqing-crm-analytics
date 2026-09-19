@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { createServer } from 'node:net';
+import { once } from 'node:events';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -11,8 +13,10 @@ test('launcher boots the isolated python server and the full page chain answers'
   const stateDir = await mkdtemp(join(tmpdir(), 'lane-h-launcher-'));
   let service;
   try {
-    service = await startPageHttp({ port: 18091, stateDir });
-    assert.match(service.base, /^http:\/\/127\.0\.0\.1:18091$/);
+    const reservation = createServer(); reservation.listen(0, '127.0.0.1'); await once(reservation, 'listening');
+    const port = reservation.address().port; await new Promise(resolve => reservation.close(resolve));
+    service = await startPageHttp({ port, stateDir });
+    assert.equal(service.base, `http://127.0.0.1:${port}`);
     const headers = { authorization: `Bearer ${service.token}`, 'content-type': 'application/json' };
     const unauth = await fetch(`${service.base}/api/v1/analytics/page-documents/pages`);
     assert.equal(unauth.status, 401);

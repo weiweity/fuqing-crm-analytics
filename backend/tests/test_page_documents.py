@@ -128,6 +128,26 @@ def test_contract_rejects_unknown_fields_board_spec_and_invalid_binding():
             })
 
 
+def test_origin_path_round_trip_and_old_drafts_remain_valid(tmp_path):
+    store = PageDocumentStore(private(tmp_path / "pages"))
+    with pytest.raises(ValidationError):
+        draft(origin_path="../etc/passwd")
+    with pytest.raises(ValidationError):
+        draft(origin_path="/tmp/a.html")
+    preview = store.generate(ALICE, draft(
+        origin_path="ops/web/index.html",
+        binding_manifest={"bindings": [], "result_refs": []},
+    ))
+    assert preview["snapshot"]["spec"]["origin_path"] == "ops/web/index.html"
+    saved = confirm(store, preview)
+    assert saved["spec"]["origin_path"] == "ops/web/index.html"
+    assert store.get(ALICE, saved["spec"]["page_id"])["spec"]["origin_path"] == "ops/web/index.html"
+    assert store.list(ALICE)[0]["origin_path"] == "ops/web/index.html"
+    body = draft().model_dump(mode="json")
+    body.pop("origin_path", None)
+    PageDraft.model_validate(body)
+
+
 def test_generate_is_not_saved_until_confirm_and_failed_generate_leaves_no_asset(tmp_path):
     store = PageDocumentStore(private(tmp_path / "pages"))
     preview = store.generate(ALICE, draft())

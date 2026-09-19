@@ -33,6 +33,7 @@ export function unsavedReasons(state) {
   if (layoutChanged(state)) reasons.push('layout_changed');
   if (state?.preview) reasons.push('pending_patch_preview');
   if (state?.confirmationUncertain) reasons.push('confirmationUncertain');
+  if (state?.fieldDraft) reasons.push('field_draft');
   if (state?.htmlUnsaved) reasons.push('html_unsaved');
   return reasons;
 }
@@ -56,7 +57,7 @@ export function hasActiveEditContext(state) {
  * already-applied draft is refused with `VERSION_CONFLICT` instead.
  */
 export function discardableDraft(state) {
-  return Boolean(state?.preview || layoutChanged(state) || state?.htmlUnsaved);
+  return Boolean(state?.fieldDraft || state?.preview || layoutChanged(state) || state?.htmlUnsaved);
 }
 
 /** Local state a verified discard clears. `confirmationUncertain` is cleared separately, on proof. */

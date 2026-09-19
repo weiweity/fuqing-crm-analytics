@@ -119,3 +119,24 @@ test('workspace helpers no-op without remote, then list/read/open through the ho
   assert.deepEqual(opened, ['dsh-resource://file/session/session-visible/week.csv']);
   for (const dispose of withApi.effects) if (typeof dispose === 'function') dispose();
 });
+
+test('capture the visible source before native panel release; never choose the first listed session', () => {
+  const listeners = new Set();
+  let snapshot = { phase: 'ready', ids: ['older', 'visible'], byId: {
+    older: { id: 'older', retainedBy: {} }, visible: { id: 'visible', retainedBy: { mainView: 1 } },
+  } };
+  const mounted = mount({ sessions: {
+    list: { getSnapshot: () => snapshot, subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); } },
+    retain() { assert.fail('no invented source retain'); }, create() { assert.fail('no create'); },
+  } });
+  const notify = () => { for (const listener of listeners) listener(); };
+  assert.equal(mounted.inject.delivery.getSessionId(), 'visible');
+  snapshot.byId.visible.retainedBy = {}; notify();
+  assert.equal(mounted.inject.delivery.getSessionId(), 'visible', 'native mainView release must not erase the captured source');
+  snapshot.byId.older.retainedBy = { mainView: 1 }; notify();
+  assert.equal(mounted.inject.delivery.getSessionId(), 'older', 'an actually observed new mainView changes the source');
+  snapshot = { phase: 'ready', ids: [], byId: {} }; notify();
+  assert.equal(mounted.inject.delivery.getSessionId(), null, 'removed source is not retained as a fallback');
+  for (const dispose of mounted.effects) if (typeof dispose === 'function') dispose();
+  assert.equal(listeners.size, 0);
+});

@@ -1,0 +1,49 @@
+{
+  "schema": "free-page-t0-evidence/v1",
+  "at": "2026-09-19T15:03:22.805Z",
+  "machine": {
+    "os": "darwin arm64",
+    "node": "v24.19.0"
+  },
+  "browser": {
+    "path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "version": "Chrome/153.0.8010.48",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "headless": true,
+    "viewport": "1280x800"
+  },
+  "ports": {
+    "harness": 63478,
+    "proxy": 63479,
+    "chromeCdp": 63482,
+    "avoided": 6677
+  },
+  "sandbox": "allow-scripts",
+  "allowSameOrigin": false,
+  "duration_ms": 5417,
+  "runaway_observe_ms": 1505,
+  "recovery_ms": 1112,
+  "host_ticks_before": 48,
+  "host_ticks_during": 133,
+  "host_click_during_runaway": true,
+  "evaluate_timeout_during_runaway": false,
+  "saved_srcdoc_contains_title": true,
+  "saved_status": "页面运行中",
+  "iframe_closed": true,
+  "iframe_restarted": true,
+  "saved_restored": true,
+  "egress_proxy_hits": [],
+  "egress_proxy_hit_count": 0,
+  "cpu_isolation": "observed-host-operable-during-srcdoc-runaway",
+  "gates": {
+    "host_operable": true,
+    "close_restart": true,
+    "saved_restore": true
+  },
+  "screenshots": {
+    "saved": "docs/hackathon/free-html-cockpit/reports/lane-b/t0-saved.png",
+    "runaway": "docs/hackathon/free-html-cockpit/reports/lane-b/t0-runaway.png",
+    "restored": "docs/hackathon/free-html-cockpit/reports/lane-b/t0-restored.png"
+  },
+  "note": "Permission isolation is opaque-origin sandbox. CPU isolation is only whatever this Chrome run observed."
+}

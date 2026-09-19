@@ -80,6 +80,7 @@ export async function cancelDraft({ kind, id, idField, request, emit, message = 
  * being global.
  */
 export function cancelTarget(state, { forLeave = false } = {}) {
+  if (state?.preview?.source === 'fields') return { kind: 'preview', id: state.preview.preview_id, idField: 'preview_id' };
   const dirtyEdit = state?.editContext && (state.preview || state.confirmationUncertain);
   if (state?.editContext && (!forLeave || dirtyEdit)) {
     return { kind: 'edit', id: state.editContext.edit_context_id, idField: 'edit_context_id' };

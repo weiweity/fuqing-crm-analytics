@@ -39,7 +39,7 @@ test('built browser factory requires only platform modules and registers shared-
     __ModuleLoader__: { load: row => { factoryRow = row; } },
   };
   const code = await readFile(join(root, 'lib/client.js'), 'utf8');
-  vm.runInNewContext(code, { window: browser, __SHINE_QUERY__: true, __SHINE_BOARD__: true }, { filename: 'analytics-b0-client.js', timeout: 1000 });
+  vm.runInNewContext(code, { AbortController, window: browser, __SHINE_QUERY__: true, __SHINE_BOARD__: true }, { filename: 'analytics-b0-client.js', timeout: 1000 });
   assert.equal(factoryRow.id, '@shine-mage/dsh-analytics-workbench-b0');
   const client = factoryRow.factory(spec => {
     assert.ok(seed.has(spec), `unexpected browser require: ${spec}`);
@@ -49,14 +49,15 @@ test('built browser factory requires only platform modules and registers shared-
   const effects = [], opened = [], selected = [];
   const primary = 'session-b0-synthetic-primary';
   let snapshot = { phase: 'pending', ids: [primary], byId: { [primary]: { id: primary, retainedBy: {} } } };
-  let notify;
+  const listeners = new Set();
+  const notify = () => { for (const listener of [...listeners]) listener(); };
   let held;
   client.apply({
     effect: factory => { effects.push(factory()); },
     theme: { overrideTokens: () => () => {} },
     layout: { selectPanel: id => { selected.push(id); } },
     sessions: {
-      list: { getSnapshot: () => snapshot, subscribe: listener => { notify = listener; return () => { notify = undefined; }; } },
+      list: { getSnapshot: () => snapshot, subscribe: listener => { listeners.add(listener); return () => listeners.delete(listener); } },
       retain(id) {
         opened.push(id);
         snapshot = { ...snapshot, byId: { ...snapshot.byId, [id]: { id, retainedBy: { mainView: 1 } } } };
@@ -130,5 +131,5 @@ test('built browser factory requires only platform modules and registers shared-
   assert.equal(state.getSnapshot().editor.draft, '编译产物标题');
   assert.equal(state.getSnapshot().open, false);
   for (const dispose of effects) dispose();
-  assert.equal(notify, undefined);
+  assert.equal(listeners.size, 0);
 });

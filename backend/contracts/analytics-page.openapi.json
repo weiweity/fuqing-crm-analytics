@@ -597,6 +597,12 @@
           },
           "binding_manifest": {
             "$ref": "#/components/schemas/PageBindingManifest"
+          },
+          "origin_path": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "title": "Origin Path"
           }
         },
         "required": [
@@ -629,6 +635,12 @@
           },
           "binding_manifest": {
             "$ref": "#/components/schemas/PageBindingManifest"
+          },
+          "origin_path": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "title": "Origin Path"
           },
           "schema_version": {
             "const": "free-page/v1",
@@ -893,6 +905,12 @@
             ],
             "title": "Binding State",
             "type": "string"
+          },
+          "origin_path": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "title": "Origin Path"
           }
         },
         "required": [
@@ -1460,5 +1478,5 @@
       }
     }
   },
-  "x-schema-sha256": "86ad3cf4d71b05cb827a52f38b568ae3e0ed02ea7312a9dd3b6d848971e0ef3a"
+  "x-schema-sha256": "236fe93d8d2f03f0b94bfded6510e706a0bd2f044ecda532fe86a30dcf79c572"
 }

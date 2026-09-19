@@ -8,19 +8,21 @@ export type LibraryState = { busy: boolean; message: string; confirmationUncerta
   layoutDraft: LibrarySnapshot | null;
   editContext: LibraryEditContext | null;
   incoming: { kind: 'board' | 'preview' | 'edit'; id: string; contextId?: string } | null;
+  fieldDraft: { title?: string; kind?: string; source_result_id?: string; props?: Record<string, unknown> } | null;
   history: components['schemas']['BoardRevision'][];
 };
 /** The outcome of a leave-driven save or discard; a failure keeps the draft. */
 export type LeaveReceipt = { ok: true } | { ok: false; reason?: string; message?: string };
 export type LibraryBoardClient = {
   getSnapshot(): LibraryState;
+  setFieldDraft(changes: LibraryState['fieldDraft']): void;
   subscribe(listener: () => void): () => void;
   dispose(): void;
   /** Dirty-draft predicate (D42): only real unsaved work blocks leaving. */
   hasUnsavedChanges(): boolean;
   /** Selection/focus context (D42): never a reason to block leaving. */
   hasActiveEditContext(): boolean;
-  unsavedReasons(): ('layout_changed' | 'pending_patch_preview' | 'confirmationUncertain')[];
+  unsavedReasons(): ('layout_changed' | 'pending_patch_preview' | 'confirmationUncertain' | 'field_draft')[];
   /** Advance navigation ownership for a leave intent (D43). */
   beginNavigation(kind: string): { epoch: number; kind: string; signal: AbortSignal; abort(): void };
   navigationEpoch(): number;
@@ -28,6 +30,25 @@ export type LibraryBoardClient = {
   openBoard(id: string): Promise<void>;
   openPreview(id: string, contextId?: string): Promise<void>;
   beginEdit(blockId: string): Promise<void>;
+  /** Establish edit context only. Does not call editNative or send a chat message. */
+  selectComponent(blockId: string): Promise<void>;
+  describeSelectedPatch(): {
+    supported: boolean;
+    reason?: string;
+    kind?: string | null;
+    title?: boolean;
+    props?: string[];
+    source_result_id?: boolean;
+    source_result_options?: string[];
+    layout?: string;
+    requires_result?: boolean;
+  };
+  previewBlockPatch(changes: {
+    title?: string;
+    props?: Record<string, unknown>;
+    kind?: string;
+    source_result_id?: string;
+  }): Promise<void>;
   resumeEdit(): Promise<void>;
   inspectEdit(): Promise<void>;
   keepDraft(): void;

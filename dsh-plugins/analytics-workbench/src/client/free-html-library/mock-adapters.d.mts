@@ -19,6 +19,7 @@ export type PreviewRecord = {
 };
 export type PageAdapters = {
   kind: string;
+  documents?: Record<string, (...args: any[]) => Promise<any>>;
   preview: { kind: string; note: string; srcdoc(pkg: { html?: string; css?: string; js?: string } | null): string; pointerEvents(mode: string): 'none' | 'auto' };
   bridge: {
     kind: string; note: string;
@@ -30,13 +31,13 @@ export type PageAdapters = {
   edit: {
     kind: string; note: string;
     locate(pkg: typeof SAMPLE_PACKAGE | { node_map?: typeof SAMPLE_PACKAGE['node_map'] } | null, request: Record<string, unknown>): LocateResult;
-    previewPatch(input: { pkg: typeof SAMPLE_PACKAGE; selection: LocateResult; instruction?: string; affectsShared?: boolean; expiresInMs?: number }): PreviewRecord;
+    previewPatch(input: { pkg: typeof SAMPLE_PACKAGE; selection: LocateResult; instruction?: string; replacementText?: string; page_id?: string; session_id?: string; base_version?: number; binding_manifest?: object; affectsShared?: boolean; expiresInMs?: number }): PreviewRecord;
     confirmPatch(previewId: string, opts?: { idempotency_key?: string }): PreviewRecord;
     cancelPatch(previewId: string): { status: string; preview_id?: string };
   };
   assets: {
     kind: string; note: string;
-    list(): { page_id: string; title: string; version: number; binding_state: string; updated_at: number }[];
+    list(): { page_id: string; title: string; version: number; binding_state: string; updated_at: number; session_id?: string; origin_path?: string }[];
     get(pageId: string): FreeHtmlPage | null;
     put(page: FreeHtmlPage): FreeHtmlPage;
   };
@@ -45,7 +46,7 @@ export type PageAdapters = {
   nextId(prefix: string): string;
 };
 export type FreeHtmlPage = {
-  page_id: string; session_id: string; title: string; version: number; base_version?: number;
+  page_id: string; session_id: string; origin_path?: string; title: string; version: number; base_version?: number;
   binding_state: string; binding_manifest: { bindings: unknown[]; result_refs: string[] };
   package: typeof SAMPLE_PACKAGE; savedPackage: typeof SAMPLE_PACKAGE; dirty: boolean;
   updated_at: number; history: { version: number; title: string; at: number; package: typeof SAMPLE_PACKAGE }[];

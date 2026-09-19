@@ -5,11 +5,12 @@
  * C's synthetic fixture when HTTP is configured.
  */
 import { buildSourceIndex, locateSelection } from '../../free-page/source-index/index.mjs';
-import { applyInnerText, createPatchPreview, createMemoryPageStore } from '../../free-page/patch/index.mjs';
+import { createMemoryPageStore } from '../../free-page/patch/index.mjs';
 import { buildSrcdoc } from '../../free-page/preview/srcdoc-builder.mjs';
 import { FREE_PAGE_SANDBOX } from '../../free-page/runtime/isolation-policy.mjs';
 import { FORBIDDEN_OPS } from '../../free-page/bridge/index.mjs';
-import { SAMPLE_PACKAGE, escapeHtml } from './mock-adapters.mjs';
+import { SAMPLE_PACKAGE } from './mock-adapters.mjs';
+import { previewLiteralText } from './html-edit-kernel.mjs';
 import { buildGenerateContext } from './generate-context.mjs';
 import { PAGE_DOCUMENTS_PREFIX, PAGE_RESULT_PREFIX, refuseLivePort } from './page-http.mjs';
 import { nativeGenerateUnavailable, normalizePagePackage } from './native-generate.mjs';
@@ -43,6 +44,7 @@ function hydrateSpec(spec, prev, now) {
     base_version: spec.version,
     binding_state: spec.binding_state,
     binding_manifest: spec.binding_manifest ?? { bindings: [], result_refs: [] },
+    origin_path: spec.origin_path ?? prev?.origin_path,
     package: pkg,
     savedPackage: clone(pkg),
     dirty: false,
@@ -66,7 +68,7 @@ export function createLivePageAdapters({
   let seq = 0;
   const nextId = prefix => {
     seq += 1;
-    return `${prefix}_${seq}`;
+    return `${prefix}_${globalThis.crypto.randomUUID()}`;
   };
 
   const preview = Object.freeze({
@@ -184,7 +186,7 @@ export function createLivePageAdapters({
     if (selection.kind === 'whole_page') {
       return { kind: 'whole_page', user_switched: selection.user_switched === true };
     }
-    return { kind: selection.kind, node_id: selection.node_id, mapping: selection.mapping };
+    return { kind: selection.kind, node_id: selection.node_id, mapping: selection.mapping, mapping_token: selection.mapping_token, version_hash: selection.version_hash };
   }
 
   const edit = Object.freeze({
@@ -209,52 +211,34 @@ export function createLivePageAdapters({
         located,
       };
     },
-    previewPatch({ pkg, selection, instruction }) {
-      const index = buildSourceIndex(pkg);
-      const request = selectionRequest(selection);
-      const located = locateSelection(index, request);
-      if (!located?.ok) {
-        const error = new Error('MAPPING_STALE');
-        error.code = 'MAPPING_STALE';
-        throw error;
-      }
-      let proposed = clone(pkg);
-      if (located.scope === 'exact_source_range') {
-        const applied = applyInnerText(pkg, located, instruction || '已修改标题');
-        if (!applied.ok) {
-          const error = new Error(applied.error.code);
-          error.code = applied.error.code;
-          throw error;
-        }
-        proposed = applied.package;
-      } else if (located.scope === 'whole_package') {
-        proposed = { ...proposed, html: `${proposed.html}<!-- ${escapeHtml(instruction || '')} -->` };
-      }
-      const made = createPatchPreview({
-        index,
-        pagePackage: pkg,
-        selection: request,
-        proposed,
-        page_id: 'page_live',
-        session_id: 'native_session_fixture',
-        base_version: 1,
-        idempotency_key: nextId('idem'),
+    previewPatch({ pkg, selection, replacementText, instruction, aiInstruction, page_id, session_id, base_version, binding_manifest }) {
+      const result = previewLiteralText({
+        pkg,
+        selection,
+        replacementText,
+        instruction,
+        aiInstruction,
+        page_id: page_id ?? 'page_live',
+        session_id: session_id ?? 'native_session_fixture',
+        base_version: base_version ?? 1,
         preview_id: nextId('preview'),
+        idempotency_key: nextId('idem'),
         now_ms: now(),
+        binding_manifest,
       });
-      if (!made.ok) {
-        const error = new Error(made.error.code);
-        error.code = made.error.code;
-        error.preview = made;
+      if (!result.ok) {
+        const error = new Error(result.error.message);
+        error.code = result.error.code;
+        error.preview = result;
         throw error;
       }
       const record = {
-        preview_id: made.preview.preview_id,
+        preview_id: result.preview.preview_id,
         operation: 'PATCH',
         status: 'PENDING',
-        snapshot: made.preview.proposed_package,
-        idempotency_key: made.preview.idempotency_key,
-        preview: made.preview,
+        snapshot: result.preview.proposed_package,
+        idempotency_key: result.preview.idempotency_key,
+        preview: result.preview,
       };
       pending.set(record.preview_id, record);
       return record;
@@ -323,7 +307,8 @@ export function createLivePageAdapters({
     async pullList() {
       const got = await documentsRequest('GET', '/pages');
       if (!got.ok) return got;
-      const items = Array.isArray(got.body?.items) ? got.body.items : [];
+      if (!Array.isArray(got.body?.items)) throw new Error('页面列表响应不完整，请重试');
+      const items = got.body.items;
       for (const item of items) {
         if (item?.page_id) pages.set(item.page_id, { ...(pages.get(item.page_id) ?? {}), ...item });
       }
@@ -336,7 +321,7 @@ export function createLivePageAdapters({
       const got = await documentsRequest('GET', `/pages/${encodeURIComponent(pageId)}`);
       if (!got.ok) return got;
       const spec = unwrapSpec(got.body);
-      if (!spec?.page_id) return { ok: false, reason: 'empty_snapshot' };
+      if (!spec?.page_id || spec.page_id !== pageId) return { ok: false, reason: 'mismatched_snapshot' };
       remember(spec, pages.get(spec.page_id));
       return { ok: true, page_id: spec.page_id };
     },
@@ -346,14 +331,14 @@ export function createLivePageAdapters({
       return { ok: true, items: Array.isArray(got.body) ? got.body : got.body?.items ?? [] };
     },
     async generatePreview(draft) {
-      return documentsRequest('POST', '/previews', {
-        body: {
-          title: draft.title,
-          session_id: draft.session_id,
-          package: draft.package,
-          binding_manifest: draft.binding_manifest ?? { bindings: [], result_refs: [] },
-        },
-      });
+      const body = {
+        title: draft.title,
+        session_id: draft.session_id,
+        package: draft.package,
+        binding_manifest: draft.binding_manifest ?? { bindings: [], result_refs: [] },
+      };
+      if (typeof draft.origin_path === 'string' && draft.origin_path) body.origin_path = draft.origin_path;
+      return documentsRequest('POST', '/previews', { body });
     },
     async confirmPreview(previewId, idempotencyKey) {
       return documentsRequest('POST', `/previews/${encodeURIComponent(previewId)}/confirm`, { idempotencyKey });

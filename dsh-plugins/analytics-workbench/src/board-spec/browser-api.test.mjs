@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { boardServerRequest, BOARD_HTTP_PREFIX } from './server-http.mjs';
 import { handleBoardBrowserCall } from './browser-api.mjs';
+import { createLibraryBoardClient } from '../client/library-board-client.mjs';
+import { librarySnapshot, libraryPreview } from '../../test/helpers/library-board-fixtures.mjs';
 
 function transport(t, responder = () => new Response('{}')) {
   const calls = [];
@@ -14,6 +16,25 @@ function transport(t, responder = () => new Response('{}')) {
   t.mock.method(globalThis, 'fetch', async (url, options) => { calls.push({ url, options }); return responder(url, options); });
   return calls;
 }
+
+test('props-only client edits pass the actual RPC allowlist with their current kind', async t => {
+  const saved = librarySnapshot(), pending = libraryPreview(librarySnapshot({ version: 2, content: '新内容' }));
+  const context = { schema_version: 'board-edit-context/v1', edit_context_id: 'edit_' + 'a'.repeat(32),
+    board_id: saved.spec.board_id, base_version: 1, block_id: 'note', session_id: saved.spec.session_id,
+    status: 'OPEN', preview_id: null, expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: {} };
+  const calls = transport(t, (url, options) => {
+    if (url.endsWith('/edit-context')) return Response.json(options.method === 'POST' ? context : { context: null });
+    if (url.endsWith('/patch-preview')) return Response.json(pending);
+    return Response.json(saved);
+  });
+  const client = createLibraryBoardClient((_channel, operation, payload, signal) => handleBoardBrowserCall(operation, payload, signal));
+  t.after(() => client.dispose());
+  await client.openBoard(saved.spec.board_id); await client.selectComponent('note');
+  await client.previewBlockPatch({ props: { content: '新内容' } });
+  assert.equal(client.getSnapshot().preview?.operation, 'PATCH');
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body).changes, { kind: 'TEXT', props: { content: '新内容' } });
+  assert.equal(client.getSnapshot().saved.spec.version, 1, 'preview does not save');
+});
 
 test('UI bridge forwards only explicit board operations and stable confirmation keys', async t => {
   const calls = transport(t);
@@ -28,6 +49,8 @@ test('UI bridge forwards only explicit board operations and stable confirmation 
     ['layout_preview', { board_id: 'board_1', base_version: 3, layouts: [] }, '/boards/board_1/layout-preview', 'POST'],
     ['select_edit', { board_id: 'board_1', base_version: 3, block_id: 'block:1' }, '/boards/board_1/edit-context', 'POST'],
     ['cancel_edit', { edit_context_id: 'edit_1' }, '/edit-contexts/edit_1/cancel', 'POST'],
+    ['patch_preview', { board_id: 'board_1', base_version: 3, block_id: 'note', changes: { title: '新标题' } },
+      '/boards/board_1/patch-preview', 'POST'],
   ];
   for (const [operation, payload, path, method] of cases) {
     assert.equal((await handleBoardBrowserCall(operation, payload)).ok, true);
@@ -37,6 +60,9 @@ test('UI bridge forwards only explicit board operations and stable confirmation 
   }
   assert.equal(calls[5].options.headers['idempotency-key'], 'once:preview_1');
   assert.deepEqual(JSON.parse(calls[6].options.body), { base_version: 3, to_version: 1 });
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body), {
+    base_version: 3, block_id: 'note', changes: { title: '新标题' },
+  });
   const status = await handleBoardBrowserCall('status', {});
   assert.deepEqual(status.value, { protocol: 'board-browser/v1', configured: true });
   assert.equal(calls.length, cases.length);
@@ -65,6 +91,11 @@ test('UI bridge rejects arbitrary HTTP, model generation, forged ownership and i
     ['select_edit', { board_id: 'board_1', base_version: 1, block_id: 'note', session_id: 'forged' }],
     ['select_edit', { board_id: 'board_1', base_version: 1, block_id: 'note', changes: { title: 'forged' } }],
     ['propose_edit', { edit_context_id: 'edit_1', changes: {} }],
+    ['patch_preview', { board_id: 'board_1', base_version: 1, block_id: 'note', changes: { title: 'x' }, session_id: 'forged' }],
+    ['patch_preview', { board_id: 'board_1', base_version: 1, block_id: 'note', changes: { layout: { x: 0, y: 0, w: 1, h: 1 } } }],
+    ['patch_preview', { board_id: 'board_1', base_version: 1, block_id: 'note', changes: { title: null } }],
+    ['patch_preview', { board_id: 'board_1', base_version: 1, block_id: 'note', changes: { unknown: 1 } }],
+    ['patch_preview', { board_id: 'board_1', base_version: 1, block_id: 'm1', changes: { kind: 'METRIC', props: { metric_ref: 'retail_gsv' } } }],
   ]) assert.equal((await handleBoardBrowserCall(operation, payload)).error.code, 'INVALID_REQUEST');
   assert.deepEqual(calls, []);
 });

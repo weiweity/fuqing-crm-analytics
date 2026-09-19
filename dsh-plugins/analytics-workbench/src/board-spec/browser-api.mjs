@@ -1,5 +1,6 @@
 /** UI-only operation allowlist. The model tool registry never exposes this RPC. */
 import { boardServerConfigured, boardServerRequest } from './server-http.mjs';
+import { validateBlockChanges } from './block-changes.mjs';
 
 export const BOARD_RPC_CHANNEL = '/shine-mage-board';
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -64,6 +65,16 @@ export async function handleBoardBrowserCall(operation, payload, signal) {
     && id(payload.board_id) && version(payload.base_version) && version(payload.to_version)) {
     return boardServerRequest(`/boards/${payload.board_id}/rollback-preview`, { method: 'POST', signal,
       body: { base_version: payload.base_version, to_version: payload.to_version } });
+  }
+  if (operation === 'patch_preview' && exact(payload, ['board_id', 'base_version', 'block_id', 'changes'])
+    && id(payload.board_id) && version(payload.base_version)
+    && typeof payload.block_id === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(payload.block_id)) {
+    const checked = validateBlockChanges(payload.changes);
+    if (!checked.ok) {
+      return { ok: false, error: { code: checked.code, message: checked.message, details: { status: 400 } } };
+    }
+    return boardServerRequest(`/boards/${payload.board_id}/patch-preview`, { method: 'POST', signal,
+      body: { base_version: payload.base_version, block_id: payload.block_id, changes: checked.changes } });
   }
   return refused();
 }

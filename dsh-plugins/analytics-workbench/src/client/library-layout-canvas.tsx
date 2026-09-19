@@ -226,7 +226,10 @@ export function LibraryLayoutCanvas({ snapshot, editing = false, disabled = fals
           gridTemplateRows: `repeat(${rows},${settings.row_height_px}px)`, gap: settings.gap_px }}>
         {view.value.blocks.map(block => {
           const spec = snapshot.spec.blocks.find(item => item.block_id === block.block_id)!;
-          return <section className="sm-layout-block" key={block.block_id} data-block-id={block.block_id} data-active={drag?.block.block_id === block.block_id || selectedBlockId === block.block_id}
+          return <section className="sm-layout-block" key={block.block_id}
+            tabIndex={selectBlock && !disabled ? 0 : undefined} aria-label={selectBlock ? '组件：' + block.title : undefined}
+            onClick={event => { if (!editing && !disabled && selectBlock && !(event.target as Element).closest('button,a,input,select,textarea,summary,details')) selectBlock(block.block_id); }}
+            onKeyDown={event => { if (!editing && !disabled && selectBlock && event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) { event.preventDefault(); selectBlock(block.block_id); } }} data-block-id={block.block_id} data-active={drag?.block.block_id === block.block_id || selectedBlockId === block.block_id}
             style={{ gridColumn: `${spec.layout.x + 1} / span ${spec.layout.w}`, gridRow: `${spec.layout.y + 1} / span ${spec.layout.h}` }}>
             {editing ? <div className="sm-layout-handles">{(['move', 'resize'] as const).map(mode => <button key={mode} type="button"
               data-layout-mode={mode} aria-label={`${mode === 'move' ? '移动' : '缩放'} ${spec.title}`} aria-describedby={helpId}
@@ -234,8 +237,8 @@ export function LibraryLayoutCanvas({ snapshot, editing = false, disabled = fals
               {mode === 'move' ? '⠿ 移动' : '↘ 缩放'}</button>)}</div> : null}
             <h2>{block.title}</h2>
             {!editing && selectBlock ? <button type="button" disabled={disabled || selectedBlockId === block.block_id}
-              aria-label={`用 AI 修改 ${block.title}`} onClick={() => selectBlock(block.block_id)}>
-              {selectedBlockId === block.block_id ? '当前选中组件' : '用 AI 修改'}</button> : null}
+              aria-label={`选择组件 ${block.title}`} onClick={() => selectBlock(block.block_id)}>
+              {selectedBlockId === block.block_id ? '当前选中组件' : '编辑组件'}</button> : null}
             {block.library ? <LibraryComponentBody view={block.library} /> : <p>此组件版本尚未支持。</p>}
           </section>;
         })}

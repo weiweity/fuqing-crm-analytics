@@ -79,14 +79,12 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
       'editNative must wait for the leave coordinator before unloading the cockpit');
   }
   assert.match(indexSource, /pageStore \}/);
-  assert.match(indexSource, /collectWorkspaceProducts/);
+  assert.match(indexSource, /createCockpitDelivery/);
   assert.match(indexSource, /listWorkspaceFiles/);
   assert.match(indexSource, /openWorkspaceFile/);
   assert.match(indexSource, /readWorkspaceFile/);
-  assert.match(indexSource, /if \(!sessionId \|\| typeof list !== 'function'\) return \[\];/);
-  assert.match(indexSource, /unwrapRemoteValue/);
-  assert.match(indexSource, /limit: 4000/);
-  assert.match(indexSource, /page\.eof === true/);
+  assert.match(indexSource, /captureVisibleDeliverySource/);
+  assert.match(indexSource, /delivery\.readFile/);
   assert.match(indexSource, /isSafeWorkspaceRelPath/);
   assert.match(indexSource, /sidebarRight\?\.openResource/);
   assert.match(indexSource, /fileResourceAddress\(product\.sessionId, product\.path\)/);
