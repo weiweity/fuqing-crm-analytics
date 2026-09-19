@@ -41,13 +41,15 @@ function nextId(state, prefix) {
 }
 
 function listItem(spec) {
-  return {
+  const item = {
     page_id: spec.page_id,
     title: spec.title,
     version: spec.version,
     session_id: spec.session_id,
     binding_state: spec.binding_state,
   };
+  if (spec.origin_path) item.origin_path = spec.origin_path;
+  return item;
 }
 
 export function dispatchDocuments(state, { method, path, body, idempotencyKey, authorized }) {
@@ -65,6 +67,7 @@ export function dispatchDocuments(state, { method, path, body, idempotencyKey, a
       binding_state: (body.binding_manifest?.result_refs || []).length ? 'BOUND_VERIFIED' : 'UNBOUND_SAMPLE',
       package: clone(body.package),
       binding_manifest: clone(body.binding_manifest || { bindings: [], result_refs: [] }),
+      ...(body.origin_path ? { origin_path: body.origin_path } : {}),
     };
     state.previews.set(previewId, {
       preview_id: previewId, operation: 'GENERATE', status: 'PENDING', page_id: pageId,

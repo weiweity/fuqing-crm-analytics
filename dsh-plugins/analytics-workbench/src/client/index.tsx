@@ -48,7 +48,8 @@ import { createNativePageGenerate, createPagePackageWaiter, extractPagePackage }
 import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from './library-workspace.tsx';
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
-import { collectWorkspaceProducts, fileResourceAddress, isSafeWorkspaceRelPath, unwrapRemoteValue } from './cockpit-products.mjs';
+import { fileResourceAddress, isSafeWorkspaceRelPath } from './cockpit-products.mjs';
+import { createCockpitDelivery } from './cockpit-delivery.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
 import { AccountMenu, LoginFooter, ThemeFooter, createAccountStore } from './account-chrome.tsx';
@@ -475,7 +476,8 @@ export function apply(ctx: Context): void {
    * chat does not open a second three-choice prompt.
    */
   const leaveCoordinator = library ? createLeaveCoordinator({
-    snapshot: () => ({ ...library.getSnapshot(), htmlUnsaved: Boolean(pageStore?.hasUnsavedChanges()) }),
+    snapshot: () => ({ ...library.getSnapshot(), htmlUnsaved: Boolean(pageStore?.hasUnsavedChanges()),
+      confirmationUncertain: library.getSnapshot().confirmationUncertain || Boolean(pageStore?.getSnapshot().confirmationUncertain) }),
     beginEpoch: kind => library.beginNavigation(kind),
     save: async () => {
       if (pageStore?.hasUnsavedChanges()) {
@@ -493,7 +495,8 @@ export function apply(ctx: Context): void {
     },
     // Deferred: the adapter owns the host setter, and it is constructed around
     // this coordinator. By the time any intent resolves, both exist.
-    navigate: (intent: { kind: string; id?: string | null }): Promise<void> => {
+    navigate: async (intent: { kind: string; id?: string | null; performLocal?(): void | Promise<void> }): Promise<void> => {
+      if (intent.performLocal) { await intent.performLocal(); return; }
       return leaveAdapter!.perform(intent);
     },
   }) : undefined;
@@ -501,12 +504,27 @@ export function apply(ctx: Context): void {
     ? createHostLeaveAdapter({ coordinator: leaveCoordinator, layout: ctx.layout }) : undefined;
   ctx.effect(() => () => leaveAdapter?.dispose(), 'analytics-board: leave adapter lifetime');
   ctx.effect(() => () => leaveCoordinator?.dispose(), 'analytics-board: leave coordinator lifetime');
+  ctx.effect(() => {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return () => {};
+    let armed = false;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    const update = () => {
+      const next = Boolean(library?.hasUnsavedChanges() || pageStore?.hasUnsavedChanges());
+      if (next === armed) return;
+      armed = next;
+      if (armed) window.addEventListener('beforeunload', warn); else window.removeEventListener('beforeunload', warn);
+    };
+    const unboard = library?.subscribe(update), unpage = pageStore?.subscribe(update); update();
+    return () => { unboard?.(); unpage?.(); if (armed) window.removeEventListener('beforeunload', warn); };
+  }, 'analytics-board: dirty browser protection survives native panel switches');
+
   ctx.effect(() => ctx.theme.overrideTokens('shine-mage.brand', nativeBrandTokens), 'competition-native-theme');
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({ name: 'sidebar.brand.mark', priority: -10 }, BrandMark));
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
     name: 'conversation.hero.brand.mark', priority: -10,
   }, BrandMark));
   const openCockpitPanel = (): boolean => {
+    captureVisibleDeliverySource();
     const layout = ctx.layout;
     if (layout == null || typeof layout.selectPanel !== 'function') return false;
     if (leaveAdapter && library && hasUnsavedChanges({ ...library.getSnapshot(), htmlUnsaved: Boolean(pageStore?.hasUnsavedChanges()) })) {
@@ -562,13 +580,32 @@ export function apply(ctx: Context): void {
       return undefined;
     }
   };
-  const listWorkspaceFiles = async () => {
-    const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot());
-    const workspaceFilesApi = remoteWorkspaceFiles();
-    const list = workspaceFilesApi?.list;
-    if (!sessionId || typeof list !== 'function') return [];
-    return collectWorkspaceProducts((id, path, signal) => list.call(workspaceFilesApi, id, path, signal), sessionId);
+  const delivery = createCockpitDelivery({
+    listDir: async (sessionId, path, signal) => {
+      const api = remoteWorkspaceFiles();
+      if (!api?.list) throw new Error('工作区文件服务尚未连接');
+      return api.list(sessionId, path, signal);
+    },
+    read: async (sessionId, path, range, signal) => {
+      const api = remoteWorkspaceFiles();
+      if (!api?.read) throw new Error('工作区文件服务尚未连接');
+      return api.read(sessionId, path, range, signal);
+    },
+  });
+  const captureVisibleDeliverySource = () => {
+    const list = ctx.sessions.list.getSnapshot();
+    const visible = mainViewSessionId(list);
+    // Native sidebar selection releases mainView before mounting this panel.
+    // Capture only an observed visible source; a null mainView is not another session.
+    if (visible) delivery.captureSource(list);
+    else if (delivery.getSessionId() && !list.ids.includes(delivery.getSessionId() as never)) delivery.setSessionId(null);
   };
+  ctx.effect(() => {
+    captureVisibleDeliverySource();
+    return ctx.sessions.list.subscribe(captureVisibleDeliverySource);
+  }, 'analytics-board: observe visible delivery source');
+  ctx.effect(() => () => delivery.dispose(), 'analytics-board: delivery lifetime');
+  const listWorkspaceFiles = async () => (await delivery.refresh()).files;
   const openWorkspaceFile = (product: { sessionId?: string; path?: string }) => {
     const openResource = (ctx as unknown as { sidebarRight?: { openResource?(address: string): void } }).sidebarRight?.openResource;
     if (!product?.sessionId || !product?.path || typeof openResource !== 'function') return;
@@ -578,30 +615,9 @@ export function apply(ctx: Context): void {
     openResource(address);
   };
   const readWorkspaceFile = async (product: { sessionId?: string; path?: string }) => {
-    const workspaceFilesApi = remoteWorkspaceFiles();
-    const read = workspaceFilesApi?.read;
-    if (!product?.sessionId || !product?.path || typeof read !== 'function') return null;
-    if (!isSafeWorkspaceRelPath(product.path)) return null;
-    try {
-      const chunks: string[] = [];
-      let offset = 1;
-      for (let pageIndex = 0; pageIndex < 32; pageIndex += 1) {
-        const raw = await read.call(workspaceFilesApi, product.sessionId, product.path, { offset, limit: 4000 });
-        const first = unwrapRemoteValue(raw) as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown; value?: unknown } | null;
-        const nested = first && typeof first.text !== 'string' && first.value && typeof first.value === 'object'
-          ? first.value as { text?: unknown; eof?: unknown; offset?: unknown; lines?: unknown }
-          : null;
-        const page = first && typeof first.text === 'string' ? first : nested;
-        if (!page || typeof page.text !== 'string' || !page.text) break;
-        chunks.push(page.text);
-        if (page.eof === true || typeof page.lines !== 'number' || page.lines <= 0) break;
-        const start = typeof page.offset === 'number' ? page.offset : offset;
-        offset = start + page.lines;
-      }
-      return chunks.length ? chunks.join('\n') : null;
-    } catch {
-      return null;
-    }
+    if (!product.sessionId || !product.path) return null;
+    const result = await delivery.readFile(product.path, { sessionId: product.sessionId });
+    return result.status === 'ok' ? result.text : null;
   };
   /**
    * The N14 three-choice prompt. It is its own overlay so the leave transaction
@@ -727,6 +743,8 @@ export function apply(ctx: Context): void {
         board: boardLive,
         library,
         pageStore,
+        delivery,
+        leaveCoordinator,
         listWorkspaceFiles,
         openWorkspaceFile,
         readWorkspaceFile,

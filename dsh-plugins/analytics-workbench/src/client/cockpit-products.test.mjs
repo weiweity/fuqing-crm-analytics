@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   classifyWorkspaceFile, fileResourceAddress, isSafeWorkspaceRelPath, joinWorkspacePath, mergeCockpitProducts,
-  unwrapRemoteValue, workspaceEntriesToProducts, collectWorkspaceProducts,
+  unwrapRemoteValue, workspaceEntriesToProducts, collectWorkspaceProducts, collectWorkspaceScan,
+  readWorkspaceFileText, workspaceRelFromEventPath, cockpitProductIdentity,
 } from './cockpit-products.mjs';
 
 test('classify html spreadsheet and pdf only', () => {
@@ -23,7 +24,7 @@ test('file resource address matches DSH file tabs', () => {
   );
 });
 
-test('merge prefers saved pages over duplicate workspace html names', () => {
+test('merge keeps same-title page and workspace file as distinct identities', () => {
   const items = mergeCockpitProducts({
     pages: [{ page_id: 'page_1', title: 'index.html', version: 2 }],
     boards: [{ board_id: 'board_1', title: '经营看板', version: 3 }],
@@ -32,10 +33,21 @@ test('merge prefers saved pages over duplicate workspace html names', () => {
       { id: 'file:s1:week.csv', kind: 'spreadsheet', title: 'week.csv', path: 'week.csv', sessionId: 's1' },
     ],
   });
-  assert.equal(items.filter(item => item.title === 'index.html').length, 1);
-  assert.equal(items.find(item => item.title === 'index.html').page_id, 'page_1');
+  assert.equal(items.filter(item => item.title === 'index.html').length, 2);
+  assert.equal(items.find(item => item.page_id === 'page_1').id, 'page:page_1');
+  assert.equal(items.find(item => item.path === 'index.html').id, 'file:s1:index.html');
   assert.ok(items.some(item => item.kind === 'board'));
   assert.ok(items.some(item => item.kind === 'spreadsheet'));
+});
+
+test('merge does not mix two sessions that share a file name', () => {
+  const items = mergeCockpitProducts({
+    files: [
+      { kind: 'html', title: 'index.html', path: 'index.html', sessionId: 'sess-a' },
+      { kind: 'html', title: 'index.html', path: 'index.html', sessionId: 'sess-b' },
+    ],
+  });
+  assert.deepEqual(items.map(item => item.id).sort(), ['file:sess-a:index.html', 'file:sess-b:index.html']);
 });
 
 test('collect walks one extra directory for html packages', async () => {
@@ -133,4 +145,91 @@ test('collect skips hidden dirs, unreadable nested trees, and caps; merge drops 
   assert.equal(merged.some(item => item.title === 'ghost'), false);
   assert.deepEqual(mergeCockpitProducts(), []);
   assert.deepEqual(workspaceEntriesToProducts('s1', null), []);
+});
+
+test('collect walks two directory levels including ops-dashboard-live/web/index.html', async () => {
+  const tree = {
+    '.': { path: '', entries: [
+      { name: 'ops-dashboard-live', type: 'directory' },
+      { name: 'pkg', type: 'directory' },
+    ] },
+    'ops-dashboard-live': { path: 'ops-dashboard-live', entries: [
+      { name: 'web', type: 'directory' },
+      { name: 'snapshot.html', type: 'file' },
+    ] },
+    'ops-dashboard-live/web': { path: 'ops-dashboard-live/web', entries: [
+      { name: 'index.html', type: 'file' },
+    ] },
+    pkg: { path: 'pkg', entries: [
+      { name: 'inner', type: 'directory' },
+      { name: 'page.htm', type: 'file' },
+    ] },
+    'pkg/inner': { path: 'pkg/inner', entries: [{ name: 'deep.html', type: 'file' }] },
+  };
+  const listed = [];
+  const scan = await collectWorkspaceScan(async (_session, path) => {
+    listed.push(path);
+    return tree[path === '.' ? '.' : path];
+  }, 'sess');
+  assert.equal(scan.status, 'ready');
+  assert.equal(scan.truncated, false);
+  assert.deepEqual(scan.files.map(item => item.path).sort(), [
+    'ops-dashboard-live/snapshot.html',
+    'ops-dashboard-live/web/index.html',
+    'pkg/inner/deep.html',
+    'pkg/page.htm',
+  ]);
+  assert.ok(listed.includes('ops-dashboard-live/web'));
+  assert.ok(listed.includes('pkg/inner'));
+});
+
+test('scan distinguishes empty, list failure, truncation, and no session', async () => {
+  assert.equal((await collectWorkspaceScan(async () => ({ entries: [] }), 'sess')).status, 'empty');
+  assert.equal((await collectWorkspaceScan(async () => ({ ok: false }), 'sess')).status, 'error');
+  assert.equal((await collectWorkspaceScan(async () => ({ entries: [] }), '')).status, 'no-session');
+  const many = {
+    '.': { path: '', truncated: true, entries: [
+      { name: 'a.html', type: 'file' },
+      { name: 'b.html', type: 'file' },
+    ] },
+  };
+  const capped = await collectWorkspaceScan(async () => many['.'], 'sess', { max: 1 });
+  assert.equal(capped.truncated, true);
+  assert.deepEqual(capped.files.map(item => item.path), ['a.html']);
+});
+
+test('readWorkspaceFileText pages to eof and rejects unsafe paths', async () => {
+  const reads = [];
+  const pages = {
+    'paged.html': [
+      { ok: true, value: { text: '<p>one</p>', eof: false, lines: 1, offset: 1 } },
+      { ok: true, value: { text: '<p>two</p>', eof: true, lines: 1, offset: 2 } },
+    ],
+  };
+  const read = async (sessionId, path, range) => {
+    reads.push({ sessionId, path, range });
+    if (path === 'paged.html') return pages['paged.html'].shift();
+    if (path === 'direct.html') return { text: '<p>direct</p>' };
+    if (path === 'empty.html') return { text: '' };
+    throw new Error('missing');
+  };
+  assert.equal((await readWorkspaceFileText(read, 'sess', 'paged.html')).text, '<p>one</p>\n<p>two</p>');
+  assert.equal((await readWorkspaceFileText(read, 'sess', 'direct.html')).status, 'ok');
+  assert.equal((await readWorkspaceFileText(read, 'sess', 'empty.html')).status, 'empty');
+  assert.equal((await readWorkspaceFileText(read, 'sess', '../secret.html')).reason, 'unsafe-path');
+  assert.equal((await readWorkspaceFileText(read, '', 'a.html')).reason, 'no-session');
+  assert.equal((await readWorkspaceFileText(read, 'sess', 'missing.html')).status, 'error');
+  assert.equal(workspaceRelFromEventPath('/tmp/x.html'), null);
+  assert.equal(workspaceRelFromEventPath('../x.html'), null);
+  assert.equal(workspaceRelFromEventPath('ops-dashboard-live/web/index.html'), 'ops-dashboard-live/web/index.html');
+  assert.equal(cockpitProductIdentity({ sessionId: 's1', path: 'a.html' }), 'file:s1:a.html');
+});
+
+test('explicit non-EOF and page bounds never masquerade as a complete file', async () => {
+  const incomplete = await readWorkspaceFileText(async () => ({ text: 'partial', eof: false }), 's', 'a.html');
+  assert.equal(incomplete.status, 'error'); assert.equal(incomplete.text, null); assert.equal(incomplete.eof, false);
+  const bounded = await readWorkspaceFileText(async (_session, _path, range) => ({ text: 'partial', eof: false, lines: 1, offset: range.offset }), 's', 'a.html', { maxPages: 2 });
+  assert.equal(bounded.reason, 'page-limit-before-eof'); assert.equal(bounded.text, null);
+  const stalled = await readWorkspaceFileText(async () => ({ text: 'partial', eof: false, lines: 1, offset: 0 }), 's', 'a.html');
+  assert.equal(stalled.status, 'error');
 });

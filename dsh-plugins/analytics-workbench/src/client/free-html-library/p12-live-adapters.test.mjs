@@ -41,7 +41,7 @@ test('P12 live adapters: unbound generate, sandbox srcdoc, D locate, C forbids S
   assert.equal(stale.widenToPage, false);
 
   const patched = adapters.edit.previewPatch({
-    pkg: SAMPLE_PACKAGE, selection: located, instruction: '局部标题',
+    pkg: SAMPLE_PACKAGE, selection: located, replacementText: '局部标题',
   });
   assert.equal(patched.status, 'PENDING');
   assert.match(patched.snapshot.html, /局部标题/);

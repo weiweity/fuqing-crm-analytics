@@ -1,7 +1,7 @@
 import type { NavigationTicket } from '../navigation/navigation-epoch.mjs';
 import type { UnsavedReason } from './dirty-predicate.mjs';
 export type LeaveChoice = 'save_and_leave' | 'discard' | 'stay';
-export type LeaveIntent = { kind: string; id?: string | null; sessionId?: string | null };
+export type LeaveIntent = { kind: string; id?: string | null; sessionId?: string | null; performLocal?(): void | Promise<void> };
 export type PendingLeaveIntent = LeaveIntent & { epoch: number; performed: boolean };
 export type LeaveState = {
   status: 'idle' | 'prompting' | 'saving' | 'discarding';

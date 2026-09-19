@@ -27,14 +27,15 @@ const css = `
 .sm-leave-prompt-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .sm-leave-prompt button { font:inherit; color:inherit; min-height:32px; padding:6px 12px; cursor:pointer;
   background:var(--dsw-alias-bg-base, #fff); border:1px solid var(--dsw-alias-border-l3, #d9d9d9); border-radius:6px; }
-.sm-leave-prompt button[data-primary] { background:var(--sm-purple, #5b4ce0); color:#fff; border-color:transparent; }
-.sm-leave-prompt button:focus-visible { outline:2px solid var(--sm-purple, #5b4ce0); outline-offset:2px; }
+.sm-leave-prompt button[data-primary] { background:var(--sm-purple, #f2642e); color:#fff; border-color:transparent; }
+.sm-leave-prompt button:focus-visible { outline:2px solid var(--sm-purple, #f2642e); outline-offset:2px; }
 .sm-leave-prompt button:disabled { opacity:.6; cursor:progress; }
 .sm-leave-prompt [role=alert] { color:var(--dsw-alias-label-error, #b42318); }
 `;
 
 /** Plain-language reasons, matching the predicate's own vocabulary. */
 const REASON_TEXT = {
+  field_draft: '组件字段有未保存的修改',
   layout_changed: '布局有尚未保存的调整。',
   pending_patch_preview: '有一份尚未确认的修改草稿。',
   confirmationUncertain: '上一次保存的结果还没有核对清楚。',
@@ -46,9 +47,11 @@ export function LeavePrompt({ coordinator, pageName }: {
 }) {
   const state = useSyncExternalStore(coordinator.subscribe, coordinator.getSnapshot);
   const primary = useRef<HTMLButtonElement>(null);
+  const stayButton = useRef<HTMLButtonElement>(null);
+  const uncertain = state.reasons.includes('confirmationUncertain');
   const open = state.status === 'prompting' || state.status === 'saving' || state.status === 'discarding';
   useEffect(() => {
-    if (state.status === 'prompting') primary.current?.focus();
+    if (state.status === 'prompting') (uncertain ? stayButton : primary).current?.focus();
   }, [state.status, state.intent?.epoch]);
   useEffect(() => {
     if (!open) return;
@@ -76,13 +79,13 @@ export function LeavePrompt({ coordinator, pageName }: {
     {state.message ? <p role={state.status === 'prompting' && state.message ? 'alert' : 'status'}
       data-testid="leave-message">{state.message}</p> : null}
     <div className="sm-leave-prompt-actions">
-      <button type="button" data-primary data-testid="leave-save" ref={primary} disabled={busy}
+      <button type="button" data-primary data-testid="leave-save" ref={primary} disabled={busy || uncertain}
         onClick={() => { void coordinator.choose('save_and_leave'); }}>
         {state.status === 'saving' ? '正在保存…' : '保存并离开'}</button>
-      <button type="button" data-testid="leave-discard" disabled={busy}
+      <button type="button" data-testid="leave-discard" disabled={busy || (uncertain && state.reasons.includes('html_unsaved'))}
         onClick={() => { void coordinator.choose('discard'); }}>
-        {state.status === 'discarding' ? '正在放弃…' : '放弃修改'}</button>
-      <button type="button" data-testid="leave-stay" disabled={busy}
+        {state.status === 'discarding' ? '正在放弃…' : uncertain ? '尝试取消草稿并离开' : '放弃修改'}</button>
+      <button type="button" data-testid="leave-stay" ref={stayButton} disabled={busy}
         onClick={() => coordinator.stay()}>留在当前页</button>
     </div>
   </div>;

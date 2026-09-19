@@ -32,6 +32,8 @@ export type BoardLive = {
 
 export type CockpitMainPanelProps = PropsRuntime<'main'> & {
   library?: LibraryBoardClient;
+  leaveCoordinator?: import('./leave/leave-coordinator.mjs').LeaveCoordinator;
+  delivery?: ReturnType<typeof import('./cockpit-delivery.mjs').createCockpitDelivery>;
   pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
   listWorkspaceFiles?: () => Promise<Array<Record<string, unknown>>>;
   openWorkspaceFile?: (product: Record<string, unknown>) => void;
@@ -91,7 +93,7 @@ export function CockpitPanelIcon({ size, active }: PropsRuntime<'sidebar.panelli
 }
 
 export function CockpitMainPanel(props: CockpitMainPanelProps) {
-  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} initialSurface="pages" pageStore={props.pageStore}
+  if (props.library) return <LibraryCockpitPanel library={props.library} goConversation={props.goConversation} themeSource={props.themeSource} initialSurface="pages" pageStore={props.pageStore} delivery={props.delivery} leaveCoordinator={props.leaveCoordinator}
     listWorkspaceFiles={props.listWorkspaceFiles} openWorkspaceFile={props.openWorkspaceFile} readWorkspaceFile={props.readWorkspaceFile} />;
   return <LegacyCockpitMainPanel {...props} />;
 }

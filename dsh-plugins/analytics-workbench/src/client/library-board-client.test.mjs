@@ -446,6 +446,92 @@ test('selected edit is native-session bound, switching requires cancellation, an
   await instance.cancel(); assert.equal(state().editContext, null); assert.deepEqual(state().saved, saved);
 });
 
+test('selectComponent does not send native messages; beginEdit still does; patch is local RPC', async t => {
+  const saved = snap();
+  const pending = draft(snap({ version: 2, content: '新说明' }), { operation: 'PATCH', base_version: 1, preview_id: 'preview_patch' });
+  let current = null;
+  const sent = [];
+  const { instance, calls, state } = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'current_edit') return ok(current);
+    if (operation === 'select_edit') {
+      current = {
+        schema_version: 'board-edit-context/v1',
+        edit_context_id: 'edit_' + 'b'.repeat(32),
+        board_id: saved.spec.board_id, base_version: 1, block_id: payload.block_id,
+        session_id: saved.spec.session_id, status: 'OPEN', preview_id: null,
+        expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: {},
+      };
+      return ok(current);
+    }
+    if (operation === 'patch_preview') {
+      assert.deepEqual(payload.changes, { title: '新标题' });
+      return ok(pending);
+    }
+    throw new Error(operation);
+  }, { editNative: async context => sent.push(context) });
+  await instance.openBoard(saved.spec.board_id);
+  await instance.selectComponent('note');
+  assert.equal(state().editContext.block_id, 'note');
+  assert.equal(sent.length, 0);
+  assert.equal(instance.describeSelectedPatch().kind, 'TEXT');
+  await instance.previewBlockPatch({ title: '新标题' });
+  assert.equal(state().preview.operation, 'PATCH');
+  await instance.resumeEdit();
+  assert.equal(sent.length, 1);
+  const native = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'current_edit') return ok(null);
+    if (operation === 'select_edit') {
+      return ok({
+        schema_version: 'board-edit-context/v1',
+        edit_context_id: 'edit_' + 'c'.repeat(32),
+        board_id: saved.spec.board_id, base_version: 1, block_id: payload.block_id,
+        session_id: saved.spec.session_id, status: 'OPEN', preview_id: null,
+        expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: {},
+      });
+    }
+    throw new Error(operation);
+  }, { editNative: async context => sent.push(context) });
+  await native.instance.openBoard(saved.spec.board_id);
+  await native.instance.beginEdit('note');
+  assert.equal(sent.length, 2);
+});
+
+test('previewBlockPatch keeps an uncertain save receipt and does not start another PATCH', async t => {
+  const saved = snap();
+  const pending = draft(snap({ version: 2, content: '新说明' }), { operation: 'PATCH', base_version: 1, preview_id: 'preview_patch' });
+  let current = null;
+  const { instance, calls, state } = client(t, (operation, payload) => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'current_edit') return ok(current);
+    if (operation === 'select_edit') {
+      current = {
+        schema_version: 'board-edit-context/v1',
+        edit_context_id: 'edit_' + 'd'.repeat(32),
+        board_id: saved.spec.board_id, base_version: 1, block_id: payload.block_id,
+        session_id: saved.spec.session_id, status: 'OPEN', preview_id: null,
+        expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: {},
+      };
+      return ok(current);
+    }
+    if (operation === 'patch_preview') return ok(pending);
+    if (operation === 'confirm') return failed();
+    throw new Error(operation);
+  });
+  await instance.openBoard(saved.spec.board_id);
+  await instance.selectComponent('note');
+  await instance.previewBlockPatch({ title: '新标题' });
+  await instance.confirm();
+  assert.equal(state().confirmationUncertain, true);
+  assert.equal(state().preview.preview_id, 'preview_patch');
+  const patchesBefore = calls.filter(call => call.operation === 'patch_preview').length;
+  await instance.previewBlockPatch({ title: '另一标题' });
+  assert.equal(calls.filter(call => call.operation === 'patch_preview').length, patchesBefore);
+  assert.equal(state().preview.preview_id, 'preview_patch');
+  assert.match(state().message, /未核对的保存回执/);
+});
+
 test('lost native prompt retains resumable selection; a reopened client reads its pending preview without recreating it', async t => {
   const saved = snap(), pending = draft(snap({ version: 2, content: '新说明' }));
   const context = { schema_version: 'board-edit-context/v1', edit_context_id: 'edit_' + 'a'.repeat(32),
@@ -473,4 +559,20 @@ test('lost native prompt retains resumable selection; a reopened client reads it
   await reopened.instance.inspectEdit();
   assert.equal(reopened.state().editContext, null); assert.equal(reopened.state().preview, null);
   assert.deepEqual(reopened.state().saved, saved); assert.match(reopened.state().message, /已结束或过期/);
+});
+
+test('source choices retain other authorized board facts when selected context contains only its own result', async t => {
+  const saved = snap();
+  saved.spec.blocks[0] = { ...saved.spec.blocks[0], kind: 'METRIC', props: {}, source_result_id: 'result_a' };
+  saved.facts_by_result_id = { result_a: { scalar: { value: 1 } }, result_b: { scalar: { value: 2 } } };
+  const { instance } = client(t, (operation) => {
+    if (operation === 'get') return ok(saved);
+    if (operation === 'current_edit') return ok(null);
+    if (operation === 'select_edit') return ok({ schema_version: 'board-edit-context/v1', edit_context_id: 'edit_choices',
+      board_id: saved.spec.board_id, base_version: 1, block_id: 'note', session_id: saved.spec.session_id,
+      status: 'OPEN', preview_id: null, expires_at_ms: Date.now() + 10000, block: saved.spec.blocks[0], facts_by_result_id: { result_a: saved.facts_by_result_id.result_a } });
+    throw new Error(operation);
+  });
+  await instance.openBoard(saved.spec.board_id); await instance.selectComponent('note');
+  assert.deepEqual(instance.describeSelectedPatch().source_result_options, ['result_a', 'result_b']);
 });

@@ -1,6 +1,7 @@
 import type { FreeHtmlPage, PageAdapters, LocateResult, PreviewRecord } from './mock-adapters.d.mts';
 
 export type FreeHtmlLibraryState = {
+  cockpitSelectionId: string | null;
   view: 'home' | 'workspace';
   viewportWidth: number;
   railCollapsed: boolean;
@@ -17,6 +18,9 @@ export type FreeHtmlLibraryState = {
   contextPanel: 'ai' | 'source' | 'history' | null;
   overlay: 'selection' | 'patch' | null;
   preview: PreviewRecord | null;
+  importCandidate: { preview_id: string; package: FreeHtmlPage['package']; origin: { session_id: string; path: string } } | null;
+  textDraft: { value: string; original: string; changed: boolean } | null;
+  historyItems: { version: number; operation?: string; title?: string }[];
   confirmationUncertain: boolean;
   lastIdempotencyKey: string | null;
   pendingLeaveIntent: string | null;
@@ -33,6 +37,7 @@ export type FreeHtmlLibraryState = {
 export type FreeHtmlLibraryStore = {
   subscribe(listener: () => void): () => void;
   getSnapshot(): FreeHtmlLibraryState;
+  selectCockpitAsset(id: string | null): void;
   hasUnsavedChanges(): boolean;
   hasActiveEditContext(): boolean;
   dispose(): void;
@@ -48,7 +53,14 @@ export type FreeHtmlLibraryStore = {
   toggleAssets(): void;
   applyExample(text: string): void;
   generate(): Promise<void>;
-  openPage(pageId: string): Promise<void> | void;
+  openPage(pageId: string): Promise<boolean | undefined>;
+  refreshPages(): Promise<void>;
+  previewImport(input: Parameters<typeof import('./html-import.mjs').convertWorkspaceHtml>[0] & { title?: string }): Promise<boolean | undefined>;
+  confirmImport(): Promise<string | undefined>;
+  setReplacementText(value: string, original?: string): void;
+  discardTextDraft(): void;
+  loadHistory(): Promise<void>;
+  previewRollback(version: number): Promise<void>;
   requestLeave(intent: string): { blocked: boolean; hasUnsavedChanges: boolean; hasActiveEditContext: boolean };
   stayLeave(): { navigated: false; intent: null };
   persistForLeave(): Promise<{ ok: boolean; reason?: string }>;
@@ -62,14 +74,14 @@ export type FreeHtmlLibraryStore = {
   clearSelection(): void;
   openContext(panel: 'ai' | 'source' | 'history'): void;
   closeContext(): void;
-  previewPatch(instruction: string, extras?: Record<string, unknown>): Promise<void>;
+  previewPatch(replacementText: string, extras?: Record<string, unknown>): Promise<void>;
   confirmExpandedPatch(): void;
   confirmPatch(): Promise<void>;
   cancelPreview(): Promise<void>;
   saveDraft(): Promise<void>;
   markLocalDraft(pkg: FreeHtmlPage['package']): void;
   rollback(version: number): Promise<void>;
-  inspectConfirmation(): void;
+  inspectConfirmation(): Promise<unknown> | void;
   stopPreview(): void;
   restartPreview(): void;
   inspectCurrent(): void;
