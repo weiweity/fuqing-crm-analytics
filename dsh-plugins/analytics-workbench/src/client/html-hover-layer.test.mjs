@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import {
-  HOVER_CLASS, HOVER_STYLE_ID, bindShineNodeHover, ensureShineNodes, htmlWithHoverRuntime, shineNodes, srcdocHasHoverRuntime,
+  HOVER_CLASS, HOVER_STYLE_ID, attachHoverToIframe, bindShineNodeHover, ensureShineNodes, htmlWithHoverRuntime, shineNodes, srcdocHasHoverRuntime,
 } from './html-hover-layer.mjs';
 
 const plugin = fileURLToPath(new URL('../..', import.meta.url));
@@ -56,5 +56,25 @@ test('production hover does not invent shine-node ids', () => {
   const stop = bindShineNodeHover(dom.window.document);
   assert.equal(shineNodes(dom.window.document).length, 0);
   assert.equal(dom.window.document.querySelector('h2').getAttribute('data-shine-node'), null);
+  stop();
+});
+
+test('opaque iframe hover does not rewrite srcdoc', () => {
+  const src = '<!doctype html><html><body><h2 data-shine-node="title-1">标题</h2></body></html>';
+  const iframe = {
+    tagName: 'IFRAME',
+    srcdoc: src,
+    getAttribute(name) { return name === 'srcdoc' ? src : null; },
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  const stop = attachHoverToIframe(iframe);
+  assert.equal(iframe.srcdoc, src);
+  assert.equal(srcdocHasHoverRuntime(iframe.srcdoc), false);
+  stop();
+});
+
+test('attachHoverToIframe no-ops without an iframe', () => {
+  const stop = attachHoverToIframe({ querySelector() { return null; } });
   stop();
 });

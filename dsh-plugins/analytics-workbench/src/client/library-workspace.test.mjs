@@ -7,6 +7,8 @@ import { join, resolve } from 'node:path';
 import { createLibraryBoardClient } from './library-board-client.mjs';
 import { COMPONENT_CATALOG } from '../board-spec/component-catalog.mjs';
 import { librarySnapshot, libraryPreview, ok, failed, listOf } from '../../test/helpers/library-board-fixtures.mjs';
+import { createFreeHtmlLibraryStore } from './free-html-library/store.mjs';
+import { SAMPLE_PACKAGE, createMockPageAdapters } from './free-html-library/mock-adapters.mjs';
 
 const plugin = fileURLToPath(new URL('../..', import.meta.url));
 const upstream = resolve(process.env.B0_BUILD_UPSTREAM ?? join(plugin, '../../.context/dsh-b0/upstream'));
@@ -998,4 +1000,119 @@ test('editMode pushes a 320px sidebar placeholder and the canvas stays', async t
   assert.equal(ui.doc.querySelector('[data-testid="cockpit-sidebar"]'), null);
   assert.equal(area.style.width, '100%');
   assert.ok(ui.doc.querySelector('[data-block-id]'));
+});
+
+test('empty cabinet and failed workspace list stay on the empty canvas', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => { throw new Error('workspace list failed'); },
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.match(ui.doc.querySelector('[data-testid="library-products-empty"]').textContent, /还没有产物/);
+  assert.match(ui.doc.querySelector('[data-testid="library-canvas-empty"]').textContent, /还没有页面/);
+});
+
+test('Escape during layout keeps editMode', async t => {
+  const ui = await domFixture(t), snapshot = librarySnapshot();
+  const client = createLibraryBoardClient(async (_channel, operation) => operation === 'list' ? ok(listOf(snapshot)) : ok(snapshot));
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openBoard(snapshot.spec.board_id));
+  await startLayout(ui);
+  assert.equal(ui.doc.querySelector('[data-testid="cockpit-edit-btn"]').textContent, '退出编辑');
+  await act(async () => { ui.doc.dispatchEvent(new ui.doc.defaultView.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  assert.equal(ui.doc.querySelector('[data-testid="cockpit-edit-btn"]').textContent, '退出编辑');
+  assert.ok(ui.doc.querySelector('[data-testid="library-layout-banner"]'));
+});
+
+test('saved page_id products open FreeHtmlLibraryApp on the canvas', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  const pageStore = createFreeHtmlLibraryStore({
+    adapters: createMockPageAdapters({
+      pages: [{
+        page_id: 'pg_saved',
+        title: '晨报.html',
+        version: 1,
+        binding_state: 'UNBOUND_SAMPLE',
+        updated_at: 1,
+        package: SAMPLE_PACKAGE,
+        dirty: false,
+        history: [],
+      }],
+    }),
+  });
+  t.after(() => pageStore.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    pageStore,
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.match(ui.doc.querySelector('[data-testid="library-products-list"]').textContent, /晨报\.html/);
+  await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.ok(ui.doc.querySelector('[data-testid="fhl-root"]') || ui.doc.querySelector('[data-testid="fhl-workspace"]'));
+  await ui.click('[data-testid="cockpit-edit-btn"]');
+  assert.equal(ui.doc.querySelector('[data-testid="fhl-preview"]')?.getAttribute('data-edit-mode'), '1');
+});
+
+test('html fragments wrap into a document and pdf files stay out of the tree', async t => {
+  const ui = await domFixture(t);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok({ items: [] });
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, {
+    library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' },
+    goConversation() {},
+    initialSurface: 'pages',
+    listWorkspaceFiles: async () => [
+      { id: 'file:s1:note.html', kind: 'html', title: 'note.html', path: 'note.html', sessionId: 's1' },
+      { id: 'file:s1:deck.pdf', kind: 'pdf', title: 'deck.pdf', path: 'deck.pdf', sessionId: 's1' },
+    ],
+    readWorkspaceFile: async () => '<p data-shine-node="n">片段</p>',
+  }));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  assert.doesNotMatch(ui.doc.querySelector('[data-testid="library-products-list"]').textContent, /deck\.pdf/);
+  await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  const src = ui.doc.querySelector('[data-testid="library-html-preview"]')?.getAttribute('srcdoc')
+    || ui.doc.querySelector('[data-testid="library-html-preview"]')?.srcdoc || '';
+  assert.match(src, /<!doctype html>/i);
+  assert.match(src, /片段/);
+});
+
+test('board preview banner hides when the HTML group is selected', async t => {
+  const ui = await domFixture(t), snapshot = librarySnapshot(), pending = libraryPreview(snapshot);
+  const client = createLibraryBoardClient(async (_channel, operation) => {
+    if (operation === 'list') return ok(listOf(snapshot));
+    if (operation === 'preview') return ok(pending);
+    return ok(snapshot);
+  });
+  t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openPreview(pending.preview_id));
+  visible(ui.doc.querySelector('[data-testid="library-preview-banner"]'));
+  await ui.click('[data-testid="library-panel-pages"]');
+  assert.equal(ui.doc.querySelector('[data-testid="library-preview-banner"]'), null);
 });
