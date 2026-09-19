@@ -10,7 +10,7 @@
 
 - 驾驶舱：独立二级页产物柜；页头「编辑」留在本页；侧轨调整布局／回退；HTML shine-node 悬停。不改 DSH 上游。不上公网。
 - 驾驶舱：去掉路径栏第二编辑入口和点板块进原生对话；页头样式走组件内联 CSS（打包抽出的 client.css 宿主不加载）。不上公网。
-- 修复：工作区 HTML 预览注入 FREE_PAGE CSP 与 no-referrer；list/read 解开 Host RemoteResult 并读到 eof；无 remote 时 apply 不崩。不上公网。
+- 修复：工作区 HTML 预览注入 FREE_PAGE CSP 与 no-referrer；list/read 解开 Host RemoteResult 并读到 eof；无 remote inject 时 apply 不读 ctx.remote。不上公网。
 
 ## [0.9.0.8]
 

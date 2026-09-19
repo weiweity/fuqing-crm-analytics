@@ -550,14 +550,21 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
-  const workspaceFilesApi = (ctx.remote as unknown as {
-    workspaceFiles?: {
-      list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown>;
-      read?: (sessionId: string, path: string, range?: { offset?: number; limit?: number }, signal?: AbortSignal) => Promise<unknown>;
-    };
-  } | undefined)?.workspaceFiles;
+  const remoteWorkspaceFiles = () => {
+    try {
+      return (ctx.remote as unknown as {
+        workspaceFiles?: {
+          list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown>;
+          read?: (sessionId: string, path: string, range?: { offset?: number; limit?: number }, signal?: AbortSignal) => Promise<unknown>;
+        };
+      }).workspaceFiles;
+    } catch {
+      return undefined;
+    }
+  };
   const listWorkspaceFiles = async () => {
     const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot());
+    const workspaceFilesApi = remoteWorkspaceFiles();
     const list = workspaceFilesApi?.list;
     if (!sessionId || typeof list !== 'function') return [];
     return collectWorkspaceProducts((id, path, signal) => list.call(workspaceFilesApi, id, path, signal), sessionId);
@@ -571,6 +578,7 @@ export function apply(ctx: Context): void {
     openResource(address);
   };
   const readWorkspaceFile = async (product: { sessionId?: string; path?: string }) => {
+    const workspaceFilesApi = remoteWorkspaceFiles();
     const read = workspaceFilesApi?.read;
     if (!product?.sessionId || !product?.path || typeof read !== 'function') return null;
     if (!isSafeWorkspaceRelPath(product.path)) return null;
