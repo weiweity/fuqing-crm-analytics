@@ -174,6 +174,23 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
   async function cancelEdit() {
     return cancelCurrent(cancelTarget({ editContext: state.editContext }));
   }
+  async function readHistory(boardId) {
+    const value = await request('history', { board_id: boardId });
+    if (!Array.isArray(value) || value.some(row => !record(row) || !Number.isSafeInteger(row.version) || row.version < 1
+      || !['GENERATE', 'PATCH', 'LAYOUT', 'ROLLBACK'].includes(row.operation) || !Number.isSafeInteger(row.created_at_ms))) {
+      throw new Error('版本历史响应不合法。');
+    }
+    return value;
+  }
+  async function applyRollback(toVersion) {
+    if (!state.saved || state.preview || state.layoutDraft || state.editContext) return;
+    const value = boardPreview(await request('rollback_preview', { board_id: state.saved.spec.board_id,
+      base_version: state.saved.spec.version, to_version: toVersion }));
+    if (value?.status !== 'PENDING' || value.operation !== 'ROLLBACK') throw new Error('未取得回退预览，当前内容不变。');
+    if (value.snapshot.spec.board_id !== state.saved.spec.board_id || value.base_version !== state.saved.spec.version
+      || value.snapshot.spec.session_id !== state.saved.spec.session_id) throw new Error('回退预览目标不一致，当前内容不变。');
+    emit({ preview: value, history: [], message: '正在预览回退后的内容，确认后才保存。' });
+  }
   return Object.freeze({
     getSnapshot: () => state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
@@ -281,8 +298,12 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
       const target = cancelTarget(state);
       if (!target) return;
       if (target.kind === 'layout') { await cancelCurrent(target); return; }
+      const restoreLayout = target.kind === 'preview' && state.preview?.operation === 'LAYOUT' && !state.confirmationUncertain
+        ? state.preview.snapshot : null;
       await cancelCurrent(target);
-      emit({ incoming: null });
+      emit(restoreLayout
+        ? { incoming: null, layoutDraft: restoreLayout, message: '已返回布局调整；尚未保存。' }
+        : { incoming: null });
     }),
     beginLayout() {
       if (state.busy || state.preview || !state.saved || state.layoutDraft || state.editContext) return;
@@ -346,19 +367,19 @@ export function createLibraryBoardClient(call, { editNative } = {}) {
     }),
     loadHistory: () => perform(async () => {
       if (!state.saved) return;
-      const value = await request('history', { board_id: state.saved.spec.board_id });
-      if (!Array.isArray(value) || value.some(row => !record(row) || !Number.isSafeInteger(row.version) || row.version < 1
-        || !['GENERATE', 'PATCH', 'LAYOUT', 'ROLLBACK'].includes(row.operation) || !Number.isSafeInteger(row.created_at_ms))) throw new Error('版本历史响应不合法。');
-      emit({ history: value });
+      emit({ history: await readHistory(state.saved.spec.board_id) });
     }),
-    rollback: toVersion => perform(async () => {
+    rollback: toVersion => perform(async () => { await applyRollback(toVersion); }),
+    rollbackPrevious: () => perform(async () => {
       if (!state.saved || state.preview || state.layoutDraft || state.editContext) return;
-      const value = boardPreview(await request('rollback_preview', { board_id: state.saved.spec.board_id,
-        base_version: state.saved.spec.version, to_version: toVersion }));
-      if (value?.status !== 'PENDING' || value.operation !== 'ROLLBACK') throw new Error('未取得回退预览，当前内容不变。');
-      if (value.snapshot.spec.board_id !== state.saved.spec.board_id || value.base_version !== state.saved.spec.version
-        || value.snapshot.spec.session_id !== state.saved.spec.session_id) throw new Error('回退预览目标不一致，当前内容不变。');
-      emit({ preview: value, history: [], message: '正在预览回退后的内容，确认后才保存。' });
+      let history = state.history;
+      if (!history.length) {
+        history = await readHistory(state.saved.spec.board_id);
+        emit({ history });
+      }
+      const previous = history.find(row => row.version < state.saved.spec.version);
+      if (!previous) { emit({ message: '没有可回退的更早版本。' }); return; }
+      await applyRollback(previous.version);
     }),
   });
 }

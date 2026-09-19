@@ -41,6 +41,7 @@ export type LibraryBoardClient = {
   inspectConfirmation(): Promise<void>;
   loadHistory(): Promise<void>;
   rollback(version: number): Promise<void>;
+  rollbackPrevious(): Promise<void>;
   beginLayout(): void;
   updateLayout(blockId: string, box: { x: number; y: number; w: number; h: number }): void;
   previewLayout(): Promise<void>;

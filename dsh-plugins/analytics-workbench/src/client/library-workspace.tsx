@@ -10,7 +10,56 @@ import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
 import { FreeHtmlLibraryApp } from './free-html-library/FreeHtmlLibraryApp.tsx';
 import { mergeCockpitProducts, type CockpitProduct } from './cockpit-products.mjs';
 
-const KIND_LABEL = { html: 'HTML', spreadsheet: '表格', pdf: 'PDF', board: '看板' };
+const KIND_LABEL = { html: 'HTML', spreadsheet: 'CSV', pdf: 'PDF', board: '看板' };
+const TREE_GROUPS = [
+  { key: 'html', label: 'HTML' },
+  { key: 'board', label: '看板' },
+  { key: 'csv', label: 'CSV' },
+  { key: 'sheet', label: '表格' },
+] as const;
+
+function treeBucket(item: CockpitProduct) {
+  if (item.kind === 'html') return 'html';
+  if (item.kind === 'board') return 'board';
+  if (item.kind !== 'spreadsheet') return null;
+  const name = String(item.path ?? item.title ?? '');
+  return /\.csv$/i.test(name) ? 'csv' : 'sheet';
+}
+
+function pathKindLabel(item: CockpitProduct) {
+  const bucket = treeBucket(item);
+  if (bucket === 'board') return '看板';
+  if (bucket === 'html') return 'HTML';
+  if (bucket === 'csv') return 'CSV';
+  if (bucket === 'sheet') return '表格';
+  if (item.kind === 'pdf') return 'PDF';
+  return item.kind;
+}
+
+function previewCancelLabel(preview: LibraryState['preview'], uncertain: boolean) {
+  if (uncertain) return '尝试取消未应用草稿';
+  if (preview?.operation === 'LAYOUT') return '返回调整';
+  return '取消，保留已保存版本';
+}
+
+function previewConfirmLabel(busy: boolean, uncertain: boolean, operation: string) {
+  if (busy) return '处理中…';
+  if (uncertain) return '重试这次保存';
+  if (operation === 'LAYOUT') return '确认保存';
+  return '确认保存这份看板';
+}
+
+function groupTestId(key: string) {
+  if (key === 'html') return 'library-panel-pages';
+  if (key === 'board') return 'library-panel-board';
+  return `library-panel-${key}`;
+}
+
+function groupPressed(key: string, panel: 'pages' | 'board' | 'actions') {
+  if (key === 'html') return panel === 'pages';
+  if (key === 'board') return panel === 'board';
+  return false;
+}
 const EMPTY_PAGES: Array<{ page_id?: string; title?: string; version?: number }> = [];
 const emptyPageSnap = {
   subscribe: (_listener: () => void) => () => {},
@@ -18,7 +67,7 @@ const emptyPageSnap = {
 };
 
 const css = `
-.sm-library-workspace { --lib-rail:#f6f6f7; --lib-canvas:#fff; --lib-ink:#1f1f1f; --lib-muted:#8c8c8c; --lib-line:#ececec; --lib-active:#ececec; min-width:0; min-height:640px; height:100%; display:grid; grid-template-columns:240px minmax(0,1fr); grid-template-rows:minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
+.sm-library-workspace { --lib-rail:#f7f7f7; --lib-canvas:#fff; --lib-ink:#171717; --lib-muted:#737373; --lib-line:#e8e8e8; --lib-active:#fff; min-width:0; min-height:640px; height:100%; display:grid; grid-template-columns:300px minmax(0,1fr); grid-template-rows:minmax(0,1fr); background:var(--lib-rail); color:var(--lib-ink); font-family:var(--sm-font-body); }
 .sm-library-rail { min-width:0; display:flex; flex-direction:column; gap:4px; padding:12px 10px 16px; border-right:1px solid var(--lib-line); background:var(--lib-rail); }
 .sm-library-rail h1 { margin:4px 8px 12px; font:600 16px/22px var(--sm-font-body); }
 .sm-library-search { display:flex; flex-direction:column; gap:4px; margin:0 4px 8px; color:var(--lib-muted); font-size:12px; }
@@ -43,15 +92,28 @@ const css = `
 [data-testid="library-board-view"] p { color:var(--lib-muted); }
 .sm-library-workspace button:not(.ant-btn),.sm-library-workspace select { font:inherit; color:inherit; background:transparent; border:1px solid var(--lib-line); border-radius:8px; padding:6px 10px; cursor:pointer; }
 .sm-library-workspace button:not(.ant-btn):disabled { opacity:.5; cursor:not-allowed; }
-.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--sm-purple); outline-offset:2px; }
-.sm-library-workspace .sm-library-confirm { background:var(--sm-purple); color:#fff; border-color:var(--sm-purple); }
-.sm-library-banner { margin:12px 16px; padding:12px; border:1px solid var(--sm-purple); border-radius:8px; display:flex; flex-direction:column; gap:12px; }
-.sm-library-products { display:flex; flex-direction:column; gap:4px; min-height:0; }
-.sm-library-products-hint { color:var(--lib-muted); font-size:12px; padding:4px 10px; }
-.sm-library-rail-section { display:flex; align-items:center; justify-content:space-between; padding:8px 10px 4px; color:var(--lib-muted); font-size:12px; }
+.sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible,.sm-library-search input:focus-visible { outline:2px solid var(--lib-ink); outline-offset:2px; }
+.sm-library-workspace .sm-library-confirm { background:var(--lib-ink); color:#fff; border-color:var(--lib-ink); }
+.sm-library-banner { margin:0; padding:12px 24px; border:0; border-bottom:1px solid var(--lib-line); display:flex; flex-wrap:wrap; gap:12px; align-items:center; background:#fff; }
+.sm-library-banner p { color:var(--lib-muted); font-size:12px; margin-right:auto; }
+.sm-library-products { display:flex; flex-direction:column; gap:4px; min-height:0; flex:1; }
+.sm-library-products-hint { color:var(--lib-muted); font-size:12px; padding:0 8px 8px; }
+.sm-library-rail-section { display:flex; align-items:center; justify-content:space-between; padding:8px 8px 4px; color:var(--lib-muted); font-size:12px; }
+.sm-library-tree-group { display:flex; flex-direction:column; gap:2px; padding:4px 0; }
+.sm-library-tree-toggle { width:100%; display:flex; gap:8px; align-items:center; border:0; background:transparent; border-radius:8px; padding:6px 8px; text-align:left; font:500 13px/18px var(--sm-font-body); }
+.sm-library-tree-toggle[aria-pressed="true"] { background:var(--lib-active); }
+.sm-library-tree-count { margin-left:auto; color:var(--lib-muted); font:400 12px/17px var(--sm-font-body); }
 .sm-library-products ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
-.sm-library-products li button { width:100%; display:flex; gap:8px; align-items:center; border:0; background:transparent; border-radius:8px; padding:8px 10px; text-align:left; font:400 13px/18px var(--sm-font-body); overflow:hidden; }
+.sm-library-products li button { width:100%; display:flex; gap:8px; align-items:center; border:0; background:transparent; border-radius:8px; padding:8px 8px 8px 28px; text-align:left; font:400 13px/18px var(--sm-font-body); overflow:hidden; }
+.sm-library-products li[data-selected="1"] button { background:var(--lib-active); }
 .sm-library-products li button span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.sm-library-products li button [data-testid="library-product-kind"] { display:none; }
+.sm-library-edit { position:relative; margin-left:auto; }
+.sm-library-edit > button { min-height:32px; }
+.sm-library-edit-menu { position:absolute; right:0; top:calc(100% + 6px); z-index:4; width:220px; padding:6px; background:#fff; border:1px solid var(--lib-line); border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+.sm-library-edit-menu button { width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:2px; border:0; background:transparent; border-radius:8px; padding:8px 10px; text-align:left; }
+.sm-library-edit-menu button:hover { background:#f4f4f4; }
+.sm-library-edit-menu small { color:var(--lib-muted); font-size:11px; font-weight:400; }
 .sm-library-diff { overflow:auto; max-height:260px; }
 .sm-library-diff table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
 .sm-library-diff th,.sm-library-diff td { text-align:left; vertical-align:top; border-bottom:1px solid var(--lib-line); padding:8px; overflow-wrap:anywhere; white-space:pre-wrap; }
@@ -81,41 +143,58 @@ function asSrcDoc(text: string) {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body>${trimmed}</body></html>`;
 }
 
-function CockpitProductsView({ items, busy, query, selectedId, onQuery, onRefresh, onOpen, showSearch = true }: {
+function ProductFolderTree({ items, busy, selectedId, expanded, panel, onRefresh, onOpen, onToggle }: {
   items: CockpitProduct[];
   busy: boolean;
-  query: string;
   selectedId: string | null;
-  onQuery(value: string): void;
+  expanded: Record<string, boolean>;
+  panel: 'pages' | 'board' | 'actions';
   onRefresh(): void;
   onOpen(item: CockpitProduct): void;
-  showSearch?: boolean;
+  onToggle(key: string): void;
 }) {
-  const needle = query.trim().toLowerCase();
-  const filtered = needle ? items.filter(item => item.title.toLowerCase().includes(needle)) : items;
+  const visible = items.filter(item => treeBucket(item));
+  const groups = TREE_GROUPS.filter(group => group.key !== 'sheet' || visible.some(item => treeBucket(item) === 'sheet'));
   return (
     <div className="sm-library-products" data-testid="library-products">
-      {showSearch ? <label className="sm-library-search">搜索
-        <input data-testid="library-products-search" value={query} placeholder="搜索" onChange={event => onQuery(event.target.value)} />
-      </label> : null}
+      <p className="sm-library-products-hint">本会话 · HTML / 看板 / CSV</p>
       <div className="sm-library-rail-section">
-        <span>我的资料</span>
+        <span>产物</span>
         <button type="button" data-testid="library-products-refresh" disabled={busy} onClick={onRefresh}>刷新</button>
       </div>
-      {filtered.length === 0
+      {visible.length === 0
         ? <p data-testid="library-products-empty">还没有产物。</p>
         : (
-          <ul data-testid="library-products-list">
-            {filtered.map(item => (
-              <li key={item.id} data-kind={item.kind} data-selected={selectedId === item.id ? '1' : '0'}>
-                <button type="button" data-testid="library-product-open" aria-current={selectedId === item.id}
-                  onClick={() => onOpen(item)}>
-                  <span>{item.title}</span>
-                  <span data-testid="library-product-kind">{KIND_LABEL[item.kind as keyof typeof KIND_LABEL] ?? item.kind}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div data-testid="library-products-list">
+            {groups.map(group => {
+              const kids = visible.filter(item => treeBucket(item) === group.key);
+              const open = Boolean(expanded[group.key]);
+              const testId = groupTestId(group.key);
+              const pressed = groupPressed(group.key, panel);
+              return (
+                <div key={group.key} className="sm-library-tree-group">
+                  <button type="button" className="sm-library-tree-toggle" data-testid={testId}
+                    aria-expanded={open} aria-pressed={pressed} onClick={() => onToggle(group.key)}>
+                    <span aria-hidden="true">{open ? '▼' : '▶'}</span>
+                    <span>{group.label}</span>
+                    <span className="sm-library-tree-count">{kids.length}</span>
+                  </button>
+                  <ul hidden={!open}>
+                    {kids.map(item => (
+                      <li key={item.id} data-kind={item.kind} data-selected={selectedId === item.id ? '1' : '0'}>
+                        <button type="button" data-testid="library-product-open" aria-current={selectedId === item.id}
+                          onClick={() => onOpen(item)}>
+                          <span>{item.title}</span>
+                          <span data-testid="library-product-kind">{KIND_LABEL[item.kind as keyof typeof KIND_LABEL] ?? item.kind}</span>
+                          {item.subtitle ? <span>{item.subtitle}</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         )}
     </div>
   );
@@ -143,8 +222,10 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const [workspaceFiles, setWorkspaceFiles] = useState<Array<Record<string, unknown>>>([]);
   const [editingHtml, setEditingHtml] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
   const [filePreview, setFilePreview] = useState('');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ html: initialSurface === 'pages', board: true, csv: false, sheet: false });
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
+  const editMenu = useRef<HTMLDivElement>(null);
   const pageList = useSyncExternalStore(
     pageStore ? pageStore.subscribe : emptyPageSnap.subscribe,
     () => (pageStore ? pageStore.getSnapshot().pages : EMPTY_PAGES),
@@ -154,7 +235,20 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     if (typeof listWorkspaceFiles !== 'function') { setWorkspaceFiles([]); return; }
     void listWorkspaceFiles().then(items => setWorkspaceFiles(Array.isArray(items) ? items : [])).catch(() => setWorkspaceFiles([]));
   };
-  useEffect(() => { if (panel === 'pages') refreshProducts(); }, [panel, listWorkspaceFiles]);
+  useEffect(() => { refreshProducts(); }, [listWorkspaceFiles]);
+  useEffect(() => {
+    if (!editMenuOpen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setEditMenuOpen(false); };
+    const onPointer = (event: PointerEvent) => {
+      if (editMenu.current && !editMenu.current.contains(event.target as Node)) setEditMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [editMenuOpen]);
   useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id, Boolean(state.layoutDraft)]);
   useEffect(() => {
     if (state.busy || !state.confirmationUncertain || !state.preview) return;
@@ -191,9 +285,14 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     if (item.kind === 'board' && item.board_id) {
       void library.openBoard(item.board_id);
       setPanel('board');
+      setExpanded(current => ({ ...current, board: true }));
+      setEditMenuOpen(false);
       return;
     }
     setPanel('pages');
+    const bucket = treeBucket(item);
+    setExpanded(current => ({ ...current, html: bucket === 'html' ? true : current.html, csv: bucket === 'csv' ? true : current.csv, sheet: bucket === 'sheet' ? true : current.sheet }));
+    setEditMenuOpen(false);
     if (item.page_id && pageStore) {
       void pageStore.openPage(item.page_id);
       return;
@@ -220,19 +319,17 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
     <main className="sm-library-workspace" data-testid="library-workspace" aria-busy={state.busy}
       onFocusCapture={event => { lastFocused.current = event.target; }}>
       <aside className="sm-library-rail">
-        <h1 tabIndex={-1} ref={heading}>资料库</h1>
-        <nav className="sm-library-nav" aria-label="驾驶舱页面">
-          <button type="button" aria-pressed={panel === 'pages'} data-testid="library-panel-pages"
-            onClick={() => { setEditingHtml(false); setPanel('pages'); }}>本地产物</button>
-          <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
-            onClick={() => setPanel('board')}>我的驾驶舱</button>
+        <h1 tabIndex={-1} ref={heading}>产物文件夹</h1>
+        <ProductFolderTree items={products} busy={state.busy} selectedId={selectedId} expanded={expanded} panel={panel}
+          onRefresh={refreshProducts} onOpen={openProduct} onToggle={key => {
+            setExpanded(current => ({ ...current, [key]: !current[key] }));
+            if (key === 'board') setPanel('board');
+            if (key === 'html') { setEditingHtml(false); setPanel('pages'); }
+          }} />
+        <div className="sm-library-rail-foot">
           {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
             onClick={() => { setVisitedActions(true); setPanel('actions'); }}>人群行动</button> : null}
-        </nav>
-        <CockpitProductsView items={products} busy={state.busy} query={query} selectedId={selectedId}
-          onQuery={setQuery} onRefresh={refreshProducts} onOpen={openProduct} showSearch={panel === 'pages'} />
-        <div className="sm-library-rail-foot">
-          <button type="button" onClick={goConversation}>返回原生对话</button>
+          <button type="button" onClick={goConversation}>返回对话</button>
         </div>
       </aside>
       <div className="sm-library-canvas">
@@ -245,16 +342,16 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         </div>
       </div> : null}
       {boardChrome && state.preview ? <div className="sm-library-banner" data-testid="library-preview-banner" ref={previewBanner}>
-        <p>{{ ROLLBACK: '回退预览', LAYOUT: '布局预览', PATCH: '组件修改预览', GENERATE: '生成预览' }[state.preview.operation]} · v{state.preview.snapshot.spec.version} · {state.confirmationUncertain
+        <p>{{ ROLLBACK: '回退预览', LAYOUT: '布局已通过检查', PATCH: '组件修改预览', GENERATE: '生成预览' }[state.preview.operation]} · v{state.preview.snapshot.spec.version} · {state.confirmationUncertain
           ? '保存结果待核对。可能已写入服务端；请核对状态，或重试同一次保存。取消草稿不会撤销已保存内容。'
           : '尚未保存。请检查下方内容和出处。'}</p>
         <EditDiff state={state} />
         <div className="sm-library-actions">
           {state.confirmationUncertain ? <button type="button" disabled={state.busy} data-testid="library-inspect-confirmation" ref={recovery}
             onClick={() => { void library.inspectConfirmation(); }}>核对保存结果</button> : null}
-          <button type="button" disabled={state.busy} data-testid="library-cancel" onClick={() => { void library.cancel(); }}>{state.confirmationUncertain ? '尝试取消未应用草稿' : '取消，保留已保存版本'}</button>
+          <button type="button" disabled={state.busy} data-testid="library-cancel" onClick={() => { void library.cancel(); }}>{previewCancelLabel(state.preview, state.confirmationUncertain)}</button>
           <button type="button" className="sm-library-confirm" disabled={state.busy} data-testid="library-confirm"
-            onClick={() => { void library.confirm(); }}>{state.busy ? '处理中…' : state.confirmationUncertain ? '重试这次保存' : '确认保存这份看板'}</button>
+            onClick={() => { void library.confirm(); }}>{previewConfirmLabel(state.busy, state.confirmationUncertain, state.preview.operation)}</button>
         </div>
       </div> : null}
       {boardChrome && state.editContext && !state.preview ? <div className="sm-library-banner" data-testid="library-edit-banner">
@@ -266,16 +363,42 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         </div>
       </div> : null}
       {boardChrome && state.layoutDraft ? <div className="sm-library-banner" aria-label="布局编辑" data-testid="library-layout-banner">
-        <p>布局编辑中 · 仅修改位置和尺寸，不改数据。检查后还需确认保存。</p>
+        <p>布局编辑中 · 只改位置和尺寸，不改数字</p>
         <div className="sm-library-actions">
-          <button type="button" disabled={state.busy} data-testid="layout-cancel" onClick={() => { void library.cancel(); }}>取消布局调整</button>
-          <button type="button" disabled={state.busy} data-testid="layout-preview" onClick={() => { void library.previewLayout(); }}>检查布局</button>
+          <button type="button" disabled={state.busy} data-testid="layout-cancel" onClick={() => { void library.cancel(); }}>取消</button>
+          <button type="button" className="sm-library-confirm" disabled={state.busy} data-testid="layout-preview" onClick={() => { void library.previewLayout(); }}>检查布局</button>
         </div>
       </div> : null}
       <div className="sm-library-pathbar" data-testid="library-pathbar">
-        <span>{selected ? <>我的资料 / <strong>{selected.title}</strong></> : '我的资料'}</span>
+        <span>{selected
+          ? <><strong>{selected.title}</strong> 本会话 / {pathKindLabel(selected)}</>
+          : panel === 'board' ? '本会话 / 看板' : '产物文件夹'}</span>
+        {panel === 'board' && state.saved && !state.preview && !state.layoutDraft
+          ? <div className="sm-library-edit" ref={editMenu}>
+            <button type="button" aria-expanded={editMenuOpen} aria-haspopup="menu" onClick={() => setEditMenuOpen(open => !open)}>
+              编辑 ▼
+            </button>
+            <div className="sm-library-edit-menu" role="menu" hidden={!editMenuOpen} data-testid="library-edit-menu">
+              <button type="button" role="menuitem" onClick={() => { setEditMenuOpen(false); goConversation(); }}>
+                AI 编辑<small>点板块后走 PATCH_BLOCK</small>
+              </button>
+              <button type="button" role="menuitem" data-testid="layout-start"
+                onClick={() => { setEditMenuOpen(false); library.beginLayout(); }}>
+                调整布局<small>网格拖拽，检查后再确认</small>
+              </button>
+              <button type="button" role="menuitem" data-testid="library-rollback-previous" disabled={state.busy}
+                onClick={() => { setEditMenuOpen(false); void library.rollbackPrevious(); }}>回退这一版</button>
+            </div>
+          </div>
+          : null}
+        {panel === 'board' && state.layoutDraft
+          ? <button type="button" disabled>调整布局中</button>
+          : null}
+        {panel === 'board' && state.preview?.operation === 'LAYOUT'
+          ? <button type="button" disabled>待确认</button>
+          : null}
         {selected && (editingHtml || selected.kind === 'html' || panel === 'board')
-          ? <button type="button" data-testid="library-products-back" onClick={() => { setEditingHtml(false); setSelectedId(null); setFilePreview(''); setPanel('pages'); }}>关闭</button>
+          ? <button type="button" data-testid="library-products-back" onClick={() => { setEditingHtml(false); setSelectedId(null); setFilePreview(''); setPanel('pages'); setEditMenuOpen(false); }}>关闭</button>
           : null}
       </div>
       <section hidden={panel !== 'pages'} data-testid="library-pages-view" className="sm-library-document">
@@ -312,7 +435,6 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
           updateLayout={library.updateLayout} selectedBlockId={state.editContext?.block_id}
           selectBlock={!state.preview && !state.layoutDraft ? blockId => { void library.beginEdit(blockId); } : undefined} /></> : <p>问数后，在原生对话生成驾驶舱；已保存的看板不依赖模型在线。</p>}
       {state.saved && !state.preview && !state.layoutDraft && !state.editContext ? <div className="sm-library-actions">
-        <button type="button" disabled={state.busy} data-testid="layout-start" onClick={() => library.beginLayout()}>调整布局</button>
         <button type="button" disabled={state.busy} onClick={() => { void library.loadHistory(); }}>查看历史版本</button>
         {state.history.map(version => <button type="button" key={version.version}
           disabled={state.busy || version.version >= state.saved!.spec.version}

@@ -426,6 +426,7 @@ test('pointer handles move and resize a local draft; collision/Escape/pointercan
       for (const update of payload.layouts) result.spec.blocks.find(block => block.block_id === update.block_id).layout = update.layout;
       return ok(libraryPreview(result, { operation: 'LAYOUT' }));
     }
+    if (operation === 'cancel') return ok({ preview_id: payload.preview_id, status: 'CANCELLED' });
     throw new Error(`unexpected ${operation}`);
   }); t.after(() => client.dispose());
   await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
@@ -464,8 +465,15 @@ test('pointer handles move and resize a local draft; collision/Escape/pointercan
   await ui.click('[data-testid=layout-preview]');
   assert.deepEqual(operations, ['list', 'get', 'layout_preview']);
   assert.equal(ui.doc.querySelector('[data-layout-mode]'), null);
-  assert.match(ui.doc.querySelector('[data-testid=library-preview-banner]').textContent, /布局预览/);
+  assert.match(ui.doc.querySelector('[data-testid=library-preview-banner]').textContent, /布局已通过检查/);
+  assert.match(ui.doc.querySelector('[data-testid=library-cancel]').textContent, /返回调整/);
   assert.deepEqual(client.getSnapshot().saved, saved);
+  const moved = client.getSnapshot().preview.snapshot.spec.blocks[0].layout;
+  await ui.click('[data-testid=library-cancel]');
+  assert.equal(client.getSnapshot().preview, null);
+  assert.deepEqual(client.getSnapshot().layoutDraft.spec.blocks[0].layout, moved);
+  assert.ok(ui.doc.querySelector('[data-testid=library-layout-banner]'));
+  assert.ok(ui.doc.querySelector('[data-layout-mode]'));
 });
 
 for (const mode of ['move', 'resize']) for (const axis of ['x', 'y']) {
@@ -645,7 +653,7 @@ test('crowd-action pack off hides the native 人群行动 entry', async t => {
     themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
   assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions"]'), null);
   assert.equal(ui.doc.querySelector('[data-testid="analytics-competition-actions-view"]'), null);
-  assert.equal(ui.doc.querySelector('[data-testid="library-panel-board"]')?.textContent, '我的驾驶舱');
+  assert.match(ui.doc.querySelector('[data-testid="library-panel-board"]')?.textContent ?? '', /看板/);
 });
 
 test('beforeunload follows hasUnsavedChanges and ignores a clean editContext', async t => {
@@ -716,6 +724,7 @@ test('pages surface is a product cabinet with html edit', async t => {
   const files = [
     { id: 'file:s1:week.html', kind: 'html', title: 'week.html', path: 'week.html', sessionId: 's1' },
     { id: 'file:s1:week.csv', kind: 'spreadsheet', title: 'week.csv', path: 'week.csv', sessionId: 's1' },
+    { id: 'file:s1:week.xlsx', kind: 'spreadsheet', title: 'week.xlsx', path: 'week.xlsx', sessionId: 's1' },
   ];
   let opened = null;
   await ui.render(React.createElement(LibraryCockpitPanel, {
@@ -727,12 +736,15 @@ test('pages surface is a product cabinet with html edit', async t => {
     openWorkspaceFile: product => { opened = product; },
   }));
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
-  assert.match(ui.doc.querySelector('h1').textContent, /资料库/);
-  assert.match(ui.doc.querySelector('[data-testid="library-panel-pages"]').textContent, /产物/);
+  assert.match(ui.doc.querySelector('h1').textContent, /产物文件夹/);
+  assert.match(ui.doc.querySelector('[data-testid="library-panel-pages"]').textContent, /HTML/);
   assert.equal(ui.doc.querySelector('[data-testid="library-products-empty"]'), null);
   const list = ui.doc.querySelector('[data-testid="library-products-list"]');
   assert.match(list.textContent, /week\.html/);
   assert.match(list.textContent, /week\.csv/);
+  assert.match(list.textContent, /week\.xlsx/);
+  assert.match(ui.doc.querySelector('[data-testid="library-panel-csv"]').textContent, /CSV/);
+  assert.match(ui.doc.querySelector('[data-testid="library-panel-sheet"]').textContent, /表格/);
   assert.equal(ui.doc.querySelector('[data-kind="html"] [data-testid="library-product-edit"]'), null);
   assert.equal(ui.doc.querySelector('[data-kind="spreadsheet"] [data-testid="library-product-edit"]'), null);
   await ui.click('[data-kind="html"] [data-testid="library-product-open"]');
@@ -749,4 +761,36 @@ test('pages surface is a product cabinet with html edit', async t => {
   assert.ok(ui.doc.querySelector('[data-testid="library-products-list"]'));
   await ui.click('[data-kind="board"] [data-testid="library-product-open"]');
   assert.equal(ui.doc.querySelector('[data-testid="library-panel-board"]').getAttribute('aria-pressed'), 'true');
+  assert.ok(ui.doc.querySelector('[data-testid="layout-start"]'));
+  assert.match(ui.doc.querySelector('[data-testid="layout-start"]').textContent ?? '', /调整布局/);
+  assert.match(ui.doc.querySelector('[data-testid="library-edit-menu"]')?.textContent ?? '', /AI 编辑/);
+  assert.doesNotMatch(ui.doc.querySelector('[data-testid="library-edit-menu"]')?.textContent ?? '', /快速改字/);
+});
+
+test('board edit menu rolls back previous version and dismisses on Escape', async t => {
+  const ui = await domFixture(t), saved = librarySnapshot({ version: 2 });
+  const operations = [];
+  const client = createLibraryBoardClient(async (_channel, operation, payload) => {
+    operations.push(operation);
+    if (operation === 'list') return ok(listOf(saved));
+    if (operation === 'get') return ok(saved);
+    if (operation === 'history') return ok([{ version: 1, operation: 'GENERATE', created_at_ms: 1 }]);
+    if (operation === 'rollback_preview') {
+      assert.equal(payload.to_version, 1);
+      return ok(libraryPreview(librarySnapshot({ version: 3 }), { operation: 'ROLLBACK', base_version: 2 }));
+    }
+    throw new Error(`unexpected ${operation}`);
+  }); t.after(() => client.dispose());
+  await ui.render(React.createElement(LibraryCockpitPanel, { library: client,
+    themeSource: { subscribe: () => () => {}, getSnapshot: () => 'light' }, goConversation() {} }));
+  await act(async () => client.openBoard(saved.spec.board_id));
+  const menu = ui.doc.querySelector('[data-testid="library-edit-menu"]');
+  assert.equal(menu.hidden, true);
+  await ui.click('.sm-library-edit > button');
+  assert.equal(menu.hidden, false);
+  await act(async () => { ui.doc.dispatchEvent(new ui.doc.defaultView.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  assert.equal(menu.hidden, true);
+  await ui.click('[data-testid="library-rollback-previous"]');
+  assert.equal(client.getSnapshot().preview.operation, 'ROLLBACK');
+  assert.deepEqual(operations.filter(name => name === 'history' || name === 'rollback_preview'), ['history', 'rollback_preview']);
 });
