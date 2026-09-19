@@ -5,7 +5,7 @@
 
 | 项 | 状态 |
 |---|---|
-| VERSION / main | VERSION **0.9.0.8**。origin/main **`22a0028f`**（#210）。loopback。**不上公网**。产品仍 PARTIAL。 |
+| VERSION / main | VERSION **0.9.0.9**（本分支候选）。origin/main **`22a0028f`**（#210）。loopback。**不上公网**。产品仍 PARTIAL。 |
 | DSH 钉 | **0.1.6-alpha.2**（`ddefc45f`）。6677 PID **637** remainder 无 `--fresh`。隔离页库 `127.0.0.1:18091`（`--page-http on`）。 |
 | 产品 | 仍 PARTIAL。自由 HTML 已合 #209+#210；P13 真模型样本未跑。Goal PAUSED。账本：[产品验收与发布准备](docs/hackathon/PRODUCT-READINESS-2026-09-10.md) |
 | T13 | 本候选收口。有界复测、会话中途断网／401、小型 DuckDB 6 用户。`diag.fixed_cohort` 保持 UNSUPPORTED。131GB 只读元数据，禁止复制／改写／全表扫描 |

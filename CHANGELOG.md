@@ -6,6 +6,11 @@
 - 账本：STATUS origin/main 对齐 `#207` `7a465316`。合入后指针会再差本 PR 一拍。不上公网。
 - 账本：根 README、docs 索引、DSH-PLUGIN-UI-COMPAT 对齐 #207 现役插槽（登录/主题、composer.dock、retain）。不上公网。
 
+## [0.9.0.9]
+
+- 驾驶舱：独立二级页产物柜；页头「编辑」留在本页；侧轨调整布局／回退；HTML shine-node 悬停。不改 DSH 上游。不上公网。
+- 驾驶舱：去掉路径栏第二编辑入口和点板块进原生对话；页头样式走组件内联 CSS（打包抽出的 client.css 宿主不加载）。不上公网。
+
 ## [0.9.0.8]
 
 - 修复：shine-brand 客户端导出 `inject = ['slots']`。Cordis 在未声明 inject 时读 `ctx.slots` 会抛 `cannot get property "slots" without inject`，web boot 记成 `: failed`。同时不再打包 JSX／`react/jsx-runtime`。标题覆盖仍走 DOM 观察器；侧栏名以 priority -10 盖过官方 brand-official。不上公网。
