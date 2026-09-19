@@ -8,6 +8,14 @@ import { ActionsWorkbench } from './competition-actions/index.ts';
 import { OverlayErrorBoundary } from './overlay-error-boundary.mjs';
 import { crowdActionPackEnabled } from './crowd-action-pack.mjs';
 import { FreeHtmlLibraryApp } from './free-html-library/FreeHtmlLibraryApp.tsx';
+import { mergeCockpitProducts, type CockpitProduct } from './cockpit-products.mjs';
+
+const KIND_LABEL = { html: 'HTML', spreadsheet: '表格', pdf: 'PDF', board: '看板' };
+const EMPTY_PAGES: Array<{ page_id?: string; title?: string; version?: number }> = [];
+const emptyPageSnap = {
+  subscribe: (_listener: () => void) => () => {},
+  getSnapshot: () => EMPTY_PAGES,
+};
 
 const css = `
 .sm-library-workspace { min-width:0; display:flex; flex-direction:column; gap:16px; padding:20px; background:var(--sm-bg); color:var(--sm-ink); font-family:var(--sm-font-body); }
@@ -21,6 +29,11 @@ const css = `
 .sm-library-workspace button:not(.ant-btn):focus-visible,.sm-library-workspace select:focus-visible,.sm-library-workspace [tabindex]:focus-visible { outline:2px solid var(--sm-purple); outline-offset:3px; }
 .sm-library-workspace .sm-library-confirm { background:var(--sm-purple); color:var(--sm-bg); }
 .sm-library-banner { padding:12px; border:1px solid var(--sm-purple); border-radius:8px; display:flex; flex-direction:column; gap:12px; }
+.sm-library-products { display:flex; flex-direction:column; gap:12px; }
+.sm-library-products-hint { color:var(--sm-muted); font-size:13px; }
+.sm-library-products ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.sm-library-products li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--sm-line); border-radius:8px; }
+.sm-library-products li span:first-child { margin-right:auto; font-weight:500; }
 .sm-library-diff { overflow:auto; max-height:260px; }
 .sm-library-diff table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
 .sm-library-diff th,.sm-library-diff td { text-align:left; vertical-align:top; border-bottom:1px solid var(--sm-line); padding:8px; overflow-wrap:anywhere; white-space:pre-wrap; }
@@ -43,11 +56,48 @@ function EditDiff({ state }: { state: LibraryState }) {
   </div>;
 }
 
-export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board', pageStore }: {
+function CockpitProductsView({ items, busy, onRefresh, onOpen, onEdit }: {
+  items: CockpitProduct[];
+  busy: boolean;
+  onRefresh(): void;
+  onOpen(item: CockpitProduct): void;
+  onEdit(item: CockpitProduct): void;
+}) {
+  return (
+    <div className="sm-library-products" data-testid="library-products">
+      <p className="sm-library-products-hint">对话里生成的页面和文件会出现在这里。打开走官方预览；HTML 编辑进本页编辑器，不改上游。</p>
+      <div className="sm-library-toolbar">
+        <button type="button" data-testid="library-products-refresh" disabled={busy} onClick={onRefresh}>刷新产物</button>
+      </div>
+      {items.length === 0
+        ? <p data-testid="library-products-empty">还没有产物。</p>
+        : (
+          <ul data-testid="library-products-list">
+            {items.map(item => (
+              <li key={item.id} data-kind={item.kind}>
+                <span>{item.title}</span>
+                <span data-testid="library-product-kind">{KIND_LABEL[item.kind as keyof typeof KIND_LABEL] ?? item.kind}</span>
+                {item.subtitle ? <span>{item.subtitle}</span> : null}
+                <button type="button" data-testid="library-product-open" onClick={() => onOpen(item)}>打开</button>
+                {item.kind === 'html'
+                  ? <button type="button" data-testid="library-product-edit" onClick={() => onEdit(item)}>编辑</button>
+                  : null}
+              </li>
+            ))}
+          </ul>
+        )}
+    </div>
+  );
+}
+
+export function LibraryCockpitPanel({ library, goConversation, themeSource, initialSurface = 'board', pageStore,
+  listWorkspaceFiles, openWorkspaceFile }: {
   library: LibraryBoardClient; goConversation(): void;
   themeSource: { subscribe(listener: () => void): () => void; getSnapshot(): CompetitionColorScheme };
   initialSurface?: 'pages' | 'board';
   pageStore?: ReturnType<typeof import('./free-html-library/store.mjs').createFreeHtmlLibraryStore>;
+  listWorkspaceFiles?: () => Promise<Array<Record<string, unknown>>>;
+  openWorkspaceFile?: (product: Record<string, unknown>) => void;
 }) {
   const state = useSyncExternalStore(library.subscribe, library.getSnapshot);
   const colorScheme = useSyncExternalStore(themeSource.subscribe, themeSource.getSnapshot);
@@ -58,7 +108,18 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const wasBusy = useRef(state.busy);
   const [panel, setPanel] = useState<'pages' | 'board' | 'actions'>(initialSurface);
   const [visitedActions, setVisitedActions] = useState(false);
+  const [workspaceFiles, setWorkspaceFiles] = useState<Array<Record<string, unknown>>>([]);
+  const [editingHtml, setEditingHtml] = useState(false);
+  const pageList = useSyncExternalStore(
+    pageStore ? pageStore.subscribe : emptyPageSnap.subscribe,
+    () => (pageStore ? pageStore.getSnapshot().pages : EMPTY_PAGES),
+  );
   useEffect(() => { void library.refresh(); }, [library]);
+  const refreshProducts = () => {
+    if (typeof listWorkspaceFiles !== 'function') { setWorkspaceFiles([]); return; }
+    void listWorkspaceFiles().then(items => setWorkspaceFiles(Array.isArray(items) ? items : [])).catch(() => setWorkspaceFiles([]));
+  };
+  useEffect(() => { if (panel === 'pages') refreshProducts(); }, [panel, listWorkspaceFiles]);
   useEffect(() => { heading.current?.focus(); }, [state.preview?.preview_id, state.saved?.spec.board_id, Boolean(state.layoutDraft)]);
   useEffect(() => {
     if (state.busy || !state.confirmationUncertain || !state.preview) return;
@@ -87,7 +148,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
   const actionsEnabled = crowdActionPackEnabled();
   const boardChrome = panel !== 'pages';
   let headingText = shown?.spec.title ?? '我的驾驶舱';
-  if (panel === 'pages') headingText = '从资料库开始工作';
+  if (panel === 'pages') headingText = '驾驶舱产物';
   if (actionsEnabled && panel === 'actions') headingText = '人群行动';
   return <ThemeProvider colorScheme={colorScheme} className="sm-library-theme">
     <style>{css}</style>
@@ -99,7 +160,7 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
       </div>
       <nav className="sm-library-nav" aria-label="驾驶舱页面">
         <button type="button" aria-pressed={panel === 'pages'} data-testid="library-panel-pages"
-          onClick={() => setPanel('pages')}>自由页面</button>
+          onClick={() => { setEditingHtml(false); setPanel('pages'); }}>产物</button>
         <button type="button" aria-pressed={panel === 'board'} data-testid="library-panel-board"
           onClick={() => setPanel('board')}>我的驾驶舱</button>
         {actionsEnabled ? <button type="button" aria-pressed={panel === 'actions'} data-testid="analytics-competition-actions"
@@ -142,8 +203,31 @@ export function LibraryCockpitPanel({ library, goConversation, themeSource, init
         </div>
       </div> : null}
       <section hidden={panel !== 'pages'} data-testid="library-pages-view">
-        {panel === 'pages' ? <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
-          store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} /> : null}
+        {panel === 'pages' && editingHtml ? <>
+          <div className="sm-library-toolbar">
+            <button type="button" data-testid="library-products-back" onClick={() => setEditingHtml(false)}>返回产物</button>
+          </div>
+          <FreeHtmlLibraryApp goConversation={goConversation} themeSource={themeSource}
+            store={pageStore} hostOwnsConversationLeave={Boolean(pageStore)} />
+        </> : null}
+        {panel === 'pages' && !editingHtml ? <CockpitProductsView
+          items={mergeCockpitProducts({ files: workspaceFiles, boards: state.boards, pages: pageList })}
+          busy={state.busy}
+          onRefresh={refreshProducts}
+          onOpen={item => {
+            if (item.kind === 'board' && item.board_id) { void library.openBoard(item.board_id); setPanel('board'); return; }
+            if (item.page_id && pageStore) { void pageStore.openPage(item.page_id); setEditingHtml(true); return; }
+            openWorkspaceFile?.(item);
+          }}
+          onEdit={item => {
+            if (item.kind !== 'html') return;
+            if (item.page_id && pageStore) {
+              void pageStore.openPage(item.page_id);
+              pageStore.enterEdit();
+            }
+            setEditingHtml(true);
+          }}
+        /> : null}
       </section>
       <section hidden={panel !== 'board'} data-testid="library-board-view">
       <div className="sm-library-toolbar">

@@ -65,6 +65,10 @@ test('cockpit main source mounts BoardSpecCanvas and keeps 返回对话', () => 
       'the dirty check must guard the direct switch, not follow it');
   }
   assert.match(indexSource, /pageStore \}/);
+  assert.match(indexSource, /collectWorkspaceProducts/);
+  assert.match(indexSource, /listWorkspaceFiles/);
+  assert.match(indexSource, /openWorkspaceFile/);
+  assert.match(panelSource, /listWorkspaceFiles=\{props\.listWorkspaceFiles\}/);
   assert.match(indexSource, /name: 'conversation.composer.dock'/);
   assert.doesNotMatch(indexSource, /name: 'conversation.view'/);
 });

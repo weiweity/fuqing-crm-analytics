@@ -49,6 +49,7 @@ import { GenerateChipIcon, LibraryGenerateDock, LibraryPreviewToolCard } from '.
 import { BOARD_GENERATE_TOOL_NAME, BOARD_EDIT_TOOL_NAME } from '../competition-agent/family.mjs';
 import { PAGE_GENERATE_TOOL_NAME, PAGE_REQUEST_ID_PATTERN, PAGE_TOOL_RESULT_SCHEMA } from '../competition-agent/page-family.mjs';
 import { createCockpitComposition } from './cockpit-composition.mjs';
+import { collectWorkspaceProducts, fileResourceAddress } from './cockpit-products.mjs';
 import { callBoardConnection } from '../board-spec/connection-call.mjs';
 import { CockpitCompositionOverlay } from './cockpit-composition.tsx';
 import { boardPackEnabled, queryPackEnabled } from '../feature-pack-gate.mjs';
@@ -562,9 +563,23 @@ export function apply(ctx: Context): void {
       catch { return 'dark'; }
     },
   };
+  const listWorkspaceFiles = async () => {
+    const sessionId = resolvePageGenerateSession(ctx.sessions.list.getSnapshot(), composition?.getSnapshot()?.sessionId);
+    const filesApi = (ctx.remote as unknown as {
+      workspaceFiles?: { list?: (sessionId: string, path: string, signal?: AbortSignal) => Promise<unknown> };
+    }).workspaceFiles;
+    const list = filesApi?.list;
+    if (!sessionId || typeof list !== 'function') return [];
+    return collectWorkspaceProducts((id, path, signal) => list.call(filesApi, id, path, signal), sessionId);
+  };
+  const openWorkspaceFile = (product: { sessionId?: string; path?: string }) => {
+    const openResource = (ctx as unknown as { sidebarRight?: { openResource?(address: string): void } }).sidebarRight?.openResource;
+    if (!product?.sessionId || !product?.path || typeof openResource !== 'function') return;
+    openResource(fileResourceAddress(product.sessionId, product.path));
+  };
   if (boardPackEnabled() && composition && library) ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'shine-mage.cockpit-composition',
-    inject: () => ({ composition, library, themeSource, pageStore }),
+    inject: () => ({ composition, library, themeSource, pageStore, listWorkspaceFiles, openWorkspaceFile }),
   }, CockpitCompositionOverlay));
   /**
    * The N14 three-choice prompt. It is its own overlay so the leave transaction
@@ -691,6 +706,8 @@ export function apply(ctx: Context): void {
         library,
         composition,
         pageStore,
+        listWorkspaceFiles,
+        openWorkspaceFile,
         askTransport: http
           ? {
             fetchImpl: http.fetchImpl,
